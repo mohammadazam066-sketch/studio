@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -7,11 +8,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
-import { useAuth } from '@/lib/store.tsx';
+import { useAuth, getUser } from '@/lib/store';
 import { useToast } from '@/hooks/use-toast';
 import type { UserRole } from '@/lib/types';
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { getAuth } from 'firebase/auth';
 
 interface AuthFormProps {
   mode: 'login' | 'register';
@@ -42,11 +44,24 @@ export function AuthForm({ mode, role }: AuthFormProps) {
           title: "Registration successful!",
           description: "Welcome to TradeFlow.",
         });
+        const dashboardUrl = role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
+        router.push(dashboardUrl);
       } else { // Login mode
-        await login(email, password);
+        const userCredential = await login(email, password);
+        const user = userCredential.user;
+        
+        // After login, fetch the user's document to get their role
+        const userProfile = await getUser(user.uid);
+        if (userProfile) {
+          const dashboardUrl = userProfile.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
+          router.push(dashboardUrl);
+        } else {
+          // Fallback in case the user profile doesn't exist for some reason
+          await getAuth().signOut();
+          throw new Error("User profile not found. Please contact support.");
+        }
       }
-      const dashboardUrl = role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
-      router.push(dashboardUrl);
+      
       router.refresh(); // To ensure layout re-renders with new auth state
 
     } catch (e: any) {
@@ -54,7 +69,7 @@ export function AuthForm({ mode, role }: AuthFormProps) {
         ? "Invalid email or password."
         : e.message.includes('auth/email-already-in-use')
         ? "An account with this email already exists."
-        : "An error occurred. Please try again.";
+        : e.message || "An error occurred. Please try again.";
       
       setError(errorMessage);
       toast({
