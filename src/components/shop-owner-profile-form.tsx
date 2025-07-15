@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -6,18 +7,18 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useShopOwnerProfiles } from '@/lib/store';
 import type { ShopOwnerProfile } from '@/lib/types';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 
 export function ShopOwnerProfileForm() {
   const router = useRouter();
   const { toast } = useToast();
   const { getProfile, updateProfile } = useShopOwnerProfiles();
   
-  // In a real app, this would come from the logged-in user's session
   const shopOwnerId = 'user-2'; 
   
   const [profile, setProfile] = useState<ShopOwnerProfile>({
@@ -39,6 +40,29 @@ export function ShopOwnerProfileForm() {
     const { name, value } = e.target;
     setProfile(prev => ({...prev, [name]: value}));
   }
+
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const newPhotos: string[] = [];
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = (readEvent) => {
+          if (readEvent.target?.result) {
+            newPhotos.push(readEvent.target.result as string);
+            if (newPhotos.length === files.length) {
+              setProfile(prev => ({ ...prev, shopPhotos: [...prev.shopPhotos, ...newPhotos] }));
+            }
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    setProfile(prev => ({...prev, shopPhotos: prev.shopPhotos.filter((_, i) => i !== index)}));
+  };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -72,19 +96,36 @@ export function ShopOwnerProfileForm() {
             <Textarea id="address" name="address" placeholder="Describe your full address..." required value={profile.address} onChange={handleChange} />
           </div>
 
-          <div className="space-y-2 md:col-span-2">
+          <div className="space-y-4 md:col-span-2">
             <Label htmlFor="photos">Shop Photos</Label>
+             {profile.shopPhotos.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {profile.shopPhotos.map((photo, index) => (
+                  <div key={index} className="relative group">
+                    <Image src={photo} alt={`Upload preview ${index + 1}`} width={150} height={100} className="rounded-lg object-cover w-full aspect-video" />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={() => handleRemovePhoto(index)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="flex items-center justify-center w-full">
                 <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-secondary hover:bg-muted">
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                         <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
                         <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                        <p className="text-xs text-muted-foreground">SVG, PNG, JPG or GIF (MAX. 800x400px)</p>
+                        <p className="text-xs text-muted-foreground">PNG, JPG, GIF up to 10MB</p>
                     </div>
-                    <Input id="dropzone-file" type="file" className="hidden" multiple />
+                    <Input id="dropzone-file" type="file" className="hidden" multiple onChange={handlePhotoUpload} accept="image/png, image/jpeg, image/gif"/>
                 </label>
-            </div> 
-             {/* Note: Photo upload logic is mocked for this prototype */}
+            </div>
           </div>
 
         </CardContent>
