@@ -4,7 +4,7 @@
 import { useState, useEffect, createContext, useContext, Dispatch, SetStateAction } from 'react';
 import type { Requirement, Quotation, ShopOwnerProfile, User } from './types';
 import { auth, db, storage } from './firebase';
-import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, type UserCredential } from 'firebase/auth';
 import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, updateDoc, Timestamp, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 
@@ -13,8 +13,8 @@ interface AuthContextType {
   currentUser: User | null;
   setCurrentUser?: Dispatch<SetStateAction<User | null>>;
   loading: boolean;
-  login: (email: string, pass: string) => Promise<any>;
-  register: (name: string, email: string, pass: string, role: 'homeowner' | 'shop-owner') => Promise<any>;
+  login: (email: string, pass: string) => Promise<UserCredential>;
+  register: (name: string, email: string, pass: string, role: 'homeowner' | 'shop-owner') => Promise<UserCredential>;
   logout: () => Promise<void>;
 }
 
@@ -50,31 +50,68 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
   
   const register = async (name: string, email: string, pass: string, role: 'homeowner' | 'shop-owner') => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-    const user = userCredential.user;
-    
-    // Use a batch write to create user and profile atomically
-    const batch = writeBatch(db);
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+        const user = userCredential.user;
+        
+        // Use a batch write to create user and profile atomically
+        const batch = writeBatch(db);
 
-    const userDocRef = doc(db, 'users', user.uid);
-    batch.set(userDocRef, { name, email, role });
+        const userDocRef = doc(db, 'users', user.uid);
+        batch.set(userDocRef, { name, email, role });
 
-    // Create an empty profile for shop owners
-    if (role === 'shop-owner') {
-        const profileDocRef = doc(db, "shopOwnerProfiles", user.uid);
-        const newProfile: Omit<ShopOwnerProfile, 'id'> = {
-            name,
-            shopName: `${name}'s Shop`,
-            phoneNumber: '',
-            address: '',
-            location: '',
-            shopPhotos: [],
-        };
-        batch.set(profileDocRef, newProfile);
+        // Create an empty profile for shop owners
+        if (role === 'shop-owner') {
+            const profileDocRef = doc(db, "shopOwnerProfiles", user.uid);
+            const newProfile: Omit<ShopOwnerProfile, 'id'> = {
+                name,
+                shopName: `${name}'s Shop`,
+                phoneNumber: '',
+                address: '',
+                location: '',
+                shopPhotos: [],
+            };
+            batch.set(profileDocRef, newProfile);
+        }
+        
+        await batch.commit();
+        return userCredential;
+    } catch (error: any) {
+        // This handles the case where the user already exists in Firebase Auth
+        // but might be missing their Firestore documents.
+        if (error.code === 'auth/email-already-in-use') {
+            // Try to sign in to see if we have the correct user
+            const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+            const user = userCredential.user;
+            
+            // Check if a user document already exists. If so, re-throw original error.
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            if (userDoc.exists()) {
+                throw error; // User and profile already exist, it's a true "already in use" case.
+            }
+
+            // User exists in Auth, but not Firestore. Create their documents.
+            const batch = writeBatch(db);
+            const userDocRef = doc(db, 'users', user.uid);
+            batch.set(userDocRef, { name, email, role });
+            if (role === 'shop-owner') {
+                const profileDocRef = doc(db, "shopOwnerProfiles", user.uid);
+                 const newProfile: Omit<ShopOwnerProfile, 'id'> = {
+                    name,
+                    shopName: `${name}'s Shop`,
+                    phoneNumber: '',
+                    address: '',
+                    location: '',
+                    shopPhotos: [],
+                };
+                batch.set(profileDocRef, newProfile);
+            }
+            await batch.commit();
+            return userCredential; // Return the credential so login can proceed
+        }
+        // For other errors, just re-throw them.
+        throw error;
     }
-    
-    await batch.commit();
-    return userCredential;
   }
 
   const logout = () => {
