@@ -1,3 +1,4 @@
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -16,8 +17,11 @@ export default function HomePage() {
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-headline font-bold text-primary tracking-tighter">
               Welcome to TradeFlow
             </h1>
-            <p className="mt-4 max-w-2xl mx-auto text-base sm:text-lg text-muted-foreground">
-              The seamless connection between homeowners and skilled professionals. Find the right person for your job, or find your next project.
+            <p className="mt-4 max-w-3xl mx-auto text-base sm:text-lg text-muted-foreground">
+              Connecting homeowners with trusted local material suppliers and construction professionals.
+            </p>
+             <p className="mt-2 max-w-3xl mx-auto text-base sm:text-lg text-muted-foreground">
+              Find the right materials for your site, post your exact needs with photos, and get competitive local quotes directly in one place—saving your time and money.
             </p>
             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
               <Card className="text-left shadow-lg hover:shadow-xl transition-shadow duration-300">
