@@ -34,7 +34,14 @@ export function ShopOwnerProfileForm() {
       setProfile(existingProfile);
       setPhotos(existingProfile.shopPhotos || []);
     } else if (currentUser.name) {
-      setProfile({ name: currentUser.name });
+      // This is a fallback if the profile document doesn't exist for some reason
+      setProfile({ 
+        name: currentUser.name,
+        shopName: `${currentUser.name}'s Shop`,
+        phoneNumber: '',
+        address: '',
+        location: '',
+      });
     }
     setLoading(false);
   }, [currentUser]);
@@ -175,7 +182,7 @@ export function ShopOwnerProfileForm() {
                         <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
                         <p className="text-xs text-muted-foreground">PNG, JPG up to 10MB</p>
                     </div>
-                    <Input id="dropzone-file" type="file" className="hidden" multiple onChange={handlePhotoUpload} accept="image/png, image/jpeg, image/gif" disabled={saving || photos.length >= 5} />
+                    <Input id="dropzone-file" type="file" className="hidden" multiple onChange={handlePhotoUpload} accept="image/png, image/jpeg" disabled={saving || photos.length >= 5} />
                 </label>
             </div>
           </div>

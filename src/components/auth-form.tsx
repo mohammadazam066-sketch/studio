@@ -47,7 +47,7 @@ export function AuthForm({ mode, role }: AuthFormProps) {
         const dashboardUrl = role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
         router.push(dashboardUrl);
       } else { // Login mode
-        await login(email, password, role);
+        await login(email, password);
         
         // After login, fetch the user's document to get their role
         const user = getAuth().currentUser;
@@ -60,20 +60,23 @@ export function AuthForm({ mode, role }: AuthFormProps) {
           const dashboardUrl = userProfile.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
           router.push(dashboardUrl);
         } else {
-          // This case should now be handled by the login function, but as a fallback:
+          // This case should be handled by the login function, but as a fallback:
           await getAuth().signOut();
-          throw new Error("User profile could not be found or created. Please contact support.");
+          throw new Error("User profile could not be found. Please try registering or contact support.");
         }
       }
       
       router.refresh(); // To ensure layout re-renders with new auth state
 
     } catch (e: any) {
-      const errorMessage = e.message.includes('auth/invalid-credential') 
-        ? "Invalid email or password."
-        : e.message.includes('auth/email-already-in-use')
-        ? "An account with this email already exists."
-        : e.message || "An error occurred. Please try again.";
+      let errorMessage = e.message || "An error occurred. Please try again.";
+      if (typeof e.message === 'string') {
+        if (e.message.includes('auth/invalid-credential') || e.message.includes('auth/wrong-password') || e.message.includes('auth/user-not-found')) {
+           errorMessage = "Invalid email or password.";
+        } else if (e.message.includes('auth/email-already-in-use')) {
+           errorMessage = "An account with this email already exists.";
+        }
+      }
       
       setError(errorMessage);
       toast({

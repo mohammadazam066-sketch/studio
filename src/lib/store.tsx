@@ -13,7 +13,7 @@ interface AuthContextType {
   currentUser: User | null;
   setCurrentUser?: Dispatch<SetStateAction<User | null>>;
   loading: boolean;
-  login: (email: string, pass: string, role: 'homeowner' | 'shop-owner') => Promise<UserCredential>;
+  login: (email: string, pass: string) => Promise<UserCredential>;
   register: (name: string, email: string, pass: string, role: 'homeowner' | 'shop-owner') => Promise<UserCredential>;
   logout: () => Promise<void>;
 }
@@ -31,7 +31,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (userDoc.exists()) {
           setCurrentUser({ id: user.uid, ...userDoc.data() } as User);
         } else {
-            await signOut(auth);
+            // This case might happen if a user is in auth but not firestore.
+            // We will let the login/register logic handle creating the doc.
+            // Logging them out here can cause loops.
             setCurrentUser(null);
         }
       } else {
@@ -43,34 +45,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => unsubscribe();
   }, []);
 
-  const login = async (email: string, pass: string, role: 'homeowner' | 'shop-owner') => {
+  const login = async (email: string, pass: string) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, pass);
     const user = userCredential.user;
     
     const userDocRef = doc(db, 'users', user.uid);
     const userDoc = await getDoc(userDocRef);
 
+    // If user exists in Auth but not Firestore, create their doc now.
+    // This is a recovery mechanism. The role will be a default guess.
     if (!userDoc.exists()) {
-      const batch = writeBatch(db);
-      
-      const name = user.displayName || user.email || 'New User';
-
-      batch.set(userDocRef, { name, email, role });
-
-      if (role === 'shop-owner') {
-        const profileDocRef = doc(db, "shopOwnerProfiles", user.uid);
-        const newProfile: Omit<ShopOwnerProfile, 'id'> = {
-          name,
-          shopName: `${name}'s Shop`,
-          phoneNumber: '',
-          address: '',
-          location: '',
-          shopPhotos: [],
-        };
-        batch.set(profileDocRef, newProfile);
-      }
-      
-      await batch.commit();
+        const name = user.displayName || user.email?.split('@')[0] || 'New User';
+        const role = 'homeowner'; // A safe default
+        await setDoc(userDocRef, { name, email, role });
     }
     
     return userCredential;
@@ -122,6 +109,7 @@ export const useAuth = () => {
 // --- DATA FUNCTIONS ---
 
 export async function getUser(userId: string): Promise<User | undefined> {
+    if (!userId) return undefined;
     const userDoc = await getDoc(doc(db, 'users', userId));
     if (userDoc.exists()) {
         return { id: userDoc.id, ...userDoc.data() } as User;
@@ -130,6 +118,7 @@ export async function getUser(userId: string): Promise<User | undefined> {
 };
     
 export async function updateUser(userId: string, updatedDetails: Partial<Omit<User, 'id' | 'role' | 'password'>>) {
+    if (!userId) throw new Error("User ID is required to update user.");
     return updateDoc(doc(db, 'users', userId), updatedDetails);
 }
 
@@ -234,9 +223,7 @@ export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, '
             // It's a new file to upload.
             const storageRef = ref(storage, `profiles/${profileId}/shop-photo-${Date.now()}-${index}`);
             // photo.preview is a data URL (e.g., from URL.createObjectURL)
-            const response = await fetch(photo.preview);
-            const blob = await response.blob();
-            await uploadString(storageRef, photo.preview, 'data_url', { contentType: blob.type });
+            await uploadString(storageRef, photo.preview, 'data_url');
             return getDownloadURL(storageRef);
         })
     );

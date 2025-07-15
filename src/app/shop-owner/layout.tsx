@@ -51,15 +51,21 @@ export default function ShopOwnerLayout({ children }: { children: React.ReactNod
   const router = useRouter();
 
   useEffect(() => {
-    // Only run this check when loading is complete
-    if (!loading) {
-      if (!currentUser || currentUser.role !== 'shop-owner') {
-        router.push('/auth-pages/login?role=shop-owner');
-      }
+    // This effect runs when loading state changes.
+    // We only want to act when loading is finished.
+    if (loading) {
+      return; // Still loading, do nothing.
+    }
+
+    // If loading is finished and there's no user, or the user is not a shop-owner, redirect.
+    if (!currentUser || currentUser.role !== 'shop-owner') {
+      router.push('/auth-pages/login?role=shop-owner');
     }
   }, [currentUser, loading, router]);
 
-  if (loading || !currentUser) {
+  // While loading, or if the user is not the correct role yet, show the skeleton.
+  // This prevents a flash of content before the redirect can happen.
+  if (loading || !currentUser || currentUser.role !== 'shop-owner') {
     return <LayoutSkeleton />;
   }
 

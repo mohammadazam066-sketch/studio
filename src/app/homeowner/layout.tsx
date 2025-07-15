@@ -50,15 +50,21 @@ export default function HomeownerLayout({ children }: { children: React.ReactNod
   const router = useRouter();
 
   useEffect(() => {
-    // Only run this check when loading is complete
-    if (!loading) {
-      if (!currentUser || currentUser.role !== 'homeowner') {
-        router.push('/auth-pages/login?role=homeowner');
-      }
+    // This effect runs when loading state changes.
+    // We only want to act when loading is finished.
+    if (loading) {
+      return; // Still loading, do nothing.
+    }
+
+    // If loading is finished and there's no user, or the user is not a homeowner, redirect.
+    if (!currentUser || currentUser.role !== 'homeowner') {
+      router.push('/auth-pages/login?role=homeowner');
     }
   }, [currentUser, loading, router]);
   
-  if (loading || !currentUser) {
+  // While loading, or if the user is not the correct role yet, show the skeleton.
+  // This prevents a flash of content before the redirect can happen.
+  if (loading || !currentUser || currentUser.role !== 'homeowner') {
     return <LayoutSkeleton />;
   }
 
