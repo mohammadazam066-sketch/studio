@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -15,19 +16,51 @@ import { Logo } from '@/components/logo';
 import { useAuth } from '@/lib/store.tsx';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+
+function LayoutSkeleton() {
+  return (
+    <div className="flex h-screen w-full bg-muted/40">
+      <aside className="hidden md:flex flex-col w-56 border-r bg-background">
+        <div className="p-4">
+          <Skeleton className="h-8 w-32" />
+        </div>
+        <div className="flex flex-col gap-2 p-2">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      </aside>
+      <div className="flex flex-col flex-1">
+        <header className="flex items-center justify-between p-4 border-b md:hidden">
+           <Skeleton className="h-8 w-32" />
+           <Skeleton className="h-8 w-8 rounded-full" />
+        </header>
+        <main className="flex-1 p-6">
+           <Skeleton className="h-8 w-1/4 mb-4" />
+           <Skeleton className="h-32 w-full" />
+        </main>
+      </div>
+    </div>
+  );
+}
+
 
 export default function ShopOwnerLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && (!currentUser || currentUser.role !== 'shop-owner')) {
-      router.push('/auth-pages/login?role=shop-owner');
+    // Only run this check when loading is complete
+    if (!loading) {
+      if (!currentUser || currentUser.role !== 'shop-owner') {
+        router.push('/auth-pages/login?role=shop-owner');
+      }
     }
   }, [currentUser, loading, router]);
 
   if (loading || !currentUser) {
-    return <div>Loading...</div>; // Or a proper skeleton loader
+    return <LayoutSkeleton />;
   }
 
   return (
