@@ -40,7 +40,7 @@ export default function ShopOwnerDashboard() {
 
       {/* Filters */}
       <Card>
-        <CardContent className="p-4 grid sm:grid-cols-3 gap-4">
+        <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
             <SelectTrigger>
               <SelectValue placeholder="Filter by category" />
@@ -65,11 +65,11 @@ export default function ShopOwnerDashboard() {
 
       {/* Requirements Feed */}
       {filteredRequirements.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filteredRequirements.map(req => (
             <Card key={req.id} className="flex flex-col hover:shadow-lg transition-shadow">
               <CardHeader>
-                <CardTitle>{req.title}</CardTitle>
+                <CardTitle className="text-xl">{req.title}</CardTitle>
                 <CardDescription>{req.category}</CardDescription>
               </CardHeader>
               <CardContent className="flex-grow">
@@ -89,7 +89,7 @@ export default function ShopOwnerDashboard() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-20 border-2 border-dashed rounded-lg">
+        <div className="text-center py-10 sm:py-20 border-2 border-dashed rounded-lg">
           <h2 className="text-xl font-medium">No matching requirements</h2>
           <p className="text-muted-foreground mt-2">Try adjusting your filters or check back later.</p>
         </div>

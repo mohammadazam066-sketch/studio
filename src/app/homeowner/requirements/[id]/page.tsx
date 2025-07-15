@@ -73,7 +73,7 @@ export default function RequirementDetailPage() {
       {/* Requirement Details */}
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-start">
+          <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
             <div>
               <Badge variant="secondary" className="mb-2">{requirement.category}</Badge>
               <CardTitle className="font-headline text-2xl">{requirement.title}</CardTitle>
@@ -83,7 +83,7 @@ export default function RequirementDetailPage() {
                 {requirement.status}
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground pt-2">
+          <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground pt-2">
             <div className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {requirement.location}</div>
             <div className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> Posted on {format(new Date(requirement.createdAt), 'PPP')}</div>
             <div className="flex items-center gap-1.5"><Wrench className="w-4 h-4" /> By {requirement.homeownerName}</div>
@@ -91,7 +91,7 @@ export default function RequirementDetailPage() {
         </CardHeader>
         <CardContent>
           <p className="mb-6">{requirement.description}</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {requirement.photos.map((photo, index) => (
               <Image key={index} src={photo} alt={`${requirement.title} photo ${index + 1}`} width={300} height={200} className="rounded-lg object-cover" data-ai-hint="construction site" />
             ))}
@@ -107,7 +107,7 @@ export default function RequirementDetailPage() {
             {relatedQuotations.map(quote => (
               <Card key={quote.id} className="transition-shadow hover:shadow-md">
                 <CardHeader>
-                  <div className="flex justify-between items-center">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                     <CardTitle className="text-lg">{quote.shopOwnerName}</CardTitle>
                     <div className="flex items-center text-lg font-semibold text-primary">
                         <span className="font-sans mr-1">Rs</span>
@@ -117,11 +117,11 @@ export default function RequirementDetailPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-start gap-3 text-sm">
-                    <FileText className="w-4 h-4 mt-1 text-muted-foreground" />
+                    <FileText className="w-4 h-4 mt-1 text-muted-foreground flex-shrink-0" />
                     <p className="text-muted-foreground">{quote.terms}</p>
                   </div>
                    <div className="flex items-center gap-3 text-sm">
-                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                     <p className="text-muted-foreground">Expected by: {format(new Date(quote.deliveryDate), 'PPP')}</p>
                   </div>
                 </CardContent>

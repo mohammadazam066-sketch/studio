@@ -40,7 +40,7 @@ export default function ShopRequirementDetailPage() {
             <CardHeader>
             <Badge variant="secondary" className="mb-2 w-fit">{requirement.category}</Badge>
             <CardTitle className="font-headline text-2xl">{requirement.title}</CardTitle>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground pt-2">
+            <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground pt-2">
                 <div className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {requirement.location}</div>
                 <div className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> Posted on {format(new Date(requirement.createdAt), 'PPP')}</div>
                 <div className="flex items-center gap-1.5"><Wrench className="w-4 h-4" /> By {requirement.homeownerName}</div>
@@ -48,7 +48,7 @@ export default function ShopRequirementDetailPage() {
             </CardHeader>
             <CardContent>
             <p className="mb-6">{requirement.description}</p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {requirement.photos.map((photo, index) => (
                 <Image key={index} src={photo} alt={`${requirement.title} photo ${index + 1}`} width={300} height={200} className="rounded-lg object-cover" data-ai-hint="tools work" />
                 ))}

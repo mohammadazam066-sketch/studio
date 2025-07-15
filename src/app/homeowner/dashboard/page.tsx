@@ -24,7 +24,7 @@ export default function HomeownerDashboard() {
           <h1 className="text-2xl font-bold font-headline tracking-tight">My Requirements</h1>
           <p className="text-muted-foreground">View and manage all your project requirements.</p>
         </div>
-        <Button asChild>
+        <Button asChild className="w-full sm:w-auto">
           <Link href="/homeowner/requirements/new">
             <PlusCircle className="mr-2 h-4 w-4" />
             New Requirement
@@ -33,11 +33,11 @@ export default function HomeownerDashboard() {
       </div>
 
       {myRequirements.length > 0 ? (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {myRequirements.map((req) => (
             <Card key={req.id} className="flex flex-col">
               <CardHeader>
-                <CardTitle>{req.title}</CardTitle>
+                <CardTitle className="text-xl">{req.title}</CardTitle>
                 <CardDescription>{req.category} - {req.location}</CardDescription>
               </CardHeader>
               <CardContent className="flex-grow">
@@ -62,9 +62,9 @@ export default function HomeownerDashboard() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-20 border-2 border-dashed rounded-lg">
+        <div className="text-center py-10 sm:py-20 border-2 border-dashed rounded-lg">
           <h2 className="text-xl font-medium">No requirements yet</h2>
-          <p className="text-muted-foreground mt-2">Get started by posting your first requirement.</p>
+          <p className="text-muted-foreground mt-2 max-w-xs mx-auto">Get started by posting your first requirement.</p>
           <Button asChild className="mt-4">
             <Link href="/homeowner/requirements/new">Post a Requirement</Link>
           </Button>

@@ -12,18 +12,18 @@ export default function HomePage() {
       </header>
       <main className="flex-grow flex items-center justify-center">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <section className="py-20 sm:py-32">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-headline font-bold text-primary tracking-tighter">
+          <section className="py-12 sm:py-20">
+            <h1 className="text-3xl sm:text-5xl lg:text-6xl font-headline font-bold text-primary tracking-tighter">
               Welcome to TradeFlow
             </h1>
-            <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
+            <p className="mt-4 max-w-2xl mx-auto text-base sm:text-lg text-muted-foreground">
               The seamless connection between homeowners and skilled professionals. Find the right person for your job, or find your next project.
             </p>
-            <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
               <Card className="text-left shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <CardHeader>
                   <Home className="h-8 w-8 text-primary mb-2" />
-                  <CardTitle className="font-headline">For Homeowners</CardTitle>
+                  <CardTitle className="font-headline text-xl sm:text-2xl">For Homeowners</CardTitle>
                   <CardDescription>
                     Post your home improvement needs and receive competitive quotes from trusted local professionals.
                   </CardDescription>
@@ -37,7 +37,7 @@ export default function HomePage() {
               <Card className="text-left shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <CardHeader>
                   <Store className="h-8 w-8 text-primary mb-2" />
-                  <CardTitle className="font-headline">For Shop Owners</CardTitle>
+                  <CardTitle className="font-headline text-xl sm:text-2xl">For Shop Owners</CardTitle>
                   <CardDescription>
                     Browse a live feed of homeowner requirements in your area. Find projects and grow your business.
                   </CardDescription>

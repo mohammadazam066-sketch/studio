@@ -29,7 +29,7 @@ export default function ShopOwnerLayout({ children }: { children: React.ReactNod
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
-        <header className="flex items-center justify-between p-4 border-b md:hidden">
+        <header className="flex items-center justify-between p-4 border-b md:hidden sticky top-0 bg-background z-10">
           <Logo />
           <SidebarTrigger />
         </header>
