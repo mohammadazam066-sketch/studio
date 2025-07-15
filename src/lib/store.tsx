@@ -182,6 +182,10 @@ export async function getQuotationsForRequirement(requirementId: string) {
 
 
 export async function getProfile(shopOwnerId: string): Promise<ShopOwnerProfile | undefined> {
+    if (!shopOwnerId) {
+        console.error("getProfile called with no shopOwnerId");
+        return undefined;
+    }
     const docRef = doc(db, "shopOwnerProfiles", shopOwnerId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
