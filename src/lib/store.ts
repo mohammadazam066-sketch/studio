@@ -3,32 +3,32 @@
 import { useState, useEffect } from 'react';
 import type { Requirement, Quotation } from './types';
 
-// Helper to get data from sessionStorage
+// Helper to get data from localStorage
 function getFromStorage<T>(key: string, defaultValue: T): T {
   if (typeof window === 'undefined') {
     return defaultValue;
   }
-  const storedValue = window.sessionStorage.getItem(key);
+  const storedValue = window.localStorage.getItem(key);
   if (storedValue) {
     try {
       return JSON.parse(storedValue);
     } catch (e) {
-      console.error(`Error parsing sessionStorage item "${key}":`, e);
+      console.error(`Error parsing localStorage item "${key}":`, e);
       return defaultValue;
     }
   }
   return defaultValue;
 }
 
-// Helper to set data to sessionStorage
+// Helper to set data to localStorage
 function setToStorage<T>(key: string, value: T) {
   if (typeof window === 'undefined') {
     return;
   }
   try {
-    window.sessionStorage.setItem(key, JSON.stringify(value));
+    window.localStorage.setItem(key, JSON.stringify(value));
   } catch (e) {
-    console.error(`Error setting sessionStorage item "${key}":`, e);
+    console.error(`Error setting localStorage item "${key}":`, e);
   }
 }
 
@@ -45,8 +45,16 @@ export function useRequirements() {
     setRequirements(updatedRequirements);
     setToStorage('requirements', updatedRequirements);
   };
+  
+  const updateRequirementStatus = (requirementId: string, status: 'Open' | 'Purchased') => {
+    const updatedRequirements = requirements.map(req => 
+      req.id === requirementId ? { ...req, status } : req
+    );
+    setRequirements(updatedRequirements);
+    setToStorage('requirements', updatedRequirements);
+  };
 
-  return { requirements, addRequirement };
+  return { requirements, addRequirement, updateRequirementStatus };
 }
 
 // Hooks for managing quotations
