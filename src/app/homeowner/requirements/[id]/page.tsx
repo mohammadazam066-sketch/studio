@@ -1,26 +1,38 @@
 'use client';
 
 import { useRequirements, useQuotations } from '@/lib/store';
-import { notFound, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Calendar, Wrench, DollarSign, FileText, CheckCircle } from 'lucide-react';
+import { MapPin, Calendar, Wrench, FileText, CheckCircle, Mail, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
-import type { Requirement } from '@/lib/types';
-
+import type { Requirement, Quotation } from '@/lib/types';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { useToast } from '@/hooks/use-toast';
 
 export default function RequirementDetailPage() {
   const params = useParams();
   const { id } = params;
   
-  const { requirements } = useRequirements();
+  const { requirements, updateRequirementStatus } = useRequirements();
   const { getQuotationsForRequirement } = useQuotations();
+  const { toast } = useToast();
   
   const [requirement, setRequirement] = useState<Requirement | undefined>(undefined);
-  
+  const [selectedQuote, setSelectedQuote] = useState<Quotation | null>(null);
+
   useEffect(() => {
     if (id) {
       const foundRequirement = requirements.find(r => r.id === id);
@@ -28,8 +40,29 @@ export default function RequirementDetailPage() {
     }
   }, [id, requirements]);
 
+  const handlePurchaseClick = (quote: Quotation) => {
+    if (requirement?.status === 'Purchased') {
+      toast({
+        variant: "default",
+        title: "Already Purchased",
+        description: "You have already marked a quotation as purchased for this requirement.",
+      });
+      return;
+    }
+    setSelectedQuote(quote);
+  };
+  
+  const confirmPurchase = () => {
+    if (requirement && selectedQuote) {
+      updateRequirementStatus(requirement.id, 'Purchased');
+      toast({
+        title: "Purchase Confirmed!",
+        description: `You have purchased the quotation from ${selectedQuote.shopOwnerName}.`,
+      });
+    }
+  };
+
   if (!requirement) {
-    // You can show a loading state here if you want
     return <div>Loading...</div>;
   }
 
@@ -77,7 +110,7 @@ export default function RequirementDetailPage() {
                   <div className="flex justify-between items-center">
                     <CardTitle className="text-lg">{quote.shopOwnerName}</CardTitle>
                     <div className="flex items-center text-lg font-semibold text-primary">
-                        <DollarSign className="w-5 h-5 mr-1" />
+                        <span className="font-sans mr-1">Rs</span>
                         {quote.amount.toFixed(2)}
                     </div>
                   </div>
@@ -93,9 +126,13 @@ export default function RequirementDetailPage() {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+                  <Button 
+                    className="w-full bg-accent hover:bg-accent/90 text-accent-foreground disabled:bg-gray-400"
+                    onClick={() => handlePurchaseClick(quote)}
+                    disabled={requirement.status === 'Purchased'}
+                  >
                     <CheckCircle className="mr-2 h-4 w-4" />
-                    Mark as Purchased
+                    {requirement.status === 'Purchased' ? 'Purchased' : 'Mark as Purchased'}
                   </Button>
                 </CardFooter>
               </Card>
@@ -108,6 +145,32 @@ export default function RequirementDetailPage() {
           </div>
         )}
       </div>
+
+       {/* Confirmation Dialog */}
+       <AlertDialog open={!!selectedQuote} onOpenChange={(isOpen) => !isOpen && setSelectedQuote(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Purchase</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to purchase the quotation from <span className="font-bold">{selectedQuote?.shopOwnerName}</span> for <span className="font-bold">Rs{selectedQuote?.amount.toFixed(2)}</span>.
+              <br/><br/>
+              The shop owner will be notified. You can contact them directly:
+              <div className="flex items-center gap-2 mt-2">
+                <Mail className="h-4 w-4" /> <span>{selectedQuote?.shopOwnerEmail}</span>
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <Phone className="h-4 w-4" /> <span>{selectedQuote?.shopOwnerPhone}</span>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmPurchase} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+              Confirm & Purchase
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

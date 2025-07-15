@@ -71,6 +71,8 @@ export function QuotationForm({ requirement }: { requirement: Requirement }) {
         requirementId: requirement.id,
         shopOwnerId: 'user-2', // Mocked user ID
         shopOwnerName: 'Bob Builder', // Mocked user name
+        shopOwnerEmail: 'bob@builder.com', // Mocked user email
+        shopOwnerPhone: '+91-9876543210', // Mocked user phone
         amount: Number(formData.get('amount')),
         terms: formData.get('terms') as string,
         deliveryDate: date,
@@ -95,7 +97,7 @@ export function QuotationForm({ requirement }: { requirement: Requirement }) {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="amount">Amount ($)</Label>
+            <Label htmlFor="amount">Amount (Rs)</Label>
             <Input id="amount" name="amount" type="number" placeholder="e.g., 450.00" required />
           </div>
 

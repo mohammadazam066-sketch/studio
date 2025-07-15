@@ -25,6 +25,8 @@ export type Quotation = {
   requirementId: string;
   shopOwnerId: string;
   shopOwnerName: string;
+  shopOwnerEmail: string;
+  shopOwnerPhone: string;
   amount: number;
   terms: string;
   deliveryDate: Date | string;
