@@ -39,7 +39,7 @@ export function UserProfileForm() {
     if (!currentUser) return;
     setSaving(true);
     try {
-        const updatedDetails = { name: user.name, email: user.email };
+        const updatedDetails = { name: user.name }; // Email editing is disabled
         await updateUser(currentUser.id, updatedDetails);
         
         // Optimistically update the user in the context
@@ -78,7 +78,7 @@ export function UserProfileForm() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>
-            <Input id="email" name="email" type="email" placeholder="e.g., alice@example.com" required value={user.email || ''} onChange={handleChange} disabled={saving} />
+            <Input id="email" name="email" type="email" placeholder="e.g., alice@example.com" required value={user.email || ''} onChange={handleChange} disabled={true} title="Email address cannot be changed." />
           </div>
         </CardContent>
         <CardFooter>

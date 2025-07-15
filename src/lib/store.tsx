@@ -5,7 +5,7 @@ import { useState, useEffect, createContext, useContext, Dispatch, SetStateActio
 import type { Requirement, Quotation, ShopOwnerProfile, User } from './types';
 import { auth, db, storage } from './firebase';
 import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, type UserCredential } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, updateDoc, Timestamp, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 
 // --- AUTH CONTEXT ---
@@ -31,8 +31,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (userDoc.exists()) {
           setCurrentUser({ id: user.uid, ...userDoc.data() } as User);
         } else {
-            // This case might happen if the user exists in Auth but not in Firestore.
-            // For this app, we'll log them out as a safeguard, but the login/register flow should handle creation.
             await signOut(auth);
             setCurrentUser(null);
         }
@@ -49,15 +47,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const userCredential = await signInWithEmailAndPassword(auth, email, pass);
     const user = userCredential.user;
     
-    // After successful sign-in, ensure the user document exists in Firestore.
     const userDocRef = doc(db, 'users', user.uid);
     const userDoc = await getDoc(userDocRef);
 
     if (!userDoc.exists()) {
-      // User is in Auth but not Firestore. Let's create their records.
       const batch = writeBatch(db);
       
-      // Use email as a fallback for the name if not available
       const name = user.displayName || user.email || 'New User';
 
       batch.set(userDocRef, { name, email, role });
@@ -85,13 +80,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
     const user = userCredential.user;
     
-    // Use a batch write to create user and profile atomically
     const batch = writeBatch(db);
 
     const userDocRef = doc(db, 'users', user.uid);
     batch.set(userDocRef, { name, email, role });
 
-    // Create an empty profile for shop owners
     if (role === 'shop-owner') {
         const profileDocRef = doc(db, "shopOwnerProfiles", user.uid);
         const newProfile: Omit<ShopOwnerProfile, 'id'> = {
@@ -269,6 +262,16 @@ export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, '
         location: updatedProfileData.location,
         shopPhotos: newPhotoUrls,
     };
+    
+    const batch = writeBatch(db);
 
-    return setDoc(doc(db, "shopOwnerProfiles", profileId), profileToUpdate, { merge: true });
+    // Update shopOwnerProfiles collection
+    const profileDocRef = doc(db, "shopOwnerProfiles", profileId);
+    batch.set(profileDocRef, profileToUpdate, { merge: true });
+
+    // Update users collection with the new name
+    const userDocRef = doc(db, "users", profileId);
+    batch.update(userDocRef, { name: updatedProfileData.name });
+
+    await batch.commit();
 };
