@@ -1,12 +1,13 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export type UserRole = 'homeowner' | 'shop-owner';
 
 export type User = {
   id: string;
-  name: string;
-  email: string;
-  password?: string; // Only used for client-side forms, not stored in DB
+  username: string;
+  email: string; 
+  password?: string; 
   role: UserRole;
 };
 
@@ -39,7 +40,7 @@ export type Quotation = {
 
 export type ShopOwnerProfile = {
   id: string; // Corresponds to user.uid
-  name: string;
+  username: string;
   shopName: string;
   phoneNumber: string;
   address: string;

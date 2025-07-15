@@ -16,7 +16,7 @@ import type { User } from '@/lib/types';
 export function UserProfileForm() {
   const router = useRouter();
   const { toast } = useToast();
-  const { currentUser, setCurrentUser } = useAuth(); // Assuming setCurrentUser is available from context to update UI
+  const { currentUser, setCurrentUser } = useAuth(); 
   
   const [user, setUser] = useState<Partial<User>>({});
   const [loading, setLoading] = useState(true);
@@ -24,7 +24,7 @@ export function UserProfileForm() {
 
   useEffect(() => {
     if (currentUser) {
-        setUser({ name: currentUser.name, email: currentUser.email });
+        setUser({ username: currentUser.username, email: currentUser.email });
         setLoading(false);
     }
   }, [currentUser]);
@@ -39,10 +39,9 @@ export function UserProfileForm() {
     if (!currentUser) return;
     setSaving(true);
     try {
-        const updatedDetails = { name: user.name }; // Email editing is disabled
+        const updatedDetails = { username: user.username };
         await updateUser(currentUser.id, updatedDetails);
         
-        // Optimistically update the user in the context
         if (setCurrentUser) {
           setCurrentUser(prevUser => prevUser ? {...prevUser, ...updatedDetails} : null);
         }
@@ -73,12 +72,12 @@ export function UserProfileForm() {
         </CardHeader>
         <CardContent className="grid gap-6 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="name">Your Name</Label>
-            <Input id="name" name="name" placeholder="e.g., Alice" required value={user.name || ''} onChange={handleChange} disabled={saving} />
+            <Label htmlFor="username">Your Username</Label>
+            <Input id="username" name="username" placeholder="e.g., alice" required value={user.username || ''} onChange={handleChange} disabled={saving} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>
-            <Input id="email" name="email" type="email" placeholder="e.g., alice@example.com" required value={user.email || ''} onChange={handleChange} disabled={true} title="Email address cannot be changed." />
+            <Input id="email" name="email" type="email" placeholder="e.g., alice@tradeflow.app" required value={user.email || ''} onChange={handleChange} disabled={true} title="Email address cannot be changed." />
           </div>
         </CardContent>
         <CardFooter>

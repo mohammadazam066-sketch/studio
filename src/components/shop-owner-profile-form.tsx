@@ -33,11 +33,10 @@ export function ShopOwnerProfileForm() {
     if (existingProfile) {
       setProfile(existingProfile);
       setPhotos(existingProfile.shopPhotos || []);
-    } else if (currentUser.name) {
-      // This is a fallback if the profile document doesn't exist for some reason
+    } else if (currentUser.username) {
       setProfile({ 
-        name: currentUser.name,
-        shopName: `${currentUser.name}'s Shop`,
+        username: currentUser.username,
+        shopName: `${currentUser.username}'s Shop`,
         phoneNumber: '',
         address: '',
         location: '',
@@ -88,7 +87,7 @@ export function ShopOwnerProfileForm() {
         toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in.' });
         return;
     }
-    if (!profile.name || !profile.shopName || !profile.phoneNumber || !profile.location || !profile.address) {
+    if (!profile.username || !profile.shopName || !profile.phoneNumber || !profile.location || !profile.address) {
         toast({ variant: 'destructive', title: 'Error', description: 'Please fill out all required fields.' });
         return;
     }
@@ -125,8 +124,8 @@ export function ShopOwnerProfileForm() {
         </CardHeader>
         <CardContent className="grid gap-6 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="name">Your Name</Label>
-            <Input id="name" name="name" placeholder="e.g., John Smith" required value={profile.name || ''} onChange={handleChange} disabled={saving}/>
+            <Label htmlFor="username">Your Username</Label>
+            <Input id="username" name="username" placeholder="e.g., johnsmith" required value={profile.username || ''} onChange={handleChange} disabled={saving}/>
           </div>
           <div className="space-y-2">
             <Label htmlFor="shopName">Shop Name</Label>

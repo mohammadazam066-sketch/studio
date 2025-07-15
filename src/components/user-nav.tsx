@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useRouter } from 'next/navigation';
@@ -30,7 +31,7 @@ export function UserNav() {
     return null;
   }
 
-  const userInitial = currentUser.email ? currentUser.email.charAt(0).toUpperCase() : '?';
+  const userInitial = currentUser.username ? currentUser.username.charAt(0).toUpperCase() : '?';
   const profileUrl = currentUser.role === 'homeowner' ? '/homeowner/profile' : '/shop-owner/profile';
 
   return (
@@ -45,7 +46,7 @@ export function UserNav() {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none capitalize">{currentUser.name}</p>
+            <p className="text-sm font-medium leading-none capitalize">{currentUser.username}</p>
             <p className="text-xs leading-none text-muted-foreground">
               {currentUser.email}
             </p>

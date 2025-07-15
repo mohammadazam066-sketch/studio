@@ -15,8 +15,8 @@ interface AuthContextType {
   currentUser: User | null;
   setCurrentUser?: Dispatch<SetStateAction<User | null>>;
   loading: boolean;
-  login: (email: string, pass: string) => Promise<UserCredential>;
-  register: (name: string, email: string, pass: string, role: 'homeowner' | 'shop-owner') => Promise<UserCredential>;
+  login: (username: string, pass: string) => Promise<UserCredential>;
+  register: (username: string, pass: string, role: 'homeowner' | 'shop-owner') => Promise<UserCredential>;
   logout: () => Promise<void>;
 }
 
@@ -44,7 +44,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => unsubscribe();
   }, []);
 
-  const login = async (email: string, pass: string) => {
+  const login = async (username: string, pass: string) => {
+    const email = `${username.toLowerCase()}@tradeflow.app`;
     const userCredential = await signInWithEmailAndPassword(auth, email, pass);
     const user = userCredential.user;
     
@@ -52,18 +53,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const userDoc = await getDoc(userDocRef);
 
     if (!userDoc.exists()) {
-        const name = user.displayName || user.email?.split('@')[0] || 'New User';
-        // A simple heuristic to guess the role. In a real app, this might need a different flow.
-        // For now, let's default to homeowner and let them complete profile later.
         const role = 'homeowner'; 
         const batch = writeBatch(db);
-        batch.set(userDocRef, { name, email, role });
+        batch.set(userDocRef, { username, email, role });
 
         if (role === 'shop-owner') {
              const profileDocRef = doc(db, "shopOwnerProfiles", user.uid);
              const newProfile: Omit<ShopOwnerProfile, 'id'> = {
-                 name,
-                 shopName: `${name}'s Shop`,
+                 username,
+                 shopName: `${username}'s Shop`,
                  phoneNumber: '',
                  address: '',
                  location: '',
@@ -77,20 +75,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return userCredential;
   };
   
-  const register = async (name: string, email: string, pass:string, role: 'homeowner' | 'shop-owner') => {
+  const register = async (username: string, pass:string, role: 'homeowner' | 'shop-owner') => {
+    const email = `${username.toLowerCase()}@tradeflow.app`;
     const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
     const user = userCredential.user;
     
     const batch = writeBatch(db);
 
     const userDocRef = doc(db, 'users', user.uid);
-    batch.set(userDocRef, { name, email, role });
+    batch.set(userDocRef, { username, email, role });
 
     if (role === 'shop-owner') {
         const profileDocRef = doc(db, "shopOwnerProfiles", user.uid);
         const newProfile: Omit<ShopOwnerProfile, 'id'> = {
-            name,
-            shopName: `${name}'s Shop`,
+            username,
+            shopName: `${username}'s Shop`,
             phoneNumber: '',
             address: '',
             location: '',
@@ -131,7 +130,7 @@ export async function getUser(userId: string): Promise<User | undefined> {
     return undefined;
 };
     
-export async function updateUser(userId: string, updatedDetails: Partial<Omit<User, 'id' | 'role' | 'password'>>) {
+export async function updateUser(userId: string, updatedDetails: Partial<Omit<User, 'id' | 'role' | 'password' | 'email'>>) {
     if (!userId) throw new Error("User ID is required to update user.");
     return updateDoc(doc(db, 'users', userId), updatedDetails);
 }
@@ -157,7 +156,7 @@ export async function addRequirement(newRequirement: Omit<Requirement, 'id' | 'c
       ...newRequirement,
       photos: photoURLs,
       homeownerId: auth.currentUser.uid,
-      homeownerName: userData.name || 'Anonymous',
+      homeownerName: userData.username || 'Anonymous',
       createdAt: serverTimestamp(),
       status: 'Open',
     };
@@ -169,7 +168,6 @@ export async function addRequirement(newRequirement: Omit<Requirement, 'id' | 'c
 export async function updateRequirementStatus(requirementId: string, status: 'Open' | 'Purchased', purchasedQuote?: Quotation) {
     const dataToUpdate: { status: string; purchasedQuote?: any } = { status };
     if (status === 'Purchased' && purchasedQuote) {
-        // We store a denormalized version of the purchased quote for easy display later
         dataToUpdate.purchasedQuote = {
             id: purchasedQuote.id,
             shopOwnerId: purchasedQuote.shopOwnerId,
@@ -216,7 +214,6 @@ export async function addQuotation(newQuotation: Omit<Quotation, 'id' | 'created
 export async function updateQuotation(quotationId: string, updatedData: Partial<Quotation>) {
     if (!auth.currentUser) throw new Error("User not authenticated");
     const quotationRef = doc(db, 'quotations', quotationId);
-    // You might want to add a check here to ensure the currentUser.id matches the quotation's shopOwnerId
     return updateDoc(quotationRef, updatedData);
 }
 
@@ -267,7 +264,6 @@ export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, '
             if (typeof photo === 'string') {
                 return photo; // It's an existing URL, keep it.
             }
-            // It's a new file to upload.
             const storageRef = ref(storage, `profiles/${profileId}/shop-photo-${Date.now()}-${index}`);
             await uploadString(storageRef, photo.preview, 'data_url');
             return getDownloadURL(storageRef);
@@ -276,7 +272,6 @@ export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, '
     }
 
 
-    // Identify and delete photos that were removed from the UI
     const existingUrls = existingProfile?.shopPhotos || [];
     const removedUrls = existingUrls.filter(url => !newPhotoUrls.includes(url));
     await Promise.all(removedUrls.map(url => {
@@ -290,7 +285,7 @@ export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, '
     }));
 
     const profileToUpdate: Omit<ShopOwnerProfile, 'id'> = {
-        name: updatedProfileData.name,
+        username: updatedProfileData.username,
         shopName: updatedProfileData.shopName,
         phoneNumber: updatedProfileData.phoneNumber,
         address: updatedProfileData.address,
@@ -300,13 +295,11 @@ export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, '
     
     const batch = writeBatch(db);
 
-    // Update shopOwnerProfiles collection
     const profileDocRef = doc(db, "shopOwnerProfiles", profileId);
     batch.set(profileDocRef, profileToUpdate, { merge: true });
 
-    // Update users collection with the new name
     const userDocRef = doc(db, "users", profileId);
-    batch.update(userDocRef, { name: updatedProfileData.name });
+    batch.update(userDocRef, { username: updatedProfileData.username });
 
     await batch.commit();
 };

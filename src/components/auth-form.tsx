@@ -33,13 +33,15 @@ export function AuthForm({ mode, role }: AuthFormProps) {
     setError(null);
     setLoading(true);
     const formData = new FormData(event.currentTarget);
-    const email = formData.get('email') as string;
+    const username = formData.get('username') as string;
     const password = formData.get('password') as string;
+
+    // Use a domain for internal email construction
+    const email = `${username.toLowerCase()}@tradeflow.app`;
 
     try {
       if (mode === 'register') {
-        const name = formData.get('name') as string;
-        await register(name, email, password, role);
+        await register(username, password, role);
         toast({
           title: "Registration successful!",
           description: "Welcome to TradeFlow.",
@@ -47,9 +49,8 @@ export function AuthForm({ mode, role }: AuthFormProps) {
         const dashboardUrl = role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
         router.push(dashboardUrl);
       } else { // Login mode
-        await login(email, password);
+        await login(username, password);
         
-        // After login, fetch the user's document to get their role
         const user = getAuth().currentUser;
         if (!user) {
           throw new Error("Could not retrieve user after login.");
@@ -60,21 +61,22 @@ export function AuthForm({ mode, role }: AuthFormProps) {
           const dashboardUrl = userProfile.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
           router.push(dashboardUrl);
         } else {
-          // This case should be handled by the login function, but as a fallback:
           await getAuth().signOut();
           throw new Error("User profile could not be found. Please try registering or contact support.");
         }
       }
       
-      router.refresh(); // To ensure layout re-renders with new auth state
+      router.refresh(); 
 
     } catch (e: any) {
       let errorMessage = e.message || "An error occurred. Please try again.";
-      if (typeof e.message === 'string') {
+       if (typeof e.message === 'string') {
         if (e.message.includes('auth/invalid-credential') || e.message.includes('auth/wrong-password') || e.message.includes('auth/user-not-found')) {
-           errorMessage = "Invalid email or password.";
+           errorMessage = "Invalid username or password.";
         } else if (e.message.includes('auth/email-already-in-use')) {
-           errorMessage = "An account with this email already exists.";
+           errorMessage = "A user with this username already exists.";
+        } else if (e.message.includes('auth/invalid-email')) {
+           errorMessage = "Username is not valid. Please use only letters, numbers, and underscores.";
         }
       }
       
@@ -108,15 +110,9 @@ export function AuthForm({ mode, role }: AuthFormProps) {
             <CardDescription>{description}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {mode === 'register' && (
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input id="name" name="name" placeholder="John Doe" required disabled={loading} />
-              </div>
-            )}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" placeholder="m@example.com" required disabled={loading} />
+              <Label htmlFor="username">Username</Label>
+              <Input id="username" name="username" placeholder="Choose a username" required disabled={loading} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
