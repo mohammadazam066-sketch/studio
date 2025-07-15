@@ -15,6 +15,7 @@ interface NavLink {
 const homeownerNavLinks: NavLink[] = [
   { href: '/homeowner/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/homeowner/requirements/new', label: 'New Requirement', icon: PlusCircle },
+  { href: '/homeowner/profile', label: 'Profile', icon: User },
 ];
 
 const shopOwnerNavLinks: NavLink[] = [

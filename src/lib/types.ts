@@ -4,6 +4,7 @@ export type User = {
   id: string;
   name: string;
   email: string;
+  password?: string; // Optional on client, required for creation
   role: UserRole;
 };
 
