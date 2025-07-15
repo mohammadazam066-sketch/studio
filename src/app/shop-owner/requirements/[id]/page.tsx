@@ -1,17 +1,35 @@
-import { requirements } from '@/lib/data';
-import { notFound } from 'next/navigation';
+'use client';
+
+import { useRequirements } from '@/lib/store';
+import { notFound, useParams } from 'next/navigation';
 import Image from 'next/image';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { QuotationForm } from '@/components/quotation-form';
 import { MapPin, Calendar, Wrench } from 'lucide-react';
 import { format } from 'date-fns';
+import { useEffect, useState } from 'react';
+import type { Requirement } from '@/lib/types';
 
-export default function ShopRequirementDetailPage({ params }: { params: { id: string } }) {
-  const requirement = requirements.find(r => r.id === params.id);
-  
+
+export default function ShopRequirementDetailPage() {
+  const params = useParams();
+  const { id } = params;
+
+  const { requirements } = useRequirements();
+  const [requirement, setRequirement] = useState<Requirement | undefined>(undefined);
+
+  useEffect(() => {
+    if (id) {
+        const foundRequirement = requirements.find(r => r.id === id);
+        setRequirement(foundRequirement);
+    }
+  }, [id, requirements]);
+
+
   if (!requirement) {
-    notFound();
+    // You can add a loading skeleton or a message here
+    return <div>Loading requirement...</div>;
   }
 
   return (
@@ -24,7 +42,7 @@ export default function ShopRequirementDetailPage({ params }: { params: { id: st
             <CardTitle className="font-headline text-2xl">{requirement.title}</CardTitle>
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground pt-2">
                 <div className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {requirement.location}</div>
-                <div className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> Posted on {format(requirement.createdAt, 'PPP')}</div>
+                <div className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> Posted on {format(new Date(requirement.createdAt), 'PPP')}</div>
                 <div className="flex items-center gap-1.5"><Wrench className="w-4 h-4" /> By {requirement.homeownerName}</div>
             </div>
             </CardHeader>

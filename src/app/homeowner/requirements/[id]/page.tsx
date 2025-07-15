@@ -1,20 +1,39 @@
-import { requirements, quotations, users } from '@/lib/data';
-import { notFound } from 'next/navigation';
+'use client';
+
+import { useRequirements, useQuotations } from '@/lib/store';
+import { notFound, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Calendar, Wrench, DollarSign, FileText, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
+import { useEffect, useState } from 'react';
+import type { Requirement } from '@/lib/types';
 
-export default function RequirementDetailPage({ params }: { params: { id: string } }) {
-  const requirement = requirements.find(r => r.id === params.id);
+
+export default function RequirementDetailPage() {
+  const params = useParams();
+  const { id } = params;
   
+  const { requirements } = useRequirements();
+  const { getQuotationsForRequirement } = useQuotations();
+  
+  const [requirement, setRequirement] = useState<Requirement | undefined>(undefined);
+  
+  useEffect(() => {
+    if (id) {
+      const foundRequirement = requirements.find(r => r.id === id);
+      setRequirement(foundRequirement);
+    }
+  }, [id, requirements]);
+
   if (!requirement) {
-    notFound();
+    // You can show a loading state here if you want
+    return <div>Loading...</div>;
   }
 
-  const relatedQuotations = quotations.filter(q => q.requirementId === requirement.id);
+  const relatedQuotations = getQuotationsForRequirement(requirement.id);
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -33,7 +52,7 @@ export default function RequirementDetailPage({ params }: { params: { id: string
           </div>
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground pt-2">
             <div className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {requirement.location}</div>
-            <div className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> Posted on {format(requirement.createdAt, 'PPP')}</div>
+            <div className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> Posted on {format(new Date(requirement.createdAt), 'PPP')}</div>
             <div className="flex items-center gap-1.5"><Wrench className="w-4 h-4" /> By {requirement.homeownerName}</div>
           </div>
         </CardHeader>
@@ -70,7 +89,7 @@ export default function RequirementDetailPage({ params }: { params: { id: string
                   </div>
                    <div className="flex items-center gap-3 text-sm">
                     <Calendar className="w-4 h-4 text-muted-foreground" />
-                    <p className="text-muted-foreground">Expected by: {format(quote.deliveryDate, 'PPP')}</p>
+                    <p className="text-muted-foreground">Expected by: {format(new Date(quote.deliveryDate), 'PPP')}</p>
                   </div>
                 </CardContent>
                 <CardFooter>

@@ -16,7 +16,7 @@ export type Requirement = {
   location: string;
   photos: string[];
   description: string;
-  createdAt: Date;
+  createdAt: Date | string;
   status: 'Open' | 'Purchased';
 };
 
@@ -27,6 +27,6 @@ export type Quotation = {
   shopOwnerName: string;
   amount: number;
   terms: string;
-  deliveryDate: Date;
-  createdAt: Date;
+  deliveryDate: Date | string;
+  createdAt: Date | string;
 };

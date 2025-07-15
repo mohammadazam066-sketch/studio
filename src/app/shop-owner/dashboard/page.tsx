@@ -6,15 +6,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { requirements } from '@/lib/data';
+import { useRequirements } from '@/lib/store';
 import type { Requirement } from '@/lib/types';
 import { MapPin, Calendar, Search } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function ShopOwnerDashboard() {
-  const [allRequirements] = useState<Requirement[]>(requirements.filter(r => r.status === 'Open'));
+  const { requirements } = useRequirements();
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [locationFilter, setLocationFilter] = useState<string>('');
+
+  const allRequirements = useMemo(() => requirements.filter(r => r.status === 'Open'), [requirements]);
 
   const filteredRequirements = useMemo(() => {
     return allRequirements.filter(req => {
@@ -75,7 +77,7 @@ export default function ShopOwnerDashboard() {
                   <MapPin className="h-4 w-4" /> {req.location}
                  </div>
                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                   <Calendar className="h-4 w-4" /> Posted {formatDistanceToNow(req.createdAt, { addSuffix: true })}
+                   <Calendar className="h-4 w-4" /> Posted {formatDistanceToNow(new Date(req.createdAt), { addSuffix: true })}
                  </div>
               </CardContent>
               <CardFooter>

@@ -9,14 +9,33 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useRequirements } from '@/lib/store';
+import type { Requirement } from '@/lib/types';
 
 export function RequirementForm() {
   const router = useRouter();
   const { toast } = useToast();
+  const { addRequirement } = useRequirements();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // In a real app, this would submit data to a server
+    
+    const formData = new FormData(e.currentTarget);
+    const newRequirement: Requirement = {
+      id: `req-${Date.now()}`,
+      homeownerId: 'user-1', // Mocked user ID
+      homeownerName: 'Alice', // Mocked user name
+      title: formData.get('title') as string,
+      category: formData.get('category') as string,
+      location: formData.get('location') as string,
+      description: formData.get('description') as string,
+      photos: ['https://placehold.co/600x400.png'], // Mocked photo
+      createdAt: new Date(),
+      status: 'Open',
+    };
+
+    addRequirement(newRequirement);
+
     toast({
       title: "Requirement Posted!",
       description: "Professionals will now be able to view and quote your project.",
@@ -33,12 +52,12 @@ export function RequirementForm() {
         <CardContent className="grid gap-6 md:grid-cols-2">
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="title">Requirement Title</Label>
-            <Input id="title" placeholder="e.g., Leaky Kitchen Faucet Repair" required />
+            <Input id="title" name="title" placeholder="e.g., Leaky Kitchen Faucet Repair" required />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
-            <Select required>
+            <Select required name="category">
               <SelectTrigger id="category">
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
@@ -53,12 +72,12 @@ export function RequirementForm() {
           
           <div className="space-y-2">
             <Label htmlFor="location">Location</Label>
-            <Input id="location" placeholder="e.g., San Francisco, CA" required />
+            <Input id="location" name="location" placeholder="e.g., San Francisco, CA" required />
           </div>
 
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="description">Description (Optional)</Label>
-            <Textarea id="description" placeholder="Describe your project in detail..." />
+            <Textarea id="description" name="description" placeholder="Describe your project in detail..." />
           </div>
 
           <div className="space-y-2 md:col-span-2">

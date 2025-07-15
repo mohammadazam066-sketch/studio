@@ -13,14 +13,16 @@ import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, Loader2, Wand2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import type { Requirement } from '@/lib/types';
+import type { Requirement, Quotation } from '@/lib/types';
 import { getQuotationCategory } from '@/lib/actions';
 import type { CategorizeQuotationOutput } from '@/ai/flows/categorize-quotation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useQuotations } from '@/lib/store';
 
 export function QuotationForm({ requirement }: { requirement: Requirement }) {
   const router = useRouter();
   const { toast } = useToast();
+  const { addQuotation } = useQuotations();
   const [date, setDate] = useState<Date>();
   const [terms, setTerms] = useState<string>('');
   
@@ -51,8 +53,32 @@ export function QuotationForm({ requirement }: { requirement: Requirement }) {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    if (!date) {
+        toast({
+            variant: "destructive",
+            title: "Validation Error",
+            description: "Please select an expected delivery date.",
+        });
+        return;
+    }
+
+    const newQuotation: Quotation = {
+        id: `quote-${Date.now()}`,
+        requirementId: requirement.id,
+        shopOwnerId: 'user-2', // Mocked user ID
+        shopOwnerName: 'Bob Builder', // Mocked user name
+        amount: Number(formData.get('amount')),
+        terms: formData.get('terms') as string,
+        deliveryDate: date,
+        createdAt: new Date(),
+    };
+
+    addQuotation(newQuotation);
+
     toast({
       title: "Quotation Submitted!",
       description: "The homeowner has been notified of your quote.",
@@ -70,7 +96,7 @@ export function QuotationForm({ requirement }: { requirement: Requirement }) {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="amount">Amount ($)</Label>
-            <Input id="amount" type="number" placeholder="e.g., 450.00" required />
+            <Input id="amount" name="amount" type="number" placeholder="e.g., 450.00" required />
           </div>
 
           <div className="space-y-2">
@@ -103,6 +129,7 @@ export function QuotationForm({ requirement }: { requirement: Requirement }) {
             <Label htmlFor="terms">Terms & Description</Label>
             <Textarea 
               id="terms" 
+              name="terms"
               placeholder="Describe the scope of work, payment terms, etc." 
               required
               value={terms}

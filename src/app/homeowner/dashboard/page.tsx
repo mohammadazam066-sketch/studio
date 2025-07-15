@@ -1,15 +1,20 @@
+'use client';
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { requirements, quotations } from '@/lib/data';
+import { useRequirements, useQuotations } from '@/lib/store';
 import { PlusCircle, MessageSquare } from 'lucide-react';
 
 export default function HomeownerDashboard() {
-  // In a real app, filter requirements for the logged-in user.
-  const myRequirements = requirements.filter(r => r.homeownerId === 'user-1');
+  const { requirements } = useRequirements();
+  const { getQuotationsForRequirement } = useQuotations();
+  
+  // In a real app, you'd filter for the logged in user
+  const myRequirements = requirements; 
 
   const getQuoteCount = (reqId: string) => {
-    return quotations.filter(q => q.requirementId === reqId).length;
+    return getQuotationsForRequirement(reqId).length;
   };
 
   return (
