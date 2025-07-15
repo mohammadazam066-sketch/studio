@@ -30,7 +30,7 @@ export function SidebarNav({ role }: { role: UserRole }) {
       {navLinks.map((link) => (
         <SidebarMenuItem key={link.href}>
           <Link href={link.href} legacyBehavior passHref>
-            <SidebarMenuButton isActive={pathname === link.href} tooltip={link.label}>
+            <SidebarMenuButton isActive={pathname.startsWith(link.href)} tooltip={link.label}>
               <link.icon />
               <span>{link.label}</span>
             </SidebarMenuButton>
