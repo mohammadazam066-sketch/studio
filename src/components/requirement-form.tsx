@@ -57,8 +57,8 @@ export function RequirementForm() {
           </div>
 
           <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea id="description" placeholder="Describe your project in detail..." required />
+            <Label htmlFor="description">Description (Optional)</Label>
+            <Textarea id="description" placeholder="Describe your project in detail..." />
           </div>
 
           <div className="space-y-2 md:col-span-2">
