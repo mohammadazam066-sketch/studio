@@ -96,6 +96,7 @@ export default function RequirementDetailPage() {
   const [relatedQuotations, setRelatedQuotations] = useState<Quotation[]>([]);
   const [selectedQuote, setSelectedQuote] = useState<Quotation | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (typeof id !== 'string') return;
@@ -128,6 +129,7 @@ export default function RequirementDetailPage() {
       return;
     }
     setSelectedQuote(quote);
+    setIsDialogOpen(true);
   };
   
   const confirmPurchase = async () => {
@@ -141,6 +143,7 @@ export default function RequirementDetailPage() {
           className: 'bg-accent text-accent-foreground border-accent'
         });
         setSelectedQuote(null);
+        setIsDialogOpen(false);
         setRequirement(prev => prev ? { ...prev, status: 'Purchased' } : undefined);
       } catch (error) {
          toast({ variant: 'destructive', title: 'Error', description: 'Failed to update purchase status.' });
@@ -244,7 +247,7 @@ export default function RequirementDetailPage() {
       </div>
 
        {/* Confirmation Dialog */}
-       <AlertDialog open={!!selectedQuote} onOpenChange={(isOpen) => !isOpen && setSelectedQuote(null)}>
+       <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Purchase</AlertDialogTitle>
@@ -263,7 +266,7 @@ export default function RequirementDetailPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmPurchase} className="bg-accent hover:bg-accent/90 text-accent-foreground">
-              Confirm & Purchase
+              Confirm &amp; Purchase
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -271,3 +274,5 @@ export default function RequirementDetailPage() {
     </div>
   );
 }
+
+    
