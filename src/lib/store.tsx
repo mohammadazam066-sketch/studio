@@ -7,6 +7,8 @@ import { auth, db, storage } from './firebase';
 import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, type UserCredential } from 'firebase/auth';
 import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
+import type { Timestamp } from 'firebase/firestore';
+
 
 // --- AUTH CONTEXT ---
 interface AuthContextType {
@@ -31,9 +33,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (userDoc.exists()) {
           setCurrentUser({ id: user.uid, ...userDoc.data() } as User);
         } else {
-            // This case might happen if a user is in auth but not firestore.
-            // We will let the login/register logic handle creating the doc.
-            // Logging them out here can cause loops.
             setCurrentUser(null);
         }
       } else {
@@ -52,18 +51,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const userDocRef = doc(db, 'users', user.uid);
     const userDoc = await getDoc(userDocRef);
 
-    // If user exists in Auth but not Firestore, create their doc now.
-    // This is a recovery mechanism. The role will be a default guess.
     if (!userDoc.exists()) {
         const name = user.displayName || user.email?.split('@')[0] || 'New User';
-        const role = 'homeowner'; // A safe default
-        await setDoc(userDocRef, { name, email, role });
+        // A simple heuristic to guess the role. In a real app, this might need a different flow.
+        // For now, let's default to homeowner and let them complete profile later.
+        const role = 'homeowner'; 
+        const batch = writeBatch(db);
+        batch.set(userDocRef, { name, email, role });
+
+        if (role === 'shop-owner') {
+             const profileDocRef = doc(db, "shopOwnerProfiles", user.uid);
+             const newProfile: Omit<ShopOwnerProfile, 'id'> = {
+                 name,
+                 shopName: `${name}'s Shop`,
+                 phoneNumber: '',
+                 address: '',
+                 location: '',
+                 shopPhotos: [],
+             };
+             batch.set(profileDocRef, newProfile);
+        }
+        await batch.commit();
     }
     
     return userCredential;
   };
   
-  const register = async (name: string, email: string, pass: string, role: 'homeowner' | 'shop-owner') => {
+  const register = async (name: string, email: string, pass:string, role: 'homeowner' | 'shop-owner') => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
     const user = userCredential.user;
     
@@ -152,8 +166,19 @@ export async function addRequirement(newRequirement: Omit<Requirement, 'id' | 'c
     return docRef.id;
 }
   
-export async function updateRequirementStatus(requirementId: string, status: 'Open' | 'Purchased') {
-    return updateDoc(doc(db, 'requirements', requirementId), { status });
+export async function updateRequirementStatus(requirementId: string, status: 'Open' | 'Purchased', purchasedQuote?: Quotation) {
+    const dataToUpdate: { status: string; purchasedQuote?: any } = { status };
+    if (status === 'Purchased' && purchasedQuote) {
+        // We store a denormalized version of the purchased quote for easy display later
+        dataToUpdate.purchasedQuote = {
+            id: purchasedQuote.id,
+            shopOwnerId: purchasedQuote.shopOwnerId,
+            shopOwnerName: purchasedQuote.shopOwnerName,
+            shopName: purchasedQuote.shopName,
+            amount: purchasedQuote.amount,
+        };
+    }
+    return updateDoc(doc(db, 'requirements', requirementId), dataToUpdate);
 }
 
 export async function getRequirements(filters: { homeownerId?: string; status?: 'Open' | 'Purchased' } = {}) {
@@ -187,12 +212,34 @@ export async function addQuotation(newQuotation: Omit<Quotation, 'id' | 'created
     const docRef = await addDoc(collection(db, 'quotations'), quotationToAdd);
     return docRef.id;
 };
+
+export async function updateQuotation(quotationId: string, updatedData: Partial<Quotation>) {
+    if (!auth.currentUser) throw new Error("User not authenticated");
+    const quotationRef = doc(db, 'quotations', quotationId);
+    // You might want to add a check here to ensure the currentUser.id matches the quotation's shopOwnerId
+    return updateDoc(quotationRef, updatedData);
+}
+
+export async function getQuotationById(id: string): Promise<Quotation | undefined> {
+    const docRef = doc(db, 'quotations', id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() } as Quotation;
+    }
+    return undefined;
+}
   
 export async function getQuotationsForRequirement(requirementId: string) {
     const q = query(collection(db, 'quotations'), where('requirementId', '==', requirementId));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Quotation));
 };
+
+export async function getQuotationsByShopOwner(shopOwnerId: string) {
+    const q = query(collection(db, 'quotations'), where('shopOwnerId', '==', shopOwnerId));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Quotation));
+}
 
 
 export async function getProfile(shopOwnerId: string): Promise<ShopOwnerProfile | undefined> {
@@ -214,19 +261,20 @@ export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, '
     const profileId = auth.currentUser.uid;
     const existingProfile = await getProfile(profileId);
     
-    // Process photos: upload new ones, keep existing ones
-    const newPhotoUrls = await Promise.all(
-        updatedProfileData.shopPhotos.map(async (photo, index) => {
+    const newPhotoUrls: string[] = [];
+    if (updatedProfileData.shopPhotos) {
+        const photoUploadPromises = updatedProfileData.shopPhotos.map(async (photo, index) => {
             if (typeof photo === 'string') {
                 return photo; // It's an existing URL, keep it.
             }
             // It's a new file to upload.
             const storageRef = ref(storage, `profiles/${profileId}/shop-photo-${Date.now()}-${index}`);
-            // photo.preview is a data URL (e.g., from URL.createObjectURL)
             await uploadString(storageRef, photo.preview, 'data_url');
             return getDownloadURL(storageRef);
-        })
-    );
+        });
+        newPhotoUrls.push(...await Promise.all(photoUploadPromises));
+    }
+
 
     // Identify and delete photos that were removed from the UI
     const existingUrls = existingProfile?.shopPhotos || [];
@@ -241,7 +289,7 @@ export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, '
         }
     }));
 
-    const profileToUpdate = {
+    const profileToUpdate: Omit<ShopOwnerProfile, 'id'> = {
         name: updatedProfileData.name,
         shopName: updatedProfileData.shopName,
         phoneNumber: updatedProfileData.phoneNumber,

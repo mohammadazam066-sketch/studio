@@ -18,16 +18,24 @@ import type { Requirement, Quotation, ShopOwnerProfile } from '@/lib/types';
 import { getQuotationCategory } from '@/lib/actions';
 import type { CategorizeQuotationOutput } from '@/ai/flows/categorize-quotation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { addQuotation, getProfile, useAuth } from '@/lib/store';
+import { addQuotation, updateQuotation, getProfile, useAuth } from '@/lib/store';
 import { Timestamp } from 'firebase/firestore';
 
-export function QuotationForm({ requirement }: { requirement: Requirement }) {
+interface QuotationFormProps {
+    requirement: Requirement;
+    existingQuotation?: Quotation;
+}
+
+export function QuotationForm({ requirement, existingQuotation }: QuotationFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const { currentUser } = useAuth();
+  
+  const isEditMode = !!existingQuotation;
 
-  const [date, setDate] = useState<Date>();
-  const [terms, setTerms] = useState<string>('');
+  const [amount, setAmount] = useState<number | string>(existingQuotation?.amount ?? '');
+  const [date, setDate] = useState<Date | undefined>(existingQuotation?.deliveryDate ? (existingQuotation.deliveryDate as Timestamp).toDate() : undefined);
+  const [terms, setTerms] = useState<string>(existingQuotation?.terms ?? '');
   const [profile, setProfile] = useState<ShopOwnerProfile | null>(null);
   const [loading, setLoading] = useState(false);
   
@@ -74,7 +82,6 @@ export function QuotationForm({ requirement }: { requirement: Requirement }) {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    const formData = new FormData(e.currentTarget);
 
     if (!date) {
         toast({
@@ -96,29 +103,42 @@ export function QuotationForm({ requirement }: { requirement: Requirement }) {
         return;
     }
 
-    const newQuotation: Omit<Quotation, 'id' | 'createdAt'> = {
-        requirementId: requirement.id,
-        shopOwnerId: currentUser.id,
-        shopOwnerName: profile.name,
-        shopName: profile.shopName,
-        shopOwnerEmail: currentUser.email,
-        shopOwnerPhone: profile.phoneNumber,
-        amount: Number(formData.get('amount')),
-        terms: formData.get('terms') as string,
-        deliveryDate: Timestamp.fromDate(date),
-    };
-
     try {
-        await addQuotation(newQuotation);
-        toast({
-          title: "Quotation Submitted!",
-          description: "The homeowner has been notified of your quote.",
-        });
-        router.push('/shop-owner/dashboard');
+        if (isEditMode) {
+            const updatedQuotationData = {
+                amount: Number(amount),
+                terms: terms,
+                deliveryDate: Timestamp.fromDate(date),
+            };
+            await updateQuotation(existingQuotation.id, updatedQuotationData);
+            toast({
+                title: "Quotation Updated!",
+                description: "Your changes have been saved successfully.",
+            });
+            router.push('/shop-owner/my-quotations');
+        } else {
+            const newQuotation: Omit<Quotation, 'id' | 'createdAt'> = {
+                requirementId: requirement.id,
+                shopOwnerId: currentUser.id,
+                shopOwnerName: profile.name,
+                shopName: profile.shopName,
+                shopOwnerEmail: currentUser.email,
+                shopOwnerPhone: profile.phoneNumber,
+                amount: Number(amount),
+                terms: terms,
+                deliveryDate: Timestamp.fromDate(date),
+            };
+            await addQuotation(newQuotation);
+            toast({
+                title: "Quotation Submitted!",
+                description: "The homeowner has been notified of your quote.",
+            });
+            router.push('/shop-owner/dashboard');
+        }
         router.refresh();
     } catch (error) {
-        console.error("Failed to submit quotation:", error);
-        toast({ variant: 'destructive', title: 'Error', description: 'Failed to submit quotation.' });
+        console.error(`Failed to ${isEditMode ? 'update' : 'submit'} quotation:`, error);
+        toast({ variant: 'destructive', title: 'Error', description: `Failed to ${isEditMode ? 'update' : 'submit'} quotation.` });
     } finally {
         setLoading(false);
     }
@@ -128,13 +148,13 @@ export function QuotationForm({ requirement }: { requirement: Requirement }) {
     <form onSubmit={handleSubmit}>
       <Card className="sticky top-8">
         <CardHeader>
-          <CardTitle className="font-headline">Submit Quotation</CardTitle>
-          <CardDescription>Provide your quote for this project.</CardDescription>
+          <CardTitle className="font-headline">{isEditMode ? 'Edit Quotation' : 'Submit Quotation'}</CardTitle>
+          <CardDescription>{isEditMode ? 'Update your quote for this project.' : 'Provide your quote for this project.'}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="amount">Amount (Rs)</Label>
-            <Input id="amount" name="amount" type="number" placeholder="e.g., 450.00" required disabled={loading} />
+            <Input id="amount" name="amount" type="number" placeholder="e.g., 450.00" required disabled={loading} value={amount} onChange={(e) => setAmount(e.target.value)} />
           </div>
 
           <div className="space-y-2">
@@ -202,7 +222,7 @@ export function QuotationForm({ requirement }: { requirement: Requirement }) {
         <CardFooter>
           <Button type="submit" className="w-full" disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Submit Quotation
+            {isEditMode ? 'Save Changes' : 'Submit Quotation'}
           </Button>
         </CardFooter>
       </Card>
