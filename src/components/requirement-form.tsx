@@ -43,11 +43,10 @@ export function RequirementForm() {
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="plumbing">Plumbing</SelectItem>
-                <SelectItem value="electrical">Electrical</SelectItem>
-                <SelectItem value="carpentry">Carpentry</SelectItem>
-                <SelectItem value="painting">Painting</SelectItem>
-                <SelectItem value="general">General Construction</SelectItem>
+                <SelectItem value="cements">Cements</SelectItem>
+                <SelectItem value="steel">Steel</SelectItem>
+                <SelectItem value="bricks">Bricks</SelectItem>
+                <SelectItem value="plumbing-items">Plumbing items</SelectItem>
               </SelectContent>
             </Select>
           </div>
