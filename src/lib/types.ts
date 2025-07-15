@@ -25,6 +25,7 @@ export type Quotation = {
   requirementId: string;
   shopOwnerId: string;
   shopOwnerName: string;
+  shopName: string;
   shopOwnerEmail: string;
   shopOwnerPhone: string;
   amount: number;
@@ -35,6 +36,8 @@ export type Quotation = {
 
 export type ShopOwnerProfile = {
   id: string; // Corresponds to shopOwnerId
+  name: string;
+  shopName: string;
   phoneNumber: string;
   address: string;
   location: string;

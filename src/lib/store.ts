@@ -102,5 +102,5 @@ export function useShopOwnerProfiles() {
     setToStorage('shopOwnerProfiles', updatedProfiles);
   };
 
-  return { getProfile, updateProfile };
+  return { getProfile, updateProfile, profiles };
 }

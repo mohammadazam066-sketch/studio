@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Calendar, Wrench, FileText, CheckCircle, Mail, Phone } from 'lucide-react';
+import { MapPin, Calendar, Wrench, FileText, CheckCircle, Mail, Phone, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEffect, useState } from 'react';
 import type { Requirement, Quotation } from '@/lib/types';
@@ -21,6 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 export default function RequirementDetailPage() {
   const params = useParams();
@@ -108,7 +109,10 @@ export default function RequirementDetailPage() {
               <Card key={quote.id} className="transition-shadow hover:shadow-md">
                 <CardHeader>
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                    <CardTitle className="text-lg">{quote.shopOwnerName}</CardTitle>
+                    <div>
+                      <CardTitle className="text-lg">{quote.shopName}</CardTitle>
+                      <CardDescription>{quote.shopOwnerName}</CardDescription>
+                    </div>
                     <div className="flex items-center text-lg font-semibold text-primary">
                         <span className="font-sans mr-1">Rs</span>
                         {quote.amount.toFixed(2)}
@@ -125,7 +129,13 @@ export default function RequirementDetailPage() {
                     <p className="text-muted-foreground">Expected by: {format(new Date(quote.deliveryDate), 'PPP')}</p>
                   </div>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex flex-col sm:flex-row gap-2">
+                  <Button asChild variant="outline" className="w-full">
+                    <Link href={`/homeowner/profile/${quote.shopOwnerId}`}>
+                      <User className="mr-2 h-4 w-4" />
+                      View Profile
+                    </Link>
+                  </Button>
                   <Button 
                     className="w-full bg-accent hover:bg-accent/90 text-accent-foreground disabled:bg-gray-400"
                     onClick={() => handlePurchaseClick(quote)}

@@ -23,6 +23,8 @@ export function ShopOwnerProfileForm() {
   
   const [profile, setProfile] = useState<ShopOwnerProfile>({
     id: shopOwnerId,
+    name: 'Bob Builder', // Mocked user name
+    shopName: '',
     phoneNumber: '',
     address: '',
     location: '',
@@ -81,6 +83,15 @@ export function ShopOwnerProfileForm() {
           <CardTitle>Business Details</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-6 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="name">Your Name</Label>
+            <Input id="name" name="name" placeholder="e.g., John Smith" required value={profile.name} onChange={handleChange} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="shopName">Shop Name</Label>
+            <Input id="shopName" name="shopName" placeholder="e.g., Smith & Co. Plumbing" required value={profile.shopName} onChange={handleChange} />
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="phoneNumber">Phone Number</Label>
             <Input id="phoneNumber" name="phoneNumber" placeholder="e.g., +91-9876543210" required value={profile.phoneNumber} onChange={handleChange} />

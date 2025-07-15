@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { Button } from "@/components/ui/button";
@@ -13,22 +13,47 @@ import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, Loader2, Wand2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import type { Requirement, Quotation } from '@/lib/types';
+import type { Requirement, Quotation, ShopOwnerProfile } from '@/lib/types';
 import { getQuotationCategory } from '@/lib/actions';
 import type { CategorizeQuotationOutput } from '@/ai/flows/categorize-quotation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useQuotations } from '@/lib/store';
+import { useQuotations, useShopOwnerProfiles } from '@/lib/store';
 
 export function QuotationForm({ requirement }: { requirement: Requirement }) {
   const router = useRouter();
   const { toast } = useToast();
   const { addQuotation } = useQuotations();
+  const { getProfile } = useShopOwnerProfiles();
+
   const [date, setDate] = useState<Date>();
   const [terms, setTerms] = useState<string>('');
-  
+  const [profile, setProfile] = useState<ShopOwnerProfile | null>(null);
+
   const [isCategorizing, setIsCategorizing] = useState(false);
   const [aiResult, setAiResult] = useState<CategorizeQuotationOutput | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
+
+  const shopOwnerId = 'user-2'; // Mocked logged-in user
+
+  useEffect(() => {
+    const existingProfile = getProfile(shopOwnerId);
+    if (existingProfile) {
+      setProfile(existingProfile);
+    } else {
+        // Create a default profile if one doesn't exist
+        const defaultProfile: ShopOwnerProfile = {
+            id: shopOwnerId,
+            name: 'Bob Builder',
+            shopName: 'Bob\'s Hardware',
+            phoneNumber: '+91-9876543210',
+            address: '123 Main St',
+            location: 'Bengaluru, Karnataka',
+            shopPhotos: [],
+        }
+        setProfile(defaultProfile);
+    }
+  }, [getProfile]);
+
 
   const handleCategorize = async () => {
     if (!terms) {
@@ -65,14 +90,24 @@ export function QuotationForm({ requirement }: { requirement: Requirement }) {
         });
         return;
     }
+    
+    if (!profile) {
+        toast({
+            variant: "destructive",
+            title: "Profile Error",
+            description: "Could not load shop owner profile. Please try again.",
+        });
+        return;
+    }
 
     const newQuotation: Quotation = {
         id: `quote-${Date.now()}`,
         requirementId: requirement.id,
-        shopOwnerId: 'user-2', // Mocked user ID
-        shopOwnerName: 'Bob Builder', // Mocked user name
-        shopOwnerEmail: 'bob@builder.com', // Mocked user email
-        shopOwnerPhone: '+91-9876543210', // Mocked user phone
+        shopOwnerId: profile.id,
+        shopOwnerName: profile.name,
+        shopName: profile.shopName,
+        shopOwnerEmail: 'bob@example.com', // Mocked user email
+        shopOwnerPhone: profile.phoneNumber,
         amount: Number(formData.get('amount')),
         terms: formData.get('terms') as string,
         deliveryDate: date,
