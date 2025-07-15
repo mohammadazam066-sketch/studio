@@ -120,7 +120,7 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
             const newQuotation: Omit<Quotation, 'id' | 'createdAt'> = {
                 requirementId: requirement.id,
                 shopOwnerId: currentUser.id,
-                shopOwnerName: profile.name,
+                shopOwnerName: profile.username,
                 shopName: profile.shopName,
                 shopOwnerEmail: currentUser.email,
                 shopOwnerPhone: profile.phoneNumber,
