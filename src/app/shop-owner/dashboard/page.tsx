@@ -12,12 +12,32 @@ import type { Requirement } from '@/lib/types';
 import { MapPin, Calendar, Search } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import type { Timestamp } from 'firebase/firestore';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function formatFirebaseDate(date: Date | string | Timestamp) {
     if (!date) return '';
     const dateObj = (date as Timestamp)?.toDate ? (date as Timestamp).toDate() : new Date(date as string);
     return formatDistanceToNow(dateObj, { addSuffix: true });
 }
+
+function RequirementFeedSkeleton() {
+  return (
+    <Card className="flex flex-col">
+      <CardHeader>
+        <Skeleton className="h-6 w-3/4 mb-2" />
+        <Skeleton className="h-4 w-1/2" />
+      </CardHeader>
+      <CardContent className="flex-grow space-y-2">
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-2/3" />
+      </CardContent>
+      <CardFooter>
+        <Skeleton className="h-10 w-full" />
+      </CardFooter>
+    </Card>
+  );
+}
+
 
 export default function ShopOwnerDashboard() {
   const [allRequirements, setAllRequirements] = useState<Requirement[]>([]);
@@ -49,10 +69,6 @@ export default function ShopOwnerDashboard() {
     const allCategories = allRequirements.map(r => r.category);
     return ['all', ...Array.from(new Set(allCategories))];
   }, [allRequirements]);
-
-  if (loading) {
-    return <div>Loading requirements...</div>
-  }
 
   return (
     <div className="space-y-6">
@@ -87,7 +103,11 @@ export default function ShopOwnerDashboard() {
       </Card>
 
       {/* Requirements Feed */}
-      {filteredRequirements.length > 0 ? (
+      {loading ? (
+         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => <RequirementFeedSkeleton key={i} />)}
+        </div>
+      ) : filteredRequirements.length > 0 ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filteredRequirements.map(req => (
             <Card key={req.id} className="flex flex-col hover:shadow-lg transition-shadow">

@@ -24,11 +24,65 @@ import {
 } from "@/components/ui/alert-dialog"
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function formatDate(date: Date | string | Timestamp) {
     if (!date) return '';
     const dateObj = (date as Timestamp)?.toDate ? (date as Timestamp).toDate() : new Date(date as string);
     return format(dateObj, 'PPP');
+}
+
+function PageSkeleton() {
+  return (
+    <div className="max-w-4xl mx-auto space-y-8">
+      <Card>
+        <CardHeader>
+          <Skeleton className="h-6 w-1/4 mb-2" />
+          <Skeleton className="h-8 w-3/4" />
+          <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 sm:gap-4 pt-2">
+            <Skeleton className="h-5 w-1/3" />
+            <Skeleton className="h-5 w-1/3" />
+            <Skeleton className="h-5 w-1/3" />
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2 mb-6">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-2/3" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <Skeleton className="h-40 w-full" />
+            <Skeleton className="h-40 w-full" />
+            <Skeleton className="h-40 w-full" />
+          </div>
+        </CardContent>
+      </Card>
+       <div>
+        <h2 className="text-xl font-bold font-headline mb-4">Quotations Received</h2>
+        <div className="space-y-4">
+            <Card>
+                <CardHeader>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <div className="space-y-2">
+                           <Skeleton className="h-6 w-48" />
+                           <Skeleton className="h-4 w-32" />
+                        </div>
+                         <Skeleton className="h-8 w-24" />
+                    </div>
+                </CardHeader>
+                <CardContent>
+                   <Skeleton className="h-10 w-full" />
+                </CardContent>
+                <CardFooter className="flex flex-col sm:flex-row gap-2">
+                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full" />
+                </CardFooter>
+            </Card>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function RequirementDetailPage() {
@@ -46,14 +100,19 @@ export default function RequirementDetailPage() {
   const fetchData = useCallback(async () => {
     if (typeof id !== 'string') return;
     setLoading(true);
-    const reqData = await getRequirementById(id);
+    // Fetch requirement and quotations in parallel
+    const [reqData, quotesData] = await Promise.all([
+      getRequirementById(id),
+      getQuotationsForRequirement(id)
+    ]);
+
     if (reqData) {
       setRequirement(reqData);
-      const quotes = await getQuotationsForRequirement(id);
-      setRelatedQuotations(quotes);
+      setRelatedQuotations(quotesData);
     }
     setLoading(false);
   }, [id]);
+
 
   useEffect(() => {
     fetchData();
@@ -73,21 +132,24 @@ export default function RequirementDetailPage() {
   
   const confirmPurchase = async () => {
     if (requirement && selectedQuote) {
-      await updateRequirementStatus(requirement.id, 'Purchased');
-      toast({
-        title: "Purchase Confirmed!",
-        description: `You have purchased the quotation from ${selectedQuote.shopOwnerName}.`,
-        variant: 'default',
-        className: 'bg-accent text-accent-foreground border-accent'
-      });
-      setSelectedQuote(null);
-      // Refresh the local state instead of full router refresh for smoother UX
-      setRequirement(prev => prev ? { ...prev, status: 'Purchased' } : undefined);
+      try {
+        await updateRequirementStatus(requirement.id, 'Purchased');
+        toast({
+          title: "Purchase Confirmed!",
+          description: `You have purchased the quotation from ${selectedQuote.shopOwnerName}.`,
+          variant: 'default',
+          className: 'bg-accent text-accent-foreground border-accent'
+        });
+        setSelectedQuote(null);
+        setRequirement(prev => prev ? { ...prev, status: 'Purchased' } : undefined);
+      } catch (error) {
+         toast({ variant: 'destructive', title: 'Error', description: 'Failed to update purchase status.' });
+      }
     }
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <PageSkeleton />;
   }
 
   if (!requirement) {
