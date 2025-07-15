@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Wrench, LayoutDashboard, PlusCircle, Building, Briefcase, User } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, Briefcase, User } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
 
@@ -19,6 +19,7 @@ const homeownerNavLinks: NavLink[] = [
 
 const shopOwnerNavLinks: NavLink[] = [
   { href: '/shop-owner/dashboard', label: 'Requirements', icon: Briefcase },
+  { href: '/shop-owner/profile', label: 'Profile', icon: User },
 ];
 
 export function SidebarNav({ role }: { role: UserRole }) {
@@ -30,7 +31,7 @@ export function SidebarNav({ role }: { role: UserRole }) {
       {navLinks.map((link) => (
         <SidebarMenuItem key={link.href}>
           <Link href={link.href}>
-            <SidebarMenuButton isActive={pathname.startsWith(link.href)} tooltip={link.label}>
+            <SidebarMenuButton isActive={pathname === link.href} tooltip={link.label}>
               <link.icon />
               <span>{link.label}</span>
             </SidebarMenuButton>

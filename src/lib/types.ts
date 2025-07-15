@@ -21,7 +21,7 @@ export type Requirement = {
 };
 
 export type Quotation = {
-  id: string;
+  id:string;
   requirementId: string;
   shopOwnerId: string;
   shopOwnerName: string;
@@ -31,4 +31,12 @@ export type Quotation = {
   terms: string;
   deliveryDate: Date | string;
   createdAt: Date | string;
+};
+
+export type ShopOwnerProfile = {
+  id: string; // Corresponds to shopOwnerId
+  phoneNumber: string;
+  address: string;
+  location: string;
+  shopPhotos: string[];
 };

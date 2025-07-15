@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { Requirement, Quotation } from './types';
+import type { Requirement, Quotation, ShopOwnerProfile } from './types';
 
 // Helper to get data from localStorage
 function getFromStorage<T>(key: string, defaultValue: T): T {
@@ -76,4 +76,31 @@ export function useQuotations() {
   };
 
   return { quotations, addQuotation, getQuotationsForRequirement };
+}
+
+// Hooks for managing shop owner profiles
+export function useShopOwnerProfiles() {
+  const [profiles, setProfiles] = useState<ShopOwnerProfile[]>([]);
+
+  useEffect(() => {
+    setProfiles(getFromStorage('shopOwnerProfiles', []));
+  }, []);
+
+  const getProfile = (shopOwnerId: string): ShopOwnerProfile | undefined => {
+    return profiles.find(p => p.id === shopOwnerId);
+  };
+
+  const updateProfile = (updatedProfile: ShopOwnerProfile) => {
+    const exists = profiles.some(p => p.id === updatedProfile.id);
+    let updatedProfiles;
+    if (exists) {
+      updatedProfiles = profiles.map(p => p.id === updatedProfile.id ? updatedProfile : p);
+    } else {
+      updatedProfiles = [...profiles, updatedProfile];
+    }
+    setProfiles(updatedProfiles);
+    setToStorage('shopOwnerProfiles', updatedProfiles);
+  };
+
+  return { getProfile, updateProfile };
 }
