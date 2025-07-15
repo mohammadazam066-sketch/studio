@@ -43,7 +43,7 @@ export default function HomePage() {
                   <Store className="h-8 w-8 text-primary mb-2" />
                   <CardTitle className="font-headline text-xl sm:text-2xl">For Shop Owners</CardTitle>
                   <CardDescription>
-                    Browse a live feed of homeowner requirements in your area. Find projects and grow your business.
+                    View real homeowner requirements, send your best quotations, and win local business while growing your customer base effortlessly
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
