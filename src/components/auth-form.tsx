@@ -47,18 +47,22 @@ export function AuthForm({ mode, role }: AuthFormProps) {
         const dashboardUrl = role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
         router.push(dashboardUrl);
       } else { // Login mode
-        const userCredential = await login(email, password);
-        const user = userCredential.user;
+        await login(email, password, role);
         
         // After login, fetch the user's document to get their role
+        const user = getAuth().currentUser;
+        if (!user) {
+          throw new Error("Could not retrieve user after login.");
+        }
+        
         const userProfile = await getUser(user.uid);
         if (userProfile) {
           const dashboardUrl = userProfile.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
           router.push(dashboardUrl);
         } else {
-          // Fallback in case the user profile doesn't exist for some reason
+          // This case should now be handled by the login function, but as a fallback:
           await getAuth().signOut();
-          throw new Error("User profile not found. Please contact support.");
+          throw new Error("User profile could not be found or created. Please contact support.");
         }
       }
       
