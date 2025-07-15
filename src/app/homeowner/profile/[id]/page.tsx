@@ -11,22 +11,56 @@ import type { ShopOwnerProfile } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import { getUser } from '@/lib/store';
 import type { User as AppUser } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
+
+function ProfileSkeleton() {
+    return (
+        <Card className="max-w-4xl mx-auto">
+            <CardHeader className="text-center">
+                <Skeleton className="w-24 h-24 mx-auto rounded-full mb-4" />
+                <Skeleton className="h-8 w-1/2 mx-auto mb-2" />
+                <Skeleton className="h-6 w-1/3 mx-auto" />
+            </CardHeader>
+            <CardContent className="space-y-6">
+                <Separator />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <Skeleton className="h-5 w-1/4" />
+                        <Skeleton className="h-5 w-3/4" />
+                        <Skeleton className="h-5 w-3/4" />
+                    </div>
+                    <div className="space-y-2">
+                         <Skeleton className="h-5 w-1/4" />
+                         <Skeleton className="h-5 w-3/4" />
+                         <Skeleton className="h-4 w-1/2" />
+                    </div>
+                </div>
+                <Separator />
+                <div>
+                    <Skeleton className="h-6 w-1/4 mb-4" />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                        <Skeleton className="h-40 w-full aspect-video" />
+                        <Skeleton className="h-40 w-full aspect-video" />
+                        <Skeleton className="h-40 w-full aspect-video" />
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
 
 export default function ShopOwnerProfilePage() {
   const params = useParams();
   const { id } = params;
 
   const [profile, setProfile] = useState<ShopOwnerProfile | undefined>(undefined);
-  const [user, setUser] = useState<AppUser | undefined>(undefined);
   const [loading, setLoading] = useState(true);
 
   const fetchProfileData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     const profileData = await getProfile(id as string);
-    const userData = await getUser(id as string);
     setProfile(profileData);
-    setUser(userData);
     setLoading(false);
   }, [id]);
 
@@ -35,14 +69,10 @@ export default function ShopOwnerProfilePage() {
   }, [fetchProfileData]);
 
   if (loading) {
-    return (
-        <div className="flex items-center justify-center h-full">
-            <p>Loading profile...</p>
-        </div>
-    );
+    return <ProfileSkeleton />;
   }
 
-  if (!profile || !user) {
+  if (!profile) {
     return (
         <div className="flex items-center justify-center h-full">
             <p>Profile not found.</p>
@@ -69,7 +99,7 @@ export default function ShopOwnerProfilePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-center md:text-left">
                 <div className="space-y-1">
                     <h3 className="font-semibold text-muted-foreground">Contact</h3>
-                    <p className="flex items-center justify-center md:justify-start gap-2"><Mail className="w-4 h-4" /> {user.email}</p>
+                    {/* Email is not on the public profile, so we remove it. */}
                     <p className="flex items-center justify-center md:justify-start gap-2"><Phone className="w-4 h-4" /> {profile.phoneNumber}</p>
                 </div>
                 <div className="space-y-1">
