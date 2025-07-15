@@ -1,7 +1,7 @@
 
 'use client';
 
-import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, getUser } from '@/lib/store';
+import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, getProfile } from '@/lib/store';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, Calendar, Wrench, FileText, CheckCircle, Mail, Phone, User as UserIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import type { Requirement, Quotation, User } from '@/lib/types';
+import type { Requirement, Quotation, ShopOwnerProfile } from '@/lib/types';
 import type { Timestamp } from 'firebase/firestore';
 import {
   AlertDialog,
@@ -26,8 +26,8 @@ import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 
-// A type that combines Quotation with the shop owner's full User object
-type QuotationWithUser = Quotation & { owner: User | undefined };
+// A type that combines Quotation with the shop owner's public profile
+type QuotationWithProfile = Quotation & { ownerProfile: ShopOwnerProfile | undefined };
 
 function formatDate(date: Date | string | Timestamp) {
     if (!date) return '';
@@ -95,8 +95,8 @@ export default function RequirementDetailPage() {
   const { toast } = useToast();
   
   const [requirement, setRequirement] = useState<Requirement | undefined>(undefined);
-  const [relatedQuotations, setRelatedQuotations] = useState<QuotationWithUser[]>([]);
-  const [selectedQuote, setSelectedQuote] = useState<QuotationWithUser | null>(null);
+  const [relatedQuotations, setRelatedQuotations] = useState<QuotationWithProfile[]>([]);
+  const [selectedQuote, setSelectedQuote] = useState<QuotationWithProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
@@ -112,11 +112,11 @@ export default function RequirementDetailPage() {
     if (reqData) {
       setRequirement(reqData);
 
-      const quotesWithUsers = await Promise.all(quotesData.map(async (quote) => {
-        const owner = await getUser(quote.shopOwnerId);
-        return { ...quote, owner };
+      const quotesWithProfiles = await Promise.all(quotesData.map(async (quote) => {
+        const ownerProfile = await getProfile(quote.shopOwnerId);
+        return { ...quote, ownerProfile };
       }));
-      setRelatedQuotations(quotesWithUsers);
+      setRelatedQuotations(quotesWithProfiles);
     }
     setLoading(false);
   }, [id]);
@@ -126,7 +126,7 @@ export default function RequirementDetailPage() {
     fetchData();
   }, [fetchData]);
 
-  const handlePurchaseClick = (quote: QuotationWithUser) => {
+  const handlePurchaseClick = (quote: QuotationWithProfile) => {
     if (requirement?.status === 'Purchased') {
       toast({
         variant: "default",
@@ -265,10 +265,10 @@ export default function RequirementDetailPage() {
               <br/><br/>
               The shop owner will be notified. You can contact them directly:
               <div className="flex items-center gap-2 mt-2">
-                <Mail className="h-4 w-4" /> <span>{selectedQuote?.owner?.email ?? 'N/A'}</span>
+                <Mail className="h-4 w-4" /> <span>{selectedQuote?.shopOwnerEmail ?? 'N/A'}</span>
               </div>
               <div className="flex items-center gap-2 mt-1">
-                <Phone className="h-4 w-4" /> <span>{selectedQuote?.shopOwnerPhone ?? 'N/A'}</span>
+                <Phone className="h-4 w-4" /> <span>{selectedQuote?.ownerProfile?.phoneNumber ?? 'N/A'}</span>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
