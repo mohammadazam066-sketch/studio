@@ -1,21 +1,43 @@
+
 'use client';
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { useRequirements, useQuotations } from '@/lib/store';
+import { getQuotationsForRequirement, useAuth, getRequirements } from '@/lib/store';
 import { PlusCircle, MessageSquare } from 'lucide-react';
+import type { Requirement } from '@/lib/types';
+import { useEffect, useState, useCallback } from 'react';
 
 export default function HomeownerDashboard() {
-  const { requirements } = useRequirements();
-  const { getQuotationsForRequirement } = useQuotations();
-  
-  // In a real app, you'd filter for the logged in user
-  const myRequirements = requirements; 
+  const { currentUser } = useAuth();
+  const [myRequirements, setMyRequirements] = useState<Requirement[]>([]);
+  const [quoteCounts, setQuoteCounts] = useState<Record<string, number>>({});
+  const [loading, setLoading] = useState(true);
 
-  const getQuoteCount = (reqId: string) => {
-    return getQuotationsForRequirement(reqId).length;
-  };
+  const fetchRequirements = useCallback(async () => {
+    if (!currentUser) return;
+    setLoading(true);
+    const reqs = await getRequirements({ homeownerId: currentUser.id });
+    setMyRequirements(reqs);
+
+    // Fetch quote counts for each requirement
+    const counts: Record<string, number> = {};
+    for (const req of reqs) {
+      const quotes = await getQuotationsForRequirement(req.id);
+      counts[req.id] = quotes.length;
+    }
+    setQuoteCounts(counts);
+    setLoading(false);
+  }, [currentUser]);
+
+  useEffect(() => {
+    fetchRequirements();
+  }, [fetchRequirements]);
+  
+  if (loading) {
+    return <div>Loading dashboard...</div>
+  }
 
   return (
     <div className="space-y-6">
@@ -44,13 +66,13 @@ export default function HomeownerDashboard() {
                 <p className="text-sm text-muted-foreground line-clamp-3">{req.description}</p>
               </CardContent>
               <CardFooter className="flex justify-between items-center">
-                 <div className={`text-sm font-medium flex items-center gap-2 ${req.status === 'Purchased' ? 'text-accent' : 'text-blue-500'}`}>
-                    <span className={`h-2 w-2 rounded-full ${req.status === 'Purchased' ? 'bg-accent' : 'bg-blue-500'}`}></span>
+                 <div className={`text-sm font-medium flex items-center gap-2 ${req.status === 'Purchased' ? 'text-accent' : 'text-primary'}`}>
+                    <span className={`h-2 w-2 rounded-full ${req.status === 'Purchased' ? 'bg-accent' : 'bg-primary'}`}></span>
                     {req.status}
                   </div>
                  <div className="text-sm font-medium flex items-center gap-2 text-muted-foreground">
                     <MessageSquare className="h-4 w-4" />
-                    {getQuoteCount(req.id)} Quotes
+                    {quoteCounts[req.id] || 0} Quotes
                   </div>
               </CardFooter>
                <CardFooter>

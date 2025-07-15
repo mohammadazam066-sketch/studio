@@ -1,10 +1,12 @@
+import type { Timestamp } from 'firebase/firestore';
+
 export type UserRole = 'homeowner' | 'shop-owner';
 
 export type User = {
   id: string;
   name: string;
   email: string;
-  password?: string; // Optional on client, required for creation
+  password?: string; // Only used for client-side forms, not stored in DB
   role: UserRole;
 };
 
@@ -17,7 +19,7 @@ export type Requirement = {
   location: string;
   photos: string[];
   description: string;
-  createdAt: Date | string;
+  createdAt: Timestamp | Date | string;
   status: 'Open' | 'Purchased';
 };
 
@@ -31,12 +33,12 @@ export type Quotation = {
   shopOwnerPhone: string;
   amount: number;
   terms: string;
-  deliveryDate: Date | string;
-  createdAt: Date | string;
+  deliveryDate: Timestamp | Date | string;
+  createdAt: Timestamp | Date | string;
 };
 
 export type ShopOwnerProfile = {
-  id: string; // Corresponds to shopOwnerId
+  id: string; // Corresponds to user.uid
   name: string;
   shopName: string;
   phoneNumber: string;

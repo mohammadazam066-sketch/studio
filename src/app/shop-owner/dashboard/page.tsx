@@ -1,22 +1,41 @@
+
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useRequirements } from '@/lib/store';
+import { getRequirements } from '@/lib/store';
 import type { Requirement } from '@/lib/types';
 import { MapPin, Calendar, Search } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import type { Timestamp } from 'firebase/firestore';
+
+function formatFirebaseDate(date: Date | string | Timestamp) {
+    if (!date) return '';
+    const dateObj = (date as Timestamp)?.toDate ? (date as Timestamp).toDate() : new Date(date as string);
+    return formatDistanceToNow(dateObj, { addSuffix: true });
+}
 
 export default function ShopOwnerDashboard() {
-  const { requirements } = useRequirements();
+  const [allRequirements, setAllRequirements] = useState<Requirement[]>([]);
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [locationFilter, setLocationFilter] = useState<string>('');
+  const [loading, setLoading] = useState(true);
 
-  const allRequirements = useMemo(() => requirements.filter(r => r.status === 'Open'), [requirements]);
+  const fetchOpenRequirements = useCallback(async () => {
+    setLoading(true);
+    const reqs = await getRequirements({ status: 'Open' });
+    setAllRequirements(reqs);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchOpenRequirements();
+  }, [fetchOpenRequirements]);
+
 
   const filteredRequirements = useMemo(() => {
     return allRequirements.filter(req => {
@@ -30,6 +49,10 @@ export default function ShopOwnerDashboard() {
     const allCategories = allRequirements.map(r => r.category);
     return ['all', ...Array.from(new Set(allCategories))];
   }, [allRequirements]);
+
+  if (loading) {
+    return <div>Loading requirements...</div>
+  }
 
   return (
     <div className="space-y-6">
@@ -77,7 +100,7 @@ export default function ShopOwnerDashboard() {
                   <MapPin className="h-4 w-4" /> {req.location}
                  </div>
                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                   <Calendar className="h-4 w-4" /> Posted {formatDistanceToNow(new Date(req.createdAt), { addSuffix: true })}
+                   <Calendar className="h-4 w-4" /> Posted {formatFirebaseDate(req.createdAt)}
                  </div>
               </CardContent>
               <CardFooter>

@@ -1,3 +1,5 @@
+'use client';
+
 import {
   SidebarProvider,
   Sidebar,
@@ -10,10 +12,23 @@ import {
 import { SidebarNav } from '@/components/sidebar-nav';
 import { UserNav } from '@/components/user-nav';
 import { Logo } from '@/components/logo';
+import { useAuth } from '@/lib/store.tsx';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function HomeownerLayout({ children }: { children: React.ReactNode }) {
-  // In a real app, you'd get the user from a session.
-  const user = { email: 'alice@example.com' };
+  const { currentUser, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && (!currentUser || currentUser.role !== 'homeowner')) {
+      router.push('/auth-pages/login?role=homeowner');
+    }
+  }, [currentUser, loading, router]);
+  
+  if (loading || !currentUser) {
+    return <div>Loading...</div>; // Or a proper skeleton loader
+  }
 
   return (
     <SidebarProvider>
@@ -25,7 +40,7 @@ export default function HomeownerLayout({ children }: { children: React.ReactNod
           <SidebarNav role="homeowner" />
         </SidebarContent>
         <SidebarFooter>
-          <UserNav role="homeowner" email={user.email} />
+          <UserNav />
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>

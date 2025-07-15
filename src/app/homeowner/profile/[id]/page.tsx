@@ -1,37 +1,55 @@
 
 'use client';
 
-import { useShopOwnerProfiles } from '@/lib/store';
+import { getProfile } from '@/lib/store';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { MapPin, Building, Mail, Phone, User } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import type { ShopOwnerProfile } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
+import { getUser } from '@/lib/store';
+import type { User as AppUser } from '@/lib/types';
 
 export default function ShopOwnerProfilePage() {
   const params = useParams();
   const { id } = params;
 
-  const { getProfile } = useShopOwnerProfiles();
   const [profile, setProfile] = useState<ShopOwnerProfile | undefined>(undefined);
+  const [user, setUser] = useState<AppUser | undefined>(undefined);
+  const [loading, setLoading] = useState(true);
+
+  const fetchProfileData = useCallback(async () => {
+    if (!id) return;
+    setLoading(true);
+    const profileData = await getProfile(id as string);
+    const userData = await getUser(id as string);
+    setProfile(profileData);
+    setUser(userData);
+    setLoading(false);
+  }, [id]);
 
   useEffect(() => {
-    if (id) {
-        const foundProfile = getProfile(id as string);
-        setProfile(foundProfile);
-    }
-  }, [id, getProfile]);
+    fetchProfileData();
+  }, [fetchProfileData]);
 
-  if (!profile) {
+  if (loading) {
     return (
         <div className="flex items-center justify-center h-full">
             <p>Loading profile...</p>
         </div>
     );
   }
+
+  if (!profile || !user) {
+    return (
+        <div className="flex items-center justify-center h-full">
+            <p>Profile not found.</p>
+        </div>
+    );
+  }
+
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -51,7 +69,7 @@ export default function ShopOwnerProfilePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-center md:text-left">
                 <div className="space-y-1">
                     <h3 className="font-semibold text-muted-foreground">Contact</h3>
-                    <p className="flex items-center justify-center md:justify-start gap-2"><Mail className="w-4 h-4" /> bob@example.com</p>
+                    <p className="flex items-center justify-center md:justify-start gap-2"><Mail className="w-4 h-4" /> {user.email}</p>
                     <p className="flex items-center justify-center md:justify-start gap-2"><Phone className="w-4 h-4" /> {profile.phoneNumber}</p>
                 </div>
                 <div className="space-y-1">

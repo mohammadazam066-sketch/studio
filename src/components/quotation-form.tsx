@@ -1,6 +1,7 @@
+
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { CalendarIcon, Loader2, Wand2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -17,42 +18,34 @@ import type { Requirement, Quotation, ShopOwnerProfile } from '@/lib/types';
 import { getQuotationCategory } from '@/lib/actions';
 import type { CategorizeQuotationOutput } from '@/ai/flows/categorize-quotation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useQuotations, useShopOwnerProfiles } from '@/lib/store';
+import { addQuotation, getProfile, useAuth } from '@/lib/store';
+import { Timestamp } from 'firebase/firestore';
 
 export function QuotationForm({ requirement }: { requirement: Requirement }) {
   const router = useRouter();
   const { toast } = useToast();
-  const { addQuotation } = useQuotations();
-  const { getProfile } = useShopOwnerProfiles();
+  const { currentUser } = useAuth();
 
   const [date, setDate] = useState<Date>();
   const [terms, setTerms] = useState<string>('');
   const [profile, setProfile] = useState<ShopOwnerProfile | null>(null);
-
+  const [loading, setLoading] = useState(false);
+  
   const [isCategorizing, setIsCategorizing] = useState(false);
   const [aiResult, setAiResult] = useState<CategorizeQuotationOutput | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
 
-  const shopOwnerId = 'user-2'; // Mocked logged-in user
+  const fetchProfile = useCallback(async () => {
+    if (!currentUser) return;
+    const existingProfile = await getProfile(currentUser.id);
+    if (existingProfile) {
+      setProfile(existingProfile as ShopOwnerProfile);
+    }
+  }, [currentUser]);
 
   useEffect(() => {
-    const existingProfile = getProfile(shopOwnerId);
-    if (existingProfile) {
-      setProfile(existingProfile);
-    } else {
-        // Create a default profile if one doesn't exist
-        const defaultProfile: ShopOwnerProfile = {
-            id: shopOwnerId,
-            name: 'Bob Builder',
-            shopName: 'Bob\'s Hardware',
-            phoneNumber: '+91-9876543210',
-            address: '123 Main St',
-            location: 'Bengaluru, Karnataka',
-            shopPhotos: [],
-        }
-        setProfile(defaultProfile);
-    }
-  }, [getProfile]);
+    fetchProfile();
+  }, [fetchProfile]);
 
 
   const handleCategorize = async () => {
@@ -78,8 +71,9 @@ export function QuotationForm({ requirement }: { requirement: Requirement }) {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setLoading(true);
     const formData = new FormData(e.currentTarget);
 
     if (!date) {
@@ -88,39 +82,46 @@ export function QuotationForm({ requirement }: { requirement: Requirement }) {
             title: "Validation Error",
             description: "Please select an expected delivery date.",
         });
+        setLoading(false);
         return;
     }
     
-    if (!profile) {
+    if (!profile || !currentUser || !currentUser.email) {
         toast({
             variant: "destructive",
             title: "Profile Error",
             description: "Could not load shop owner profile. Please try again.",
         });
+        setLoading(false);
         return;
     }
 
-    const newQuotation: Quotation = {
-        id: `quote-${Date.now()}`,
+    const newQuotation: Omit<Quotation, 'id' | 'createdAt'> = {
         requirementId: requirement.id,
-        shopOwnerId: profile.id,
+        shopOwnerId: currentUser.id,
         shopOwnerName: profile.name,
         shopName: profile.shopName,
-        shopOwnerEmail: 'bob@example.com', // Mocked user email
+        shopOwnerEmail: currentUser.email,
         shopOwnerPhone: profile.phoneNumber,
         amount: Number(formData.get('amount')),
         terms: formData.get('terms') as string,
-        deliveryDate: date,
-        createdAt: new Date(),
+        deliveryDate: Timestamp.fromDate(date),
     };
 
-    addQuotation(newQuotation);
-
-    toast({
-      title: "Quotation Submitted!",
-      description: "The homeowner has been notified of your quote.",
-    });
-    router.push('/shop-owner/dashboard');
+    try {
+        await addQuotation(newQuotation);
+        toast({
+          title: "Quotation Submitted!",
+          description: "The homeowner has been notified of your quote.",
+        });
+        router.push('/shop-owner/dashboard');
+        router.refresh();
+    } catch (error) {
+        console.error("Failed to submit quotation:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to submit quotation.' });
+    } finally {
+        setLoading(false);
+    }
   };
 
   return (
@@ -133,7 +134,7 @@ export function QuotationForm({ requirement }: { requirement: Requirement }) {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="amount">Amount (Rs)</Label>
-            <Input id="amount" name="amount" type="number" placeholder="e.g., 450.00" required />
+            <Input id="amount" name="amount" type="number" placeholder="e.g., 450.00" required disabled={loading} />
           </div>
 
           <div className="space-y-2">
@@ -146,13 +147,14 @@ export function QuotationForm({ requirement }: { requirement: Requirement }) {
                     "w-full justify-start text-left font-normal",
                     !date && "text-muted-foreground"
                   )}
+                  disabled={loading}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {date ? format(date, "PPP") : <span>Pick a date</span>}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
-                <Calendar
+                <CalendarComponent
                   mode="single"
                   selected={date}
                   onSelect={setDate}
@@ -171,11 +173,12 @@ export function QuotationForm({ requirement }: { requirement: Requirement }) {
               required
               value={terms}
               onChange={(e) => setTerms(e.target.value)}
+              disabled={loading}
             />
           </div>
 
           <div className="space-y-3">
-            <Button type="button" variant="outline" className="w-full" onClick={handleCategorize} disabled={isCategorizing}>
+            <Button type="button" variant="outline" className="w-full" onClick={handleCategorize} disabled={isCategorizing || loading}>
               {isCategorizing ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
@@ -197,7 +200,10 @@ export function QuotationForm({ requirement }: { requirement: Requirement }) {
           </div>
         </CardContent>
         <CardFooter>
-          <Button type="submit" className="w-full">Submit Quotation</Button>
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Submit Quotation
+          </Button>
         </CardFooter>
       </Card>
     </form>

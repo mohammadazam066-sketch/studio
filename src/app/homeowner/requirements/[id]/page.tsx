@@ -1,15 +1,17 @@
+
 'use client';
 
-import { useRequirements, useQuotations } from '@/lib/store';
-import { useParams } from 'next/navigation';
+import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, getUser } from '@/lib/store';
+import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Calendar, Wrench, FileText, CheckCircle, Mail, Phone, User } from 'lucide-react';
+import { MapPin, Calendar, Wrench, FileText, CheckCircle, Mail, Phone, User as UserIcon } from 'lucide-react';
 import { format } from 'date-fns';
-import { useEffect, useState } from 'react';
-import type { Requirement, Quotation } from '@/lib/types';
+import { useEffect, useState, useCallback } from 'react';
+import type { Requirement, Quotation, User } from '@/lib/types';
+import type { Timestamp } from 'firebase/firestore';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,23 +25,39 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 
+function formatDate(date: Date | string | Timestamp) {
+    if (!date) return '';
+    const dateObj = (date as Timestamp)?.toDate ? (date as Timestamp).toDate() : new Date(date as string);
+    return format(dateObj, 'PPP');
+}
+
 export default function RequirementDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const { id } = params;
   
-  const { requirements, updateRequirementStatus } = useRequirements();
-  const { getQuotationsForRequirement } = useQuotations();
   const { toast } = useToast();
   
   const [requirement, setRequirement] = useState<Requirement | undefined>(undefined);
+  const [relatedQuotations, setRelatedQuotations] = useState<Quotation[]>([]);
   const [selectedQuote, setSelectedQuote] = useState<Quotation | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = useCallback(async () => {
+    if (typeof id !== 'string') return;
+    setLoading(true);
+    const reqData = await getRequirementById(id);
+    if (reqData) {
+      setRequirement(reqData);
+      const quotes = await getQuotationsForRequirement(id);
+      setRelatedQuotations(quotes);
+    }
+    setLoading(false);
+  }, [id]);
 
   useEffect(() => {
-    if (id) {
-      const foundRequirement = requirements.find(r => r.id === id);
-      setRequirement(foundRequirement);
-    }
-  }, [id, requirements]);
+    fetchData();
+  }, [fetchData]);
 
   const handlePurchaseClick = (quote: Quotation) => {
     if (requirement?.status === 'Purchased') {
@@ -53,21 +71,28 @@ export default function RequirementDetailPage() {
     setSelectedQuote(quote);
   };
   
-  const confirmPurchase = () => {
+  const confirmPurchase = async () => {
     if (requirement && selectedQuote) {
-      updateRequirementStatus(requirement.id, 'Purchased');
+      await updateRequirementStatus(requirement.id, 'Purchased');
       toast({
         title: "Purchase Confirmed!",
         description: `You have purchased the quotation from ${selectedQuote.shopOwnerName}.`,
+        variant: 'default',
+        className: 'bg-accent text-accent-foreground border-accent'
       });
+      setSelectedQuote(null);
+      // Refresh the local state instead of full router refresh for smoother UX
+      setRequirement(prev => prev ? { ...prev, status: 'Purchased' } : undefined);
     }
   };
 
-  if (!requirement) {
+  if (loading) {
     return <div>Loading...</div>;
   }
 
-  const relatedQuotations = getQuotationsForRequirement(requirement.id);
+  if (!requirement) {
+    return <div>Requirement not found.</div>
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -79,14 +104,14 @@ export default function RequirementDetailPage() {
               <Badge variant="secondary" className="mb-2">{requirement.category}</Badge>
               <CardTitle className="font-headline text-2xl">{requirement.title}</CardTitle>
             </div>
-            <div className={`text-sm font-medium flex items-center gap-2 ${requirement.status === 'Purchased' ? 'text-accent' : 'text-blue-500'}`}>
-                <span className={`h-2 w-2 rounded-full ${requirement.status === 'Purchased' ? 'bg-accent' : 'bg-blue-500'}`}></span>
+            <div className={`text-sm font-medium flex items-center gap-2 ${requirement.status === 'Purchased' ? 'text-accent' : 'text-primary'}`}>
+                <span className={`h-2 w-2 rounded-full ${requirement.status === 'Purchased' ? 'bg-accent' : 'bg-primary'}`}></span>
                 {requirement.status}
             </div>
           </div>
           <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground pt-2">
             <div className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {requirement.location}</div>
-            <div className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> Posted on {format(new Date(requirement.createdAt), 'PPP')}</div>
+            <div className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> Posted on {formatDate(requirement.createdAt)}</div>
             <div className="flex items-center gap-1.5"><Wrench className="w-4 h-4" /> By {requirement.homeownerName}</div>
           </div>
         </CardHeader>
@@ -126,13 +151,13 @@ export default function RequirementDetailPage() {
                   </div>
                    <div className="flex items-center gap-3 text-sm">
                     <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <p className="text-muted-foreground">Expected by: {format(new Date(quote.deliveryDate), 'PPP')}</p>
+                    <p className="text-muted-foreground">Expected by: {formatDate(quote.deliveryDate)}</p>
                   </div>
                 </CardContent>
                 <CardFooter className="flex flex-col sm:flex-row gap-2">
                   <Button asChild variant="outline" className="w-full">
                     <Link href={`/homeowner/profile/${quote.shopOwnerId}`}>
-                      <User className="mr-2 h-4 w-4" />
+                      <UserIcon className="mr-2 h-4 w-4" />
                       View Profile
                     </Link>
                   </Button>

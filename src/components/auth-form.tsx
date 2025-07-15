@@ -1,72 +1,69 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
-import { useUsers, useAuth } from '@/lib/store';
+import { useAuth } from '@/lib/store.tsx';
 import { useToast } from '@/hooks/use-toast';
-import type { User } from '@/lib/types';
+import type { UserRole } from '@/lib/types';
 import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
 
 interface AuthFormProps {
   mode: 'login' | 'register';
-  role: 'homeowner' | 'shop-owner';
+  role: UserRole;
 }
 
 export function AuthForm({ mode, role }: AuthFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { addUser, users } = useUsers();
-  const { login } = useAuth();
+  const { login, register } = useAuth();
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+    setLoading(true);
     const formData = new FormData(event.currentTarget);
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
-    if (mode === 'register') {
-      const name = formData.get('name') as string;
-
-      const existingUser = users.find(u => u.email === email);
-      if (existingUser) {
-        setError("A user with this email already exists.");
-        return;
+    try {
+      if (mode === 'register') {
+        const name = formData.get('name') as string;
+        await register(name, email, password, role);
+        toast({
+          title: "Registration successful!",
+          description: "Welcome to TradeFlow.",
+        });
+      } else { // Login mode
+        await login(email, password);
       }
-      
-      const id = role === 'homeowner' ? 'user-1' : 'user-2'; // Mocked IDs
-
-      const newUser: User = { id, name, email, password, role };
-      addUser(newUser);
-      login(newUser); // Automatically log in after registration
-      toast({
-        title: "Registration successful!",
-        description: "Welcome to TradeFlow.",
-      });
       const dashboardUrl = role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
       router.push(dashboardUrl);
+      router.refresh(); // To ensure layout re-renders with new auth state
 
-    } else { // Login mode
-      const user = users.find(u => u.email === email && u.password === password && u.role === role);
-      if (user) {
-        login(user);
-        const dashboardUrl = role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
-        router.push(dashboardUrl);
-      } else {
-        setError("Invalid email or password for this role.");
-        toast({
-          variant: "destructive",
-          title: "Login Failed",
-          description: "Invalid email or password. Please try again.",
-        });
-      }
+    } catch (e: any) {
+      const errorMessage = e.message.includes('auth/invalid-credential') 
+        ? "Invalid email or password."
+        : e.message.includes('auth/email-already-in-use')
+        ? "An account with this email already exists."
+        : "An error occurred. Please try again.";
+      
+      setError(errorMessage);
+      toast({
+        variant: "destructive",
+        title: `${mode === 'login' ? 'Login' : 'Registration'} Failed`,
+        description: errorMessage,
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -92,21 +89,24 @@ export function AuthForm({ mode, role }: AuthFormProps) {
             {mode === 'register' && (
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
-                <Input id="name" name="name" placeholder="John Doe" required />
+                <Input id="name" name="name" placeholder="John Doe" required disabled={loading} />
               </div>
             )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" placeholder="m@example.com" required />
+              <Input id="email" name="email" type="email" placeholder="m@example.com" required disabled={loading} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" name="password" type="password" required />
+              <Input id="password" name="password" type="password" required disabled={loading} />
             </div>
             {error && <p className="text-sm text-center text-destructive">{error}</p>}
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button className="w-full" type="submit">{buttonText}</Button>
+            <Button className="w-full" type="submit" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {buttonText}
+            </Button>
             <div className="text-sm text-muted-foreground">
               {footerText}{' '}
               <Link href={footerLink} className="underline text-primary">
