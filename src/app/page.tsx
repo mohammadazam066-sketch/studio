@@ -29,7 +29,7 @@ export default function HomePage() {
                   <Home className="h-8 w-8 text-primary mb-2" />
                   <CardTitle className="font-headline text-xl sm:text-2xl">For Homeowners</CardTitle>
                   <CardDescription>
-                    Post your home improvement needs and receive competitive quotes from trusted local professionals.
+                    Post your construction material needs with site photos and preferred brands. Receive transparent, competitive quotes from verified local shop owners near you.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
