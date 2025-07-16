@@ -47,31 +47,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = async (username: string, pass: string) => {
     const email = `${username.toLowerCase()}@tradeflow.app`;
     const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-    const user = userCredential.user;
-    
-    const userDocRef = doc(db, 'users', user.uid);
-    const userDoc = await getDoc(userDocRef);
-
-    if (!userDoc.exists()) {
-        const role = 'homeowner'; 
-        const batch = writeBatch(db);
-        batch.set(userDocRef, { username, email, role });
-
-        if (role === 'shop-owner') {
-             const profileDocRef = doc(db, "shopOwnerProfiles", user.uid);
-             const newProfile: Omit<ShopOwnerProfile, 'id'> = {
-                 username,
-                 shopName: `${username}'s Shop`,
-                 phoneNumber: '',
-                 address: '',
-                 location: '',
-                 shopPhotos: [],
-             };
-             batch.set(profileDocRef, newProfile);
-        }
-        await batch.commit();
-    }
-    
     return userCredential;
   };
   
@@ -145,7 +120,6 @@ export async function addRequirement(newRequirement: Omit<Requirement, 'id' | 'c
 
     const photoURLs = await Promise.all(
         newRequirement.photos.map(async (photoDataUrl, index) => {
-            if (photoDataUrl.startsWith('https')) return photoDataUrl;
             const storageRef = ref(storage, `requirements/${auth.currentUser!.uid}-${Date.now()}-${index}.jpg`);
             await uploadString(storageRef, photoDataUrl, 'data_url', { contentType: 'image/jpeg' });
             return getDownloadURL(storageRef);
@@ -154,7 +128,7 @@ export async function addRequirement(newRequirement: Omit<Requirement, 'id' | 'c
 
     const requirementToAdd = {
       ...newRequirement,
-      photos: photoURLs,
+      photos: photoURLs.length > 0 ? photoURLs : ['https://placehold.co/600x400.png'],
       homeownerId: auth.currentUser.uid,
       homeownerName: userData.username || 'Anonymous',
       createdAt: serverTimestamp(),
@@ -258,23 +232,26 @@ export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, '
     const profileId = auth.currentUser.uid;
     const existingProfile = await getProfile(profileId);
     
-    // Process new photos for upload
+    // Process new photos for upload and keep track of existing URLs
+    const newFinalUrls: string[] = [];
     const photoUploadPromises = (updatedProfileData.shopPhotos || []).map(async (photoData, index) => {
-        // If it's already a URL, just return it.
+        // If it's already a URL, it's an existing photo. Keep it.
         if (typeof photoData === 'string' && photoData.startsWith('https://')) {
-            return photoData;
+            newFinalUrls.push(photoData);
+            return Promise.resolve();
         }
         // Otherwise, it's a new data URI to upload.
         const storageRef = ref(storage, `profiles/${profileId}/shop-photo-${Date.now()}-${index}`);
-        await uploadString(storageRef, photoData as string, 'data_url');
-        return getDownloadURL(storageRef);
+        const uploadResult = await uploadString(storageRef, photoData as string, 'data_url');
+        const downloadUrl = await getDownloadURL(uploadResult.ref);
+        newFinalUrls.push(downloadUrl);
     });
 
-    const newPhotoUrls = await Promise.all(photoUploadPromises);
+    await Promise.all(photoUploadPromises);
 
     // Delete photos that were removed in the UI
     const existingUrls = existingProfile?.shopPhotos || [];
-    const removedUrls = existingUrls.filter(url => !newPhotoUrls.includes(url));
+    const removedUrls = existingUrls.filter(url => !newFinalUrls.includes(url));
     await Promise.all(removedUrls.map(url => {
         try {
             const photoRef = ref(storage, url);
@@ -287,7 +264,7 @@ export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, '
 
     const profileToUpdate: Omit<ShopOwnerProfile, 'id'> = {
         ...updatedProfileData,
-        shopPhotos: newPhotoUrls,
+        shopPhotos: newFinalUrls,
     };
     
     const batch = writeBatch(db);
