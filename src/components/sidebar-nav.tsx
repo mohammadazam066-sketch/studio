@@ -35,7 +35,6 @@ export function SidebarNav({ role }: { role: UserRole }) {
   const handleLogout = async () => {
     await logout();
     router.push('/');
-    router.refresh();
   };
 
   return (
