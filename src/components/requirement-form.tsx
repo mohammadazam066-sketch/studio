@@ -70,7 +70,7 @@ export function RequirementForm() {
       category: category,
       location: formData.get('location') as string,
       description: formData.get('description') as string,
-      photos: photoDataUrls.length > 0 ? photoDataUrls : ['https://placehold.co/600x400.png'],
+      photos: photoDataUrls,
     };
 
     try {
@@ -102,7 +102,7 @@ export function RequirementForm() {
         <CardContent className="grid gap-6 md:grid-cols-2">
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="title">Requirement Title</Label>
-            <Input id="title" name="title" placeholder="e.g., Leaky Kitchen Faucet Repair" required disabled={loading} />
+            <Input id="title" name="title" placeholder="e.g., 100 bags of cement" required disabled={loading} />
           </div>
 
           <div className="space-y-2">
@@ -122,7 +122,7 @@ export function RequirementForm() {
           
           <div className="space-y-2">
             <Label htmlFor="location">Location</Label>
-            <Input id="location" name="location" placeholder="e.g., San Francisco, CA" required disabled={loading} />
+            <Input id="location" name="location" placeholder="e.g., bidar" required disabled={loading} />
           </div>
 
           <div className="space-y-2 md:col-span-2">
