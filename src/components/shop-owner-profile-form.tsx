@@ -94,10 +94,23 @@ export function ShopOwnerProfileForm() {
     setSaving(true);
     
     try {
+        const photoDataUrls = await Promise.all(
+            photos.map(p => {
+                if (typeof p === 'string') return Promise.resolve(p); // It's an existing URL
+                return new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result as string);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(p.file);
+                });
+            })
+        );
+        
         await updateProfile({
             ...profile,
-            shopPhotos: photos,
-        } as Omit<ShopOwnerProfile, 'id'> & { shopPhotos: PhotoState[] });
+            shopPhotos: photoDataUrls,
+        } as Omit<ShopOwnerProfile, 'id'>);
+
         toast({
             title: "Profile Updated!",
             description: "Your business information has been saved.",

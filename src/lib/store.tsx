@@ -252,26 +252,27 @@ export async function getProfile(shopOwnerId: string): Promise<ShopOwnerProfile 
     return undefined;
 };
 
-export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, 'id'| 'shopPhotos'> & { shopPhotos: (string | { file: File, preview: string })[] }) {
+export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, 'id'>) {
     if (!auth.currentUser) throw new Error("User not authenticated");
 
     const profileId = auth.currentUser.uid;
     const existingProfile = await getProfile(profileId);
     
-    const newPhotoUrls: string[] = [];
-    if (updatedProfileData.shopPhotos) {
-        const photoUploadPromises = updatedProfileData.shopPhotos.map(async (photo, index) => {
-            if (typeof photo === 'string') {
-                return photo; // It's an existing URL, keep it.
-            }
-            const storageRef = ref(storage, `profiles/${profileId}/shop-photo-${Date.now()}-${index}`);
-            await uploadString(storageRef, photo.preview, 'data_url');
-            return getDownloadURL(storageRef);
-        });
-        newPhotoUrls.push(...await Promise.all(photoUploadPromises));
-    }
+    // Process new photos for upload
+    const photoUploadPromises = (updatedProfileData.shopPhotos || []).map(async (photoData, index) => {
+        // If it's already a URL, just return it.
+        if (typeof photoData === 'string' && photoData.startsWith('https://')) {
+            return photoData;
+        }
+        // Otherwise, it's a new data URI to upload.
+        const storageRef = ref(storage, `profiles/${profileId}/shop-photo-${Date.now()}-${index}`);
+        await uploadString(storageRef, photoData as string, 'data_url');
+        return getDownloadURL(storageRef);
+    });
 
+    const newPhotoUrls = await Promise.all(photoUploadPromises);
 
+    // Delete photos that were removed in the UI
     const existingUrls = existingProfile?.shopPhotos || [];
     const removedUrls = existingUrls.filter(url => !newPhotoUrls.includes(url));
     await Promise.all(removedUrls.map(url => {
@@ -279,17 +280,13 @@ export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, '
             const photoRef = ref(storage, url);
             return deleteObject(photoRef);
         } catch (error) {
-            console.error("Failed to delete old photo, it might have already been removed:", url, error);
-            return Promise.resolve();
+            console.error("Failed to delete old photo:", url, error);
+            return Promise.resolve(); // Don't block the update if deletion fails
         }
     }));
 
     const profileToUpdate: Omit<ShopOwnerProfile, 'id'> = {
-        username: updatedProfileData.username,
-        shopName: updatedProfileData.shopName,
-        phoneNumber: updatedProfileData.phoneNumber,
-        address: updatedProfileData.address,
-        location: updatedProfileData.location,
+        ...updatedProfileData,
         shopPhotos: newPhotoUrls,
     };
     

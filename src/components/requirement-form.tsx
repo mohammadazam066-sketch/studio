@@ -15,10 +15,12 @@ import type { Requirement } from '@/lib/types';
 import React, { useState } from 'react';
 import Image from 'next/image';
 
+type PhotoState = { file: File, preview: string };
+
 export function RequirementForm() {
   const router = useRouter();
   const { toast } = useToast();
-  const [photos, setPhotos] = useState<string[]>([]);
+  const [photos, setPhotos] = useState<PhotoState[]>([]);
   const [loading, setLoading] = useState(false);
   const [category, setCategory] = useState("");
 
@@ -33,23 +35,17 @@ export function RequirementForm() {
         });
         return;
       }
-      const newPhotos: string[] = [];
-      Array.from(files).forEach(file => {
-        const reader = new FileReader();
-        reader.onload = (readEvent) => {
-          if (readEvent.target?.result) {
-            newPhotos.push(readEvent.target.result as string);
-            if (newPhotos.length === files.length) {
-              setPhotos(prevPhotos => [...prevPhotos, ...newPhotos]);
-            }
-          }
-        };
-        reader.readAsDataURL(file);
-      });
+      const newPhotos: PhotoState[] = Array.from(files).map(file => ({
+        file,
+        preview: URL.createObjectURL(file)
+      }));
+      setPhotos(prevPhotos => [...prevPhotos, ...newPhotos]);
     }
   };
 
   const handleRemovePhoto = (index: number) => {
+    // Revoke the object URL to avoid memory leaks
+    URL.revokeObjectURL(photos[index].preview);
     setPhotos(photos.filter((_, i) => i !== index));
   };
 
@@ -58,12 +54,23 @@ export function RequirementForm() {
     setLoading(true);
     
     const formData = new FormData(e.currentTarget);
+    const photoDataUrls = await Promise.all(
+        photos.map(p => {
+            return new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(p.file);
+            });
+        })
+    );
+
     const newRequirement: Omit<Requirement, 'id' | 'createdAt' | 'homeownerId' | 'homeownerName' | 'status'> = {
       title: formData.get('title') as string,
       category: category,
       location: formData.get('location') as string,
       description: formData.get('description') as string,
-      photos: photos.length > 0 ? photos : ['https://placehold.co/600x400.png'],
+      photos: photoDataUrls.length > 0 ? photoDataUrls : ['https://placehold.co/600x400.png'],
     };
 
     try {
@@ -129,7 +136,7 @@ export function RequirementForm() {
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
                 {photos.map((photo, index) => (
                   <div key={index} className="relative group">
-                    <Image src={photo} alt={`Upload preview ${index + 1}`} width={150} height={100} className="rounded-lg object-cover w-full aspect-video" />
+                    <Image src={photo.preview} alt={`Upload preview ${index + 1}`} width={150} height={100} className="rounded-lg object-cover w-full aspect-video" />
                     <Button
                       type="button"
                       variant="destructive"
