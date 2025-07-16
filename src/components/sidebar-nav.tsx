@@ -2,10 +2,11 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { LayoutDashboard, PlusCircle, Briefcase, User, FileText } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { LayoutDashboard, PlusCircle, Briefcase, User, FileText, LogOut } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
+import { useAuth } from '@/lib/store';
 
 interface NavLink {
   href: string;
@@ -27,7 +28,15 @@ const shopOwnerNavLinks: NavLink[] = [
 
 export function SidebarNav({ role }: { role: UserRole }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { logout } = useAuth();
   const navLinks = role === 'homeowner' ? homeownerNavLinks : shopOwnerNavLinks;
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/');
+    router.refresh();
+  };
 
   return (
     <SidebarMenu>
@@ -41,6 +50,12 @@ export function SidebarNav({ role }: { role: UserRole }) {
           </Link>
         </SidebarMenuItem>
       ))}
+      <SidebarMenuItem>
+        <SidebarMenuButton onClick={handleLogout} tooltip="Log Out">
+            <LogOut />
+            <span>Log Out</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
     </SidebarMenu>
   );
 }
