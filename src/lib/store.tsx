@@ -120,7 +120,7 @@ export async function addRequirement(newRequirement: Omit<Requirement, 'id' | 'c
 
     const photoURLs = await Promise.all(
         newRequirement.photos.map(async (photoDataUrl, index) => {
-            const storageRef = ref(storage, `requirements/${auth.currentUser!.uid}-${Date.now()}-${index}.jpg`);
+            const storageRef = ref(storage, `requirements/${auth.currentUser!.uid}/${Date.now()}-${index}.jpg`);
             await uploadString(storageRef, photoDataUrl, 'data_url', { contentType: 'image/jpeg' });
             return getDownloadURL(storageRef);
         })
@@ -241,7 +241,7 @@ export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, '
             return Promise.resolve();
         }
         // Otherwise, it's a new data URI to upload.
-        const storageRef = ref(storage, `profiles/${profileId}/shop-photo-${Date.now()}-${index}`);
+        const storageRef = ref(storage, `profiles/${profileId}/${Date.now()}-${index}.jpg`);
         const uploadResult = await uploadString(storageRef, photoData as string, 'data_url');
         const downloadUrl = await getDownloadURL(uploadResult.ref);
         newFinalUrls.push(downloadUrl);
@@ -277,3 +277,5 @@ export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, '
 
     await batch.commit();
 };
+
+    
