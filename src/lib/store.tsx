@@ -62,12 +62,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const batch = writeBatch(db);
 
     const userDocRef = doc(db, 'users', user.uid);
-    batch.set(userDocRef, { username, email, role, id: user.uid });
+    // This was the bug: `name: username` should have been `username: username`.
+    batch.set(userDocRef, { username: username, email: email, role: role, id: user.uid });
 
     if (role === 'shop-owner') {
         const profileDocRef = doc(db, "shopOwnerProfiles", user.uid);
         const newProfile: Omit<ShopOwnerProfile, 'id'> = {
-            username,
+            username: username,
             email: email,
             shopName: `${username}'s Shop`,
             phoneNumber: '',
@@ -251,17 +252,14 @@ export async function getRequirements(filters: { homeownerId?: string; status?: 
 
     if (filters.homeownerId) {
         constraints.push(where('homeownerId', '==', filters.homeownerId));
-        constraints.push(orderBy('createdAt', 'desc'));
     }
     
     if (filters.status) {
         constraints.push(where('status', '==', filters.status));
-        constraints.push(orderBy('createdAt', 'desc'));
     }
 
-    if (!filters.homeownerId && !filters.status) {
-        constraints.push(orderBy('createdAt', 'desc'));
-    }
+    // Always sort by createdAt if no other specific order is implied
+    constraints.push(orderBy('createdAt', 'desc'));
     
     const q = query(requirementsCollection, ...constraints);
     
@@ -486,3 +484,5 @@ export async function getUpdateById(id: string): Promise<Update | undefined> {
     }
     return undefined;
 }
+
+    
