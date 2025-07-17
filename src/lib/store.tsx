@@ -112,7 +112,7 @@ export async function updateUser(userId: string, updatedDetails: Partial<Omit<Us
 }
 
 
-export async function addRequirement(requirementData: Omit<Requirement, 'id' | 'createdAt' | 'status' | 'homeownerId' | 'homeownerName' | 'photos'>) {
+export async function addRequirement(requirementData: Omit<Requirement, 'id' | 'createdAt' | 'homeownerId' | 'homeownerName' | 'status'>) {
     if (!auth.currentUser) throw new Error("User not authenticated");
 
     const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
@@ -128,7 +128,7 @@ export async function addRequirement(requirementData: Omit<Requirement, 'id' | '
         })
     );
 
-    const requirementToAdd: Omit<Requirement, 'id' | 'createdAt'> = {
+    const requirementToAdd: Omit<Requirement, 'id'> = {
         title: requirementData.title,
         category: requirementData.category,
         location: requirementData.location,
@@ -137,12 +137,10 @@ export async function addRequirement(requirementData: Omit<Requirement, 'id' | '
         homeownerId: auth.currentUser.uid,
         homeownerName: userData.username || 'Anonymous',
         status: 'Open',
+        createdAt: serverTimestamp(),
     };
     
-    const docRef = await addDoc(collection(db, 'requirements'), {
-        ...requirementToAdd,
-        createdAt: serverTimestamp(),
-    });
+    const docRef = await addDoc(collection(db, 'requirements'), requirementToAdd);
 
     return docRef.id;
 }
@@ -258,6 +256,7 @@ export async function getRequirements(filters: { homeownerId?: string; status?: 
         constraints.push(where('status', '==', filters.status));
     }
 
+    // Always sort by creation date
     constraints.push(orderBy('createdAt', 'desc'));
 
     const q = query(collection(db, 'requirements'), ...constraints);
@@ -307,7 +306,6 @@ export async function getQuotationsForRequirement(requirementId: string) {
     const q = query(
         collection(db, 'quotations'), 
         where('requirementId', '==', requirementId),
-        where('homeownerId', '==', auth.currentUser.uid)
     );
     
     const querySnapshot = await getDocs(q);
