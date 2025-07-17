@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { User, Store, Bot } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 function formatFirebaseDate(date: Date | string | Timestamp) {
     if (!date) return '';
@@ -70,33 +71,35 @@ export function UpdatesFeed({ refreshKey }: { refreshKey: number }) {
     <div className="space-y-6">
       {updates.length > 0 ? (
         updates.map(update => (
-          <Card key={update.id}>
-             {update.imageUrl && (
-                <div className="relative h-48 w-full">
-                    <Image 
-                        src={update.imageUrl} 
-                        alt={update.title} 
-                        layout="fill"
-                        objectFit="cover"
-                        className="rounded-t-lg"
-                        data-ai-hint="construction industry"
-                    />
+          <Link href={`/updates/${update.id}`} key={update.id} className="block group">
+            <Card className="transition-all duration-200 group-hover:shadow-xl group-hover:border-primary/50">
+                {update.imageUrl && (
+                    <div className="relative h-48 w-full overflow-hidden rounded-t-lg">
+                        <Image 
+                            src={update.imageUrl} 
+                            alt={update.title} 
+                            layout="fill"
+                            objectFit="cover"
+                            className="transition-transform duration-300 group-hover:scale-105"
+                            data-ai-hint="construction industry"
+                        />
+                    </div>
+                )}
+                <CardHeader>
+                <CardTitle className="group-hover:text-primary">{update.title}</CardTitle>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                        <RoleIcon role={update.authorRole} />
+                        <span>{update.authorName}</span>
+                    </div>
+                    <span>{formatFirebaseDate(update.createdAt)}</span>
                 </div>
-            )}
-            <CardHeader>
-              <CardTitle>{update.title}</CardTitle>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                    <RoleIcon role={update.authorRole} />
-                    <span>{update.authorName}</span>
-                </div>
-                <span>{formatFirebaseDate(update.createdAt)}</span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="whitespace-pre-wrap">{update.content}</p>
-            </CardContent>
-          </Card>
+                </CardHeader>
+                <CardContent>
+                <p className="whitespace-pre-wrap line-clamp-3 text-muted-foreground">{update.content}</p>
+                </CardContent>
+            </Card>
+          </Link>
         ))
       ) : (
         <div className="text-center py-16 border-2 border-dashed rounded-lg">

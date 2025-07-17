@@ -314,3 +314,12 @@ export async function getUpdates(): Promise<Update[]> {
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Update));
 }
+
+export async function getUpdateById(id: string): Promise<Update | undefined> {
+    const docRef = doc(db, 'updates', id);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() } as Update;
+    }
+    return undefined;
+}
