@@ -52,10 +52,13 @@ export function AuthForm({ mode, role }: AuthFormProps) {
 
         // Check if the role of the logged-in user matches the expected role for the page.
         if (userProfile && userProfile.role !== role) {
-           await getAuth().signOut();
-           throw new Error(`You are trying to log in as a ${role.replace('-', ' ')}, but this account is a ${userProfile.role.replace('-', ' ')}. Please log in on the correct page.`);
+           await getAuth().signOut(); // Log the user out before showing the error
+           const expectedRoleText = role.replace('-', ' ');
+           const actualRoleText = userProfile.role.replace('-', ' ');
+           throw new Error(`This account is a ${actualRoleText}. Please log in on the correct page for a ${actualRoleText}.`);
         }
-
+        
+        // If roles match, proceed to the correct dashboard
         const targetDashboard = userProfile?.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
         router.push(targetDashboard);
       }
