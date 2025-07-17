@@ -9,9 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { updateUser, useAuth } from '@/lib/store';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { HomeownerProfile } from '@/lib/types';
+import { Skeleton } from './ui/skeleton';
 
 
 export function UserProfileForm() {
@@ -27,8 +28,16 @@ export function UserProfileForm() {
     if (currentUser?.profile) {
         setProfile(currentUser.profile as HomeownerProfile);
         setLoading(false);
+    } else if (currentUser) {
+        // Fallback in case profile is not loaded yet, use basic info
+        setProfile({
+            username: currentUser.username,
+            email: currentUser.email
+        });
+        setLoading(false);
     }
   }, [currentUser]);
+
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -61,7 +70,21 @@ export function UserProfileForm() {
   };
   
   if (loading) {
-    return <div>Loading...</div>
+    return (
+        <Card>
+            <CardHeader>
+                <Skeleton className="h-7 w-1/3" />
+                <Skeleton className="h-4 w-2/3 mt-1" />
+            </CardHeader>
+            <CardContent className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-2"><Skeleton className="h-5 w-24" /><Skeleton className="h-10 w-full" /></div>
+                <div className="space-y-2"><Skeleton className="h-5 w-24" /><Skeleton className="h-10 w-full" /></div>
+            </CardContent>
+            <CardFooter>
+                <Skeleton className="h-10 w-32" />
+            </CardFooter>
+        </Card>
+    );
   }
 
   return (

@@ -11,9 +11,10 @@ import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { useAuth } from '@/lib/store';
 import { useToast } from '@/hooks/use-toast';
-import type { UserRole } from '@/lib/types';
+import type { UserRole, User } from '@/lib/types';
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import { getUser } from '@/lib/store';
 
 interface AuthFormProps {
   mode: 'login' | 'register';
@@ -31,13 +32,10 @@ export function AuthForm({ mode, role }: AuthFormProps) {
   useEffect(() => {
     // This effect handles redirection once authentication state is confirmed.
     if (!authLoading && currentUser) {
-      // Check if the current user's role matches the required role for this page
-      if (currentUser.role === role) {
-        const dashboardUrl = currentUser.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
-        router.push(dashboardUrl);
-      }
+      const dashboardUrl = currentUser.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
+      router.push(dashboardUrl);
     }
-  }, [currentUser, authLoading, router, role]);
+  }, [currentUser, authLoading, router]);
 
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -58,8 +56,8 @@ export function AuthForm({ mode, role }: AuthFormProps) {
         // The useEffect will handle redirection on successful registration
       } else { // Login mode
         await login(username, password);
-        // On successful login, the useEffect hook will detect the change in
-        // currentUser and handle the redirection. We don't need to do anything else here.
+        // The useEffect hook will detect the change in currentUser 
+        // and handle redirection. No need for further action here.
       }
     } catch (e: any) {
       let errorMessage = e.message || "An error occurred. Please try again.";

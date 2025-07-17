@@ -34,17 +34,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (userDoc.exists()) {
           const userData = userDoc.data() as User;
           let profileData;
-
-          if (userData.role === 'homeowner') {
-              profileData = await getDoc(doc(db, 'homeownerProfiles', user.uid));
-          } else {
-              profileData = await getDoc(doc(db, 'shopOwnerProfiles', user.uid));
-          }
+          const profileCollection = userData.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
+          profileData = await getDoc(doc(db, profileCollection, user.uid));
 
           if (profileData.exists()) {
               setCurrentUser({ ...userData, profile: { id: profileData.id, ...profileData.data() } });
           } else {
-              console.warn(`Profile for user ${user.uid} not found in ${userData.role}s collection. Logging out.`);
+              console.warn(`Profile for user ${user.uid} not found in ${profileCollection} collection. Logging out.`);
               await signOut(auth);
               setCurrentUser(null);
           }
@@ -358,18 +354,18 @@ export async function getQuotationsByShopOwner(shopOwnerId: string) {
 }
 
 
-export async function getProfile(shopOwnerId: string): Promise<ShopOwnerProfile | HomeownerProfile | undefined> {
-    if (!shopOwnerId) {
-        console.error("getProfile called with no shopOwnerId");
+export async function getProfile(userId: string): Promise<ShopOwnerProfile | HomeownerProfile | undefined> {
+    if (!userId) {
+        console.error("getProfile called with no userId");
         return undefined;
     }
 
-    let profileDoc = await getDoc(doc(db, "shopOwnerProfiles", shopOwnerId));
+    let profileDoc = await getDoc(doc(db, "shopOwnerProfiles", userId));
     if (profileDoc.exists()) {
         return { id: profileDoc.id, ...profileDoc.data() } as ShopOwnerProfile;
     }
 
-    profileDoc = await getDoc(doc(db, "homeownerProfiles", shopOwnerId));
+    profileDoc = await getDoc(doc(db, "homeownerProfiles", userId));
      if (profileDoc.exists()) {
         return { id: profileDoc.id, ...profileDoc.data() } as HomeownerProfile;
     }
