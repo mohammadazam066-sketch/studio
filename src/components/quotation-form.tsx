@@ -20,6 +20,7 @@ import type { CategorizeQuotationOutput } from '@/ai/flows/categorize-quotation'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { addQuotation, updateQuotation, getProfile, useAuth } from '@/lib/store';
 import { Timestamp } from 'firebase/firestore';
+import { Skeleton } from './ui/skeleton';
 
 interface QuotationFormProps {
     requirement: Requirement;
