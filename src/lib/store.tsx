@@ -35,7 +35,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const userData = userDoc.data() as User;
           let profileData;
           const profileCollection = userData.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
-          profileData = await getDoc(doc(db, profileCollection, user.uid));
+          const profileDocRef = doc(db, profileCollection, user.uid);
+          profileData = await getDoc(profileDocRef);
 
           if (profileData.exists()) {
               setCurrentUser({ ...userData, profile: { id: profileData.id, ...profileData.data() } });
@@ -519,5 +520,3 @@ export async function getUpdateById(id: string): Promise<Update | undefined> {
     }
     return undefined;
 }
-
-    

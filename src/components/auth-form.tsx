@@ -53,11 +53,8 @@ export function AuthForm({ mode, role }: AuthFormProps) {
           title: "Registration successful!",
           description: "Welcome to Bidarkart.",
         });
-        // The useEffect will handle redirection on successful registration
-      } else { // Login mode
+      } else { 
         await login(username, password);
-        // The useEffect hook will detect the change in currentUser 
-        // and handle redirection. No need for further action here.
       }
     } catch (e: any) {
       let errorMessage = e.message || "An error occurred. Please try again.";
