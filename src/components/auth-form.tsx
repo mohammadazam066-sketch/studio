@@ -8,11 +8,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
-import { useAuth } from '@/lib/store';
+import { useAuth, getUser } from '@/lib/store';
 import { useToast } from '@/hooks/use-toast';
-import type { UserRole } from '@/lib/types';
+import type { UserRole, User } from '@/lib/types';
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import { getAuth } from 'firebase/auth';
 
 interface AuthFormProps {
   mode: 'login' | 'register';
@@ -29,14 +30,10 @@ export function AuthForm({ mode, role }: AuthFormProps) {
 
   useEffect(() => {
     if (!authLoading && currentUser) {
-      // If user is already logged in, check their role and redirect
-      const expectedRole = searchParams.get('role') === 'shop-owner' ? 'shop-owner' : 'homeowner';
-      if (currentUser.role === expectedRole) {
-          const dashboardUrl = currentUser.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
-          router.push(dashboardUrl);
-      }
+      const dashboardUrl = currentUser.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
+      router.push(dashboardUrl);
     }
-  }, [currentUser, authLoading, router, searchParams]);
+  }, [currentUser, authLoading, router]);
 
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -49,7 +46,6 @@ export function AuthForm({ mode, role }: AuthFormProps) {
 
     try {
       if (mode === 'register') {
-        const dashboardUrl = role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
         await register(username, password, role);
         toast({
           title: "Registration successful!",
@@ -57,15 +53,20 @@ export function AuthForm({ mode, role }: AuthFormProps) {
         });
         // The AuthProvider will handle redirection on successful registration
       } else { // Login mode
-        await login(username, password);
-        // The AuthProvider's onAuthStateChanged will set the currentUser
-        // and the useEffect above will handle redirection.
-        // We add a small delay to allow the auth state to propagate.
-        setTimeout(() => {
-            const dashboardUrl = role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
-            router.push(dashboardUrl);
-            router.refresh();
-        }, 500);
+        
+        // This is the main fix: call login with only username and password.
+        const userCredential = await login(username, password);
+        const loggedInUser = await getUser(userCredential.user.uid);
+
+        if (!loggedInUser) {
+           throw new Error('User profile could not be found after login.');
+        }
+
+        if (loggedInUser.role !== role) {
+             throw new Error(`You are trying to log in as a ${role.replace('-', ' ')}, but this account is registered as a ${loggedInUser.role.replace('-', ' ')}. Please log in on the correct page.`);
+        }
+        
+        // Success, allow useEffect to redirect
       }
 
     } catch (e: any) {
