@@ -30,21 +30,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+        
         if (userDoc.exists()) {
           const userData = userDoc.data() as User;
-          let profileData;
-          // Use the user's ID to fetch their profile, which is more robust
-          const profileCollection = userData.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
-          const profileDocRef = doc(db, profileCollection, user.uid);
-          profileData = await getDoc(profileDocRef);
-
-          if (profileData.exists()) {
-              setCurrentUser({ ...userData, profile: { id: profileData.id, ...profileData.data() } });
+          
+          let profileDoc;
+          if (userData.role === 'homeowner') {
+            profileDoc = await getDoc(doc(db, "homeownerProfiles", user.uid));
           } else {
-              console.warn(`Profile for user ${user.uid} not found in ${profileCollection} collection. Logging out.`);
-              await signOut(auth);
-              setCurrentUser(null);
+            profileDoc = await getDoc(doc(db, "shopOwnerProfiles", user.uid));
+          }
+
+          if (profileDoc.exists()) {
+            const profileData = { id: profileDoc.id, ...profileDoc.data() };
+            setCurrentUser({ ...userData, profile: profileData });
+          } else {
+            console.warn(`Profile for user ${user.uid} (role: ${userData.role}) not found. Logging out.`);
+            await signOut(auth);
+            setCurrentUser(null);
           }
         } else {
             console.warn("User authenticated with Firebase, but no user record found in Firestore. Logging out.");

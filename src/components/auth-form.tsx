@@ -14,7 +14,6 @@ import { useToast } from '@/hooks/use-toast';
 import type { UserRole, User } from '@/lib/types';
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
-import { getUser } from '@/lib/store';
 
 
 // This function sanitizes a username to be a valid email local part
@@ -140,6 +139,25 @@ export function AuthForm({ mode, role }: AuthFormProps) {
                 {footerLinkText}
               </Link>
             </div>
+             {mode === 'login' && (
+              <div className="text-sm">
+                {role === 'homeowner' ? (
+                  <span>
+                    Trying to log in as a Shop Owner?{' '}
+                    <Link href="/auth-pages/login?role=shop-owner" className="underline text-primary">
+                      Click here
+                    </Link>
+                  </span>
+                ) : (
+                   <span>
+                    Trying to log in as a Homeowner?{' '}
+                    <Link href="/auth-pages/login?role=homeowner" className="underline text-primary">
+                      Click here
+                    </Link>
+                  </span>
+                )}
+              </div>
+            )}
           </CardFooter>
         </form>
       </Card>
