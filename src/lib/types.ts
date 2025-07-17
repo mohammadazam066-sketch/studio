@@ -47,3 +47,14 @@ export type ShopOwnerProfile = {
   location: string;
   shopPhotos: string[];
 };
+
+export type Update = {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorRole: UserRole;
+  title: string;
+  content: string;
+  imageUrl?: string;
+  createdAt: Timestamp | Date | string;
+};

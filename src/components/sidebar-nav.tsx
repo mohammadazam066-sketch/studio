@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, PlusCircle, Briefcase, User, FileText, LogOut } from 'lucide-react';
+import { LayoutDashboard, PlusCircle, Briefcase, User, FileText, LogOut, Newspaper } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
 import { useAuth } from '@/lib/store';
@@ -17,12 +17,14 @@ interface NavLink {
 const homeownerNavLinks: NavLink[] = [
   { href: '/homeowner/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/homeowner/requirements/new', label: 'New Requirement', icon: PlusCircle },
+  { href: '/updates', label: 'Updates', icon: Newspaper },
   { href: '/homeowner/profile', label: 'Profile', icon: User },
 ];
 
 const shopOwnerNavLinks: NavLink[] = [
   { href: '/shop-owner/dashboard', label: 'Requirements', icon: Briefcase },
   { href: '/shop-owner/my-quotations', label: 'My Quotations', icon: FileText },
+  { href: '/updates', label: 'Updates', icon: Newspaper },
   { href: '/shop-owner/profile', label: 'Profile', icon: User },
 ];
 

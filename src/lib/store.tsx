@@ -2,10 +2,10 @@
 'use client';
 
 import { useState, useEffect, createContext, useContext, Dispatch, SetStateAction } from 'react';
-import type { Requirement, Quotation, ShopOwnerProfile, User } from './types';
+import type { Requirement, Quotation, ShopOwnerProfile, User, Update } from './types';
 import { auth, db, storage } from './firebase';
 import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, type UserCredential } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, updateDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, updateDoc, serverTimestamp, writeBatch, orderBy } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 import type { Timestamp } from 'firebase/firestore';
 
@@ -128,7 +128,7 @@ export async function addRequirement(newRequirement: Omit<Requirement, 'id' | 'c
 
     const requirementToAdd = {
       ...newRequirement,
-      photos: photoURLs.length > 0 ? photoURLs : ['https://placehold.co/600x400.png'],
+      photos: photoURLs,
       homeownerId: auth.currentUser.uid,
       homeownerName: userData.username || 'Anonymous',
       createdAt: serverTimestamp(),
@@ -238,7 +238,7 @@ export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, '
         // If it's already a URL, it's an existing photo. Keep it.
         if (typeof photoData === 'string' && photoData.startsWith('https://')) {
             newFinalUrls.push(photoData);
-            return Promise.resolve();
+            return;
         }
         // Otherwise, it's a new data URI to upload.
         const storageRef = ref(storage, `profiles/${profileId}/${Date.now()}-${index}.jpg`);
@@ -278,4 +278,39 @@ export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, '
     await batch.commit();
 };
 
+
+// --- UPDATES FEED FUNCTIONS ---
+
+export async function addUpdate(newUpdate: Omit<Update, 'id' | 'createdAt' | 'authorId' | 'authorName' | 'authorRole'> & { imageUrl?: string }) {
+    if (!auth.currentUser) throw new Error("User not authenticated");
     
+    const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+    const userData = userDoc.data() as User;
+    if (!userData) throw new Error("User data not found in Firestore");
+
+    let finalImageUrl = newUpdate.imageUrl;
+    if (newUpdate.imageUrl) {
+        const storageRef = ref(storage, `updates/${auth.currentUser!.uid}/${Date.now()}.jpg`);
+        await uploadString(storageRef, newUpdate.imageUrl, 'data_url', { contentType: 'image/jpeg' });
+        finalImageUrl = await getDownloadURL(storageRef);
+    }
+
+    const updateToAdd = {
+      title: newUpdate.title,
+      content: newUpdate.content,
+      imageUrl: finalImageUrl || '',
+      authorId: auth.currentUser.uid,
+      authorName: userData.username,
+      authorRole: userData.role,
+      createdAt: serverTimestamp(),
+    };
+    
+    const docRef = await addDoc(collection(db, 'updates'), updateToAdd);
+    return docRef.id;
+}
+
+export async function getUpdates(): Promise<Update[]> {
+    const q = query(collection(db, 'updates'), orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Update));
+}
