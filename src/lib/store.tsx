@@ -234,19 +234,24 @@ export async function updateRequirementStatus(requirementId: string, status: 'Op
 }
 
 export async function getRequirements(filters: { homeownerId?: string; status?: 'Open' | 'Purchased' } = {}) {
-    let q: any = collection(db, 'requirements'); // Use 'any' to allow dynamic query building
-
+    const requirementsCollection = collection(db, 'requirements');
     const constraints: QueryConstraint[] = [];
+
     if (filters.homeownerId) {
         constraints.push(where('homeownerId', '==', filters.homeownerId));
-    }
-    if (filters.status) {
-        constraints.push(where('status', '==', filters.status));
+        constraints.push(orderBy('createdAt', 'desc'));
     }
     
-    constraints.push(orderBy('createdAt', 'desc'));
+    if (filters.status) {
+        constraints.push(where('status', '==', filters.status));
+        constraints.push(orderBy('createdAt', 'desc'));
+    }
 
-    q = query(q, ...constraints);
+    if (!filters.homeownerId && !filters.status) {
+        constraints.push(orderBy('createdAt', 'desc'));
+    }
+    
+    const q = query(requirementsCollection, ...constraints);
     
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Requirement));
