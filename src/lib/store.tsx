@@ -5,7 +5,7 @@ import { useState, useEffect, createContext, useContext, Dispatch, SetStateActio
 import type { Requirement, Quotation, ShopOwnerProfile, User, Update } from './types';
 import { auth, db, storage } from './firebase';
 import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, type UserCredential } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, updateDoc, serverTimestamp, writeBatch, orderBy } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, updateDoc, serverTimestamp, writeBatch, orderBy, deleteDoc } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 import type { Timestamp } from 'firebase/firestore';
 
@@ -308,6 +308,55 @@ export async function addUpdate(newUpdate: Omit<Update, 'id' | 'createdAt' | 'au
     const docRef = await addDoc(collection(db, 'updates'), updateToAdd);
     return docRef.id;
 }
+
+export async function updateUpdate(
+  updateId: string, 
+  updateData: { title: string; content: string }, 
+  newImage?: { dataUrl: string; oldImageUrl?: string }
+) {
+  if (!auth.currentUser) throw new Error("User not authenticated");
+  
+  const updateRef = doc(db, 'updates', updateId);
+  const dataToUpdate: any = { ...updateData };
+
+  // Handle image replacement
+  if (newImage) {
+    // Delete the old image if it exists
+    if (newImage.oldImageUrl) {
+        try {
+            const oldImageRef = ref(storage, newImage.oldImageUrl);
+            await deleteObject(oldImageRef);
+        } catch (error) {
+            console.error("Failed to delete old image, continuing update.", error);
+        }
+    }
+    // Upload the new image
+    const newImageRef = ref(storage, `updates/${auth.currentUser.uid}/${Date.now()}.jpg`);
+    await uploadString(newImageRef, newImage.dataUrl, 'data_url', { contentType: 'image/jpeg' });
+    dataToUpdate.imageUrl = await getDownloadURL(newImageRef);
+  }
+
+  await updateDoc(updateRef, dataToUpdate);
+}
+
+export async function deleteUpdate(updateId: string, imageUrl?: string) {
+    if (!auth.currentUser) throw new Error("User not authenticated");
+    
+    // Delete the image from storage if it exists
+    if (imageUrl) {
+        try {
+            const imageRef = ref(storage, imageUrl);
+            await deleteObject(imageRef);
+        } catch (error) {
+            // Log error but don't block firestore deletion if storage deletion fails
+            console.error("Failed to delete update image from storage:", error);
+        }
+    }
+    
+    // Delete the document from Firestore
+    await deleteDoc(doc(db, 'updates', updateId));
+}
+
 
 export async function getUpdates(): Promise<Update[]> {
     const q = query(collection(db, 'updates'), orderBy('createdAt', 'desc'));
