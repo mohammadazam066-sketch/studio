@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect, createContext, useContext, Dispatch, SetStateAction } from 'react';
-import type { Requirement, Quotation, ShopOwnerProfile, User, Update } from './types';
+import type { Requirement, Quotation, ShopOwnerProfile, User, Update, HomeownerProfile } from './types';
 import { auth, db, storage } from './firebase';
 import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, type UserCredential } from 'firebase/auth';
 import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, updateDoc, serverTimestamp, writeBatch, orderBy, deleteDoc, type QueryConstraint } from 'firebase/firestore';
@@ -32,10 +32,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (user) {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (userDoc.exists()) {
-          setCurrentUser({ id: user.uid, ...userDoc.data() } as User);
+          const userData = userDoc.data() as User;
+          let profileData;
+
+          if (userData.role === 'homeowner') {
+              profileData = await getDoc(doc(db, 'homeownerProfiles', user.uid));
+          } else {
+              profileData = await getDoc(doc(db, 'shopOwnerProfiles', user.uid));
+          }
+
+          if (profileData.exists()) {
+              setCurrentUser({ ...userData, profile: { id: profileData.id, ...profileData.data() } });
+          } else {
+              console.warn(`Profile for user ${user.uid} not found in ${userData.role}s collection. Logging out.`);
+              await signOut(auth);
+              setCurrentUser(null);
+          }
         } else {
-            // This case can happen if user exists in Auth but not in Firestore DB.
-            // Logging them out to prevent inconsistent state.
             console.warn("User authenticated with Firebase, but no user record found in Firestore. Logging out.");
             await signOut(auth);
             setCurrentUser(null);
@@ -62,18 +75,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const batch = writeBatch(db);
 
     const userDocRef = doc(db, 'users', user.uid);
-    batch.set(userDocRef, { username: username, email: email, role: role, id: user.uid });
+    batch.set(userDocRef, { username, email, role, id: user.uid });
 
     if (role === 'shop-owner') {
         const profileDocRef = doc(db, "shopOwnerProfiles", user.uid);
         const newProfile: Omit<ShopOwnerProfile, 'id'> = {
-            username: username, // Storing the username here as well
-            email: email,
+            username,
+            email,
             shopName: `${username}'s Shop`,
             phoneNumber: '',
             address: '',
             location: '',
             shopPhotos: [],
+        };
+        batch.set(profileDocRef, newProfile);
+    } else if (role === 'homeowner') {
+        const profileDocRef = doc(db, "homeownerProfiles", user.uid);
+        const newProfile: Omit<HomeownerProfile, 'id'> = {
+            username,
+            email,
+            phoneNumber: '',
+            address: '',
         };
         batch.set(profileDocRef, newProfile);
     }
@@ -118,9 +140,22 @@ export async function getUser(userId: string): Promise<User | undefined> {
     }
 };
     
-export async function updateUser(userId: string, updatedDetails: Partial<Omit<User, 'id' | 'role' | 'password' | 'email'>>) {
+export async function updateUser(userId: string, updatedDetails: Partial<Omit<User, 'id' | 'role' | 'password' | 'email' | 'profile'>>) {
     if (!userId) throw new Error("User ID is required to update user.");
-    return updateDoc(doc(db, 'users', userId), updatedDetails);
+    
+    const user = await getUser(userId);
+    if (!user) throw new Error("User not found");
+    
+    const batch = writeBatch(db);
+
+    const userRef = doc(db, 'users', userId);
+    batch.update(userRef, updatedDetails);
+    
+    const profileCollection = user.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
+    const profileRef = doc(db, profileCollection, userId);
+    batch.update(profileRef, { username: updatedDetails.username });
+
+    await batch.commit();
 }
 
 
@@ -323,16 +358,22 @@ export async function getQuotationsByShopOwner(shopOwnerId: string) {
 }
 
 
-export async function getProfile(shopOwnerId: string): Promise<ShopOwnerProfile | undefined> {
+export async function getProfile(shopOwnerId: string): Promise<ShopOwnerProfile | HomeownerProfile | undefined> {
     if (!shopOwnerId) {
         console.error("getProfile called with no shopOwnerId");
         return undefined;
     }
-    const docRef = doc(db, "shopOwnerProfiles", shopOwnerId);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() } as ShopOwnerProfile;
+
+    let profileDoc = await getDoc(doc(db, "shopOwnerProfiles", shopOwnerId));
+    if (profileDoc.exists()) {
+        return { id: profileDoc.id, ...profileDoc.data() } as ShopOwnerProfile;
     }
+
+    profileDoc = await getDoc(doc(db, "homeownerProfiles", shopOwnerId));
+     if (profileDoc.exists()) {
+        return { id: profileDoc.id, ...profileDoc.data() } as HomeownerProfile;
+    }
+    
     return undefined;
 };
 
@@ -340,7 +381,7 @@ export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, '
     if (!auth.currentUser) throw new Error("User not authenticated");
 
     const profileId = auth.currentUser.uid;
-    const existingProfile = await getProfile(profileId);
+    const existingProfile = await getProfile(profileId) as ShopOwnerProfile;
     
     const existingUrlsToKeep = newPhotosState.filter((p): p is string => typeof p === 'string');
     const newPhotoFiles = newPhotosState.filter((p): p is { file: File; preview: string } => typeof p !== 'string');

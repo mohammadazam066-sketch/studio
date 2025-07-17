@@ -9,6 +9,7 @@ export type User = {
   email: string; 
   password?: string; 
   role: UserRole;
+  profile?: HomeownerProfile | ShopOwnerProfile;
 };
 
 export type Requirement = {
@@ -50,6 +51,14 @@ export type ShopOwnerProfile = {
   location: string;
   shopPhotos: string[];
 };
+
+export type HomeownerProfile = {
+    id: string;
+    username: string;
+    email: string;
+    phoneNumber?: string;
+    address?: string;
+}
 
 export type Update = {
   id: string;

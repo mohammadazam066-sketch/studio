@@ -1,16 +1,17 @@
 
+
 'use client';
 
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from '@/hooks/use-toast';
 import { updateUser, useAuth } from '@/lib/store';
 import React, { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import type { User } from '@/lib/types';
+import type { HomeownerProfile } from '@/lib/types';
 
 
 export function UserProfileForm() {
@@ -18,32 +19,31 @@ export function UserProfileForm() {
   const { toast } = useToast();
   const { currentUser, setCurrentUser } = useAuth(); 
   
-  const [user, setUser] = useState<Partial<User>>({});
+  const [profile, setProfile] = useState<Partial<HomeownerProfile>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (currentUser) {
-        setUser({ username: currentUser.username, email: currentUser.email });
+    if (currentUser?.profile) {
+        setProfile(currentUser.profile as HomeownerProfile);
         setLoading(false);
     }
   }, [currentUser]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setUser(prev => ({...prev, [name]: value}));
+    setProfile(prev => ({...prev, [name]: value}));
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!currentUser) return;
+    if (!currentUser || !profile.username) return;
     setSaving(true);
     try {
-        const updatedDetails = { username: user.username };
-        await updateUser(currentUser.id, updatedDetails);
+        await updateUser(currentUser.id, { username: profile.username });
         
         if (setCurrentUser) {
-          setCurrentUser(prevUser => prevUser ? {...prevUser, ...updatedDetails} : null);
+          setCurrentUser(prevUser => prevUser ? {...prevUser, username: profile.username, profile: {...prevUser.profile, ...profile}} : null);
         }
 
         toast({
@@ -69,15 +69,16 @@ export function UserProfileForm() {
       <Card>
         <CardHeader>
           <CardTitle>Personal Details</CardTitle>
+          <CardDescription>This information helps us personalize your experience.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="username">Your Username</Label>
-            <Input id="username" name="username" placeholder="e.g., alice" required value={user.username || ''} onChange={handleChange} disabled={saving} />
+            <Input id="username" name="username" placeholder="e.g., alice" required value={profile.username || ''} onChange={handleChange} disabled={saving} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>
-            <Input id="email" name="email" type="email" placeholder="e.g., alice@bidarkart.app" required value={user.email || ''} onChange={handleChange} disabled={true} title="Email address cannot be changed." />
+            <Input id="email" name="email" type="email" required value={profile.email || ''} onChange={handleChange} disabled={true} title="Email address cannot be changed." />
           </div>
         </CardContent>
         <CardFooter>
