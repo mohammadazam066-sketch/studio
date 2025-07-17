@@ -62,7 +62,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const batch = writeBatch(db);
 
     const userDocRef = doc(db, 'users', user.uid);
-    // This was the bug: `name: username` should have been `username: username`.
     batch.set(userDocRef, { username: username, email: email, role: role, id: user.uid });
 
     if (role === 'shop-owner') {
