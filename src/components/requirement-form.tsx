@@ -3,26 +3,47 @@
 
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Upload, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { addRequirement } from '@/lib/store';
+import { addRequirement, updateRequirement } from '@/lib/store';
 import type { Requirement } from '@/lib/types';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 
-type PhotoState = { file: File, preview: string };
+type PhotoState = string | { file: File, preview: string };
 
-export function RequirementForm() {
+interface RequirementFormProps {
+  existingRequirement?: Requirement;
+}
+
+export function RequirementForm({ existingRequirement }: RequirementFormProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const [photos, setPhotos] = useState<PhotoState[]>([]);
+  
+  const isEditMode = !!existingRequirement;
+
+  const [title, setTitle] = useState(existingRequirement?.title ?? '');
+  const [category, setCategory] = useState(existingRequirement?.category ?? '');
+  const [location, setLocation] = useState(existingRequirement?.location ?? '');
+  const [description, setDescription] = useState(existingRequirement?.description ?? '');
+  const [photos, setPhotos] = useState<PhotoState[]>(existingRequirement?.photos ?? []);
+  
   const [loading, setLoading] = useState(false);
-  const [category, setCategory] = useState("");
+
+  useEffect(() => {
+    if (existingRequirement) {
+        setTitle(existingRequirement.title);
+        setCategory(existingRequirement.category);
+        setLocation(existingRequirement.location);
+        setDescription(existingRequirement.description);
+        setPhotos(existingRequirement.photos);
+    }
+  }, [existingRequirement]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -44,49 +65,65 @@ export function RequirementForm() {
   };
 
   const handleRemovePhoto = (index: number) => {
-    // Revoke the object URL to avoid memory leaks
-    URL.revokeObjectURL(photos[index].preview);
+    const photoToRemove = photos[index];
+    if (typeof photoToRemove !== 'string') {
+        URL.revokeObjectURL(photoToRemove.preview);
+    }
     setPhotos(photos.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    
-    const formData = new FormData(e.currentTarget);
-    const photoDataUrls = await Promise.all(
-        photos.map(p => {
-            return new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(p.file);
-            });
-        })
-    );
-
-    const newRequirement: Omit<Requirement, 'id' | 'createdAt' | 'homeownerId' | 'homeownerName' | 'status'> = {
-      title: formData.get('title') as string,
-      category: category,
-      location: formData.get('location') as string,
-      description: formData.get('description') as string,
-      photos: photoDataUrls,
-    };
 
     try {
+      if (isEditMode) {
+        // Handle editing logic
+        await updateRequirement(existingRequirement.id, {
+            title,
+            category,
+            location,
+            description,
+        }, photos, existingRequirement.photos);
+        toast({
+            title: "Requirement Updated!",
+            description: "Your changes have been saved.",
+        });
+        router.push(`/homeowner/requirements/${existingRequirement.id}`);
+      } else {
+        // Handle creating new requirement
+        const photoDataUrls = await Promise.all(
+            photos.map(p => {
+                if (typeof p === 'string') return Promise.resolve(p);
+                return new Promise<string>((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result as string);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(p.file);
+                });
+            })
+        );
+        const newRequirement: Omit<Requirement, 'id' | 'createdAt' | 'homeownerId' | 'homeownerName' | 'status'> = {
+          title,
+          category,
+          location,
+          description,
+          photos: photoDataUrls,
+        };
         await addRequirement(newRequirement);
         toast({
           title: "Requirement Posted!",
           description: "Professionals will now be able to view and quote your project.",
         });
         router.push('/homeowner/dashboard');
-        router.refresh();
+      }
+      router.refresh();
     } catch (error) {
-        console.error("Failed to post requirement:", error);
+        console.error(`Failed to ${isEditMode ? 'update' : 'post'} requirement:`, error);
         toast({
             variant: "destructive",
             title: "Error",
-            description: "Failed to post requirement. Please try again."
+            description: `Failed to ${isEditMode ? 'update' : 'post'} requirement. Please try again.`
         });
     } finally {
         setLoading(false);
@@ -97,17 +134,18 @@ export function RequirementForm() {
     <form onSubmit={handleSubmit}>
       <Card>
         <CardHeader>
-          <CardTitle>Project Details</CardTitle>
+          <CardTitle>{isEditMode ? 'Edit Your Requirement' : 'Project Details'}</CardTitle>
+          {!isEditMode && <CardDescription>Describe your project to get quotes from qualified professionals.</CardDescription>}
         </CardHeader>
         <CardContent className="grid gap-6 md:grid-cols-2">
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="title">Requirement Title</Label>
-            <Input id="title" name="title" placeholder="e.g., 100 bags of cement" required disabled={loading} />
+            <Input id="title" name="title" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g., 100 bags of cement" required disabled={loading} />
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="category">Category</Label>
-            <Select required name="category" onValueChange={setCategory} disabled={loading}>
+            <Select required name="category" value={category} onValueChange={setCategory} disabled={loading}>
               <SelectTrigger id="category">
                 <SelectValue placeholder="Select a category" />
               </SelectTrigger>
@@ -122,12 +160,12 @@ export function RequirementForm() {
           
           <div className="space-y-2">
             <Label htmlFor="location">Location</Label>
-            <Input id="location" name="location" placeholder="e.g., bidar" required disabled={loading} />
+            <Input id="location" name="location" value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g., bidar" required disabled={loading} />
           </div>
 
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="description">Description</Label>
-            <Textarea id="description" name="description" placeholder="Describe your project in detail..." disabled={loading} />
+            <Textarea id="description" name="description" value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe your project in detail..." disabled={loading} />
           </div>
 
           <div className="space-y-4 md:col-span-2">
@@ -136,7 +174,7 @@ export function RequirementForm() {
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
                 {photos.map((photo, index) => (
                   <div key={index} className="relative group">
-                    <Image src={photo.preview} alt={`Upload preview ${index + 1}`} width={150} height={100} className="rounded-lg object-cover w-full aspect-video" />
+                    <Image src={typeof photo === 'string' ? photo : photo.preview} alt={`Upload preview ${index + 1}`} width={150} height={100} className="rounded-lg object-cover w-full aspect-video" />
                     <Button
                       type="button"
                       variant="destructive"
@@ -167,7 +205,7 @@ export function RequirementForm() {
         <CardFooter>
           <Button type="submit" disabled={loading}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Post Requirement
+            {isEditMode ? 'Save Changes' : 'Post Requirement'}
           </Button>
         </CardFooter>
       </Card>

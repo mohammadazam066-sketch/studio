@@ -138,6 +138,95 @@ export async function addRequirement(newRequirement: Omit<Requirement, 'id' | 'c
     const docRef = await addDoc(collection(db, 'requirements'), requirementToAdd);
     return docRef.id;
 }
+
+export async function updateRequirement(
+    requirementId: string, 
+    updateData: Partial<Omit<Requirement, 'id' | 'createdAt' | 'homeownerId' | 'homeownerName' | 'status' | 'photos'>>, 
+    newPhotos: (string | { file: File, preview: string })[], 
+    oldPhotoUrls: string[]
+) {
+    if (!auth.currentUser) throw new Error("User not authenticated");
+
+    const requirementRef = doc(db, 'requirements', requirementId);
+
+    // Process new photos for upload and keep track of existing URLs
+    const finalPhotoUrls: string[] = [];
+    const photoUploadPromises = newPhotos.map(async (photo, index) => {
+        if (typeof photo === 'string') {
+            finalPhotoUrls.push(photo); // Keep existing URL
+            return;
+        }
+        // Upload new file
+        const storageRef = ref(storage, `requirements/${auth.currentUser.uid}/${Date.now()}-updated-${index}.jpg`);
+        const uploadResult = await uploadString(storageRef, photo.preview, 'data_url');
+        finalPhotoUrls.push(await getDownloadURL(uploadResult.ref));
+    });
+
+    await Promise.all(photoUploadPromises);
+
+    // Delete photos from storage that were removed in the UI
+    const removedUrls = oldPhotoUrls.filter(url => !finalPhotoUrls.includes(url));
+    await Promise.all(removedUrls.map(url => {
+        try {
+            const photoRef = ref(storage, url);
+            return deleteObject(photoRef);
+        } catch (error) {
+            console.error("Failed to delete old photo:", url, error);
+            return Promise.resolve(); 
+        }
+    }));
+    
+    const dataToUpdate = {
+        ...updateData,
+        photos: finalPhotoUrls,
+    };
+
+    return updateDoc(requirementRef, dataToUpdate);
+}
+
+export async function deleteRequirement(requirementId: string) {
+    if (!auth.currentUser) throw new Error("User not authenticated");
+
+    const batch = writeBatch(db);
+    const requirementRef = doc(db, 'requirements', requirementId);
+    
+    // 1. Get the requirement to find associated photos and quotations
+    const reqDoc = await getDoc(requirementRef);
+    if (!reqDoc.exists()) throw new Error("Requirement not found");
+    
+    const requirement = reqDoc.data() as Requirement;
+    
+    // Ensure the user deleting is the owner
+    if (requirement.homeownerId !== auth.currentUser.uid) {
+        throw new Error("User does not have permission to delete this requirement.");
+    }
+
+    // 2. Delete photos from storage
+    if (requirement.photos && requirement.photos.length > 0) {
+        const photoDeletionPromises = requirement.photos.map(url => {
+            try {
+                return deleteObject(ref(storage, url));
+            } catch (error) {
+                console.error("Failed to delete requirement photo:", url, error);
+                return Promise.resolve(); // Don't block if one photo fails
+            }
+        });
+        await Promise.all(photoDeletionPromises);
+    }
+    
+    // 3. Find and delete all associated quotations
+    const quotationsQuery = query(collection(db, 'quotations'), where('requirementId', '==', requirementId));
+    const quotationsSnapshot = await getDocs(quotationsQuery);
+    quotationsSnapshot.forEach(quoteDoc => {
+        batch.delete(quoteDoc.ref);
+    });
+
+    // 4. Delete the requirement document itself
+    batch.delete(requirementRef);
+
+    // 5. Commit the batch
+    await batch.commit();
+}
   
 export async function updateRequirementStatus(requirementId: string, status: 'Open' | 'Purchased', purchasedQuote?: Quotation) {
     const dataToUpdate: { status: string; purchasedQuote?: any } = { status };

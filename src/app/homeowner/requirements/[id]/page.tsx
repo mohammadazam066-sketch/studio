@@ -1,13 +1,13 @@
 
 'use client';
 
-import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, getProfile } from '@/lib/store';
+import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, getProfile, deleteRequirement } from '@/lib/store';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Calendar, Wrench, FileText, CheckCircle, Mail, Phone, User as UserIcon } from 'lucide-react';
+import { MapPin, Calendar, Wrench, FileText, CheckCircle, Mail, Phone, User as UserIcon, Edit, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import type { Requirement, Quotation, ShopOwnerProfile } from '@/lib/types';
@@ -90,6 +90,7 @@ function PageSkeleton() {
 
 export default function RequirementDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const { id } = params;
   
   const { toast } = useToast();
@@ -98,7 +99,8 @@ export default function RequirementDetailPage() {
   const [relatedQuotations, setRelatedQuotations] = useState<QuotationWithProfile[]>([]);
   const [selectedQuote, setSelectedQuote] = useState<QuotationWithProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (typeof id !== 'string') return;
@@ -136,14 +138,13 @@ export default function RequirementDetailPage() {
       return;
     }
     setSelectedQuote(quote);
-    setIsDialogOpen(true);
+    setIsPurchaseDialogOpen(true);
   };
   
   const confirmPurchase = async () => {
     if (requirement && selectedQuote) {
       try {
         await updateRequirementStatus(requirement.id, 'Purchased');
-        // Optimistically update the local state to reflect the change immediately
         setRequirement(prev => prev ? { ...prev, status: 'Purchased' } : undefined);
         toast({
           title: "Purchase Confirmed!",
@@ -155,10 +156,33 @@ export default function RequirementDetailPage() {
          toast({ variant: 'destructive', title: 'Error', description: 'Failed to update purchase status.' });
       } finally {
         setSelectedQuote(null);
-        setIsDialogOpen(false);
+        setIsPurchaseDialogOpen(false);
       }
     }
   };
+
+  const handleDeleteRequirement = async () => {
+    if (!requirement) return;
+    try {
+        await deleteRequirement(requirement.id);
+        toast({
+            title: "Requirement Deleted",
+            description: "Your requirement has been successfully removed.",
+        });
+        router.push('/homeowner/dashboard');
+        router.refresh();
+    } catch (error) {
+        console.error("Failed to delete requirement:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to delete the requirement. Please try again.",
+        });
+    } finally {
+        setIsDeleteDialogOpen(false);
+    }
+  }
+
 
   if (loading) {
     return <PageSkeleton />;
@@ -197,6 +221,18 @@ export default function RequirementDetailPage() {
             ))}
           </div>
         </CardContent>
+         {requirement.status !== 'Purchased' && (
+          <CardFooter className="border-t pt-4 flex justify-end gap-2">
+            <Button asChild variant="outline">
+              <Link href={`/homeowner/requirements/edit/${requirement.id}`}>
+                <Edit className="mr-2 h-4 w-4" /> Edit
+              </Link>
+            </Button>
+            <Button variant="destructive" onClick={() => setIsDeleteDialogOpen(true)}>
+              <Trash2 className="mr-2 h-4 w-4" /> Delete
+            </Button>
+          </CardFooter>
+        )}
       </Card>
       
       {/* Quotations List */}
@@ -255,8 +291,8 @@ export default function RequirementDetailPage() {
         )}
       </div>
 
-       {/* Confirmation Dialog */}
-       <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+       {/* Purchase Confirmation Dialog */}
+       <AlertDialog open={isPurchaseDialogOpen} onOpenChange={setIsPurchaseDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Purchase</AlertDialogTitle>
@@ -276,6 +312,24 @@ export default function RequirementDetailPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmPurchase} className="bg-accent hover:bg-accent/90 text-accent-foreground">
               Confirm &amp; Purchase
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+       {/* Delete Confirmation Dialog */}
+       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete your requirement and all quotations associated with it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteRequirement} variant="destructive">
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
