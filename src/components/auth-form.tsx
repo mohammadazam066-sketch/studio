@@ -121,7 +121,7 @@ export function AuthForm({ mode, role }: AuthFormProps) {
             {error && <p className="text-sm text-center text-destructive">{error}</p>}
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button className="w-full" type="submit" disabled={loading}>
+            <Button className={`w-full ${mode === 'register' ? 'bg-accent text-accent-foreground hover:bg-accent/90' : ''}`} type="submit" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {buttonText}
             </Button>
