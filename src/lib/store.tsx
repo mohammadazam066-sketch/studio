@@ -47,8 +47,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = async (username: string, pass: string) => {
     const email = `${username.toLowerCase()}@bidarkart.app`;
-    const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-    return userCredential;
+    return signInWithEmailAndPassword(auth, email, pass);
   };
   
   const register = async (username: string, pass:string, role: 'homeowner' | 'shop-owner') => {

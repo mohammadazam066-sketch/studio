@@ -36,34 +36,28 @@ export function AuthForm({ mode, role }: AuthFormProps) {
     const username = formData.get('username') as string;
     const password = formData.get('password') as string;
 
-    // Use a domain for internal email construction
-    const email = `${username.toLowerCase()}@bidarkart.app`;
-
     try {
+      const dashboardUrl = role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
+      
       if (mode === 'register') {
         await register(username, password, role);
         toast({
           title: "Registration successful!",
           description: "Welcome to Bidarkart.",
         });
-        const dashboardUrl = role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
         router.push(dashboardUrl);
       } else { // Login mode
-        await login(username, password);
-        
-        const user = getAuth().currentUser;
-        if (!user) {
-          throw new Error("Could not retrieve user after login.");
+        const userCredential = await login(username, password);
+        const userProfile = await getUser(userCredential.user.uid);
+
+        // Check if the role of the logged-in user matches the expected role for the page.
+        if (userProfile && userProfile.role !== role) {
+           await getAuth().signOut();
+           throw new Error(`You are trying to log in as a ${role.replace('-', ' ')}, but this account is a ${userProfile.role.replace('-', ' ')}. Please log in on the correct page.`);
         }
-        
-        const userProfile = await getUser(user.uid);
-        if (userProfile) {
-          const dashboardUrl = userProfile.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
-          router.push(dashboardUrl);
-        } else {
-          await getAuth().signOut();
-          throw new Error("User profile could not be found. Please try registering or contact support.");
-        }
+
+        const targetDashboard = userProfile?.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
+        router.push(targetDashboard);
       }
       
       router.refresh(); 
