@@ -26,7 +26,10 @@ const formatUsernameForFirebase = (username: string) => {
     if (!sanitizedUsername) {
         throw new Error("Username is invalid. Please use only letters, numbers, underscores, periods, or hyphens.");
     }
-    return `${sanitizedUsername}@bidarkart.app`;
+    return {
+      sanitizedUsername,
+      emailForFirebase: `${sanitizedUsername}@bidarkart.app`
+    };
 }
 
 
@@ -61,11 +64,11 @@ export function AuthForm({ mode, role }: AuthFormProps) {
     const password = formData.get('password') as string;
 
     try {
-      const emailForFirebase = formatUsernameForFirebase(username);
+      const { sanitizedUsername, emailForFirebase } = formatUsernameForFirebase(username);
 
       if (mode === 'register') {
-        // Pass original username and the formatted email to register function
-        await register(emailForFirebase, password, role, username);
+        // Pass sanitized username and the formatted email to register function
+        await register(emailForFirebase, password, role, sanitizedUsername);
         toast({
           title: "Registration successful!",
           description: "Welcome to Bidarkart.",
@@ -73,7 +76,7 @@ export function AuthForm({ mode, role }: AuthFormProps) {
       } else { 
         await login(emailForFirebase, password);
       }
-      // Let the useEffect handle redirection
+      // Redirection is handled by the useEffect hook
     } catch (e: any) {
       let errorMessage = e.message || "An error occurred. Please try again.";
        if (typeof e.message === 'string') {

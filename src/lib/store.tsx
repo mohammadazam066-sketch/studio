@@ -34,6 +34,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (userDoc.exists()) {
           const userData = userDoc.data() as User;
           let profileData;
+          // Use the user's ID to fetch their profile, which is more robust
           const profileCollection = userData.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
           const profileDocRef = doc(db, profileCollection, user.uid);
           profileData = await getDoc(profileDocRef);
@@ -70,6 +71,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const batch = writeBatch(db);
 
     const userDocRef = doc(db, 'users', user.uid);
+    // Use the sanitized username for both email and username fields for consistency
     batch.set(userDocRef, { username, email, role, id: user.uid });
 
     if (role === 'shop-owner') {
