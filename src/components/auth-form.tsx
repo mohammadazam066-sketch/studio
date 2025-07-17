@@ -3,7 +3,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -35,7 +35,6 @@ interface AuthFormProps {
 
 export function AuthForm({ mode, role }: AuthFormProps) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { login, register, currentUser, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
@@ -59,6 +58,8 @@ export function AuthForm({ mode, role }: AuthFormProps) {
 
     try {
       const { sanitizedUsername, emailForFirebase } = formatUsernameForFirebase(username);
+      
+      const originalUsername = username;
 
       if (mode === 'register') {
         await register(emailForFirebase, password, role, sanitizedUsername);

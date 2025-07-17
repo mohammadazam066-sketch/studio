@@ -30,31 +30,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userDocRef);
-        
-        if (userDoc.exists()) {
-          const userData = userDoc.data() as User;
+        try {
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDocSnap = await getDoc(userDocRef);
           
-          let profileDoc;
-          if (userData.role === 'homeowner') {
-            profileDoc = await getDoc(doc(db, "homeownerProfiles", user.uid));
-          } else {
-            profileDoc = await getDoc(doc(db, "shopOwnerProfiles", user.uid));
-          }
+          if (userDocSnap.exists()) {
+            const userData = userDocSnap.data() as User;
+            let profileDocSnap;
+            let profileData;
 
-          if (profileDoc.exists()) {
-            const profileData = { id: profileDoc.id, ...profileDoc.data() };
-            setCurrentUser({ ...userData, profile: profileData });
+            if (userData.role === 'homeowner') {
+              profileDocSnap = await getDoc(doc(db, "homeownerProfiles", user.uid));
+            } else {
+              profileDocSnap = await getDoc(doc(db, "shopOwnerProfiles", user.uid));
+            }
+
+            if (profileDocSnap.exists()) {
+              profileData = { id: profileDocSnap.id, ...profileDocSnap.data() };
+              setCurrentUser({ ...userData, profile: profileData });
+            } else {
+              console.warn(`Profile for user ${user.uid} (role: ${userData.role}) not found. Logging out.`);
+              await signOut(auth);
+              setCurrentUser(null);
+            }
           } else {
-            console.warn(`Profile for user ${user.uid} (role: ${userData.role}) not found. Logging out.`);
-            await signOut(auth);
-            setCurrentUser(null);
+              console.warn("User authenticated with Firebase, but no user record found in Firestore. Logging out.");
+              await signOut(auth);
+              setCurrentUser(null);
           }
-        } else {
-            console.warn("User authenticated with Firebase, but no user record found in Firestore. Logging out.");
-            await signOut(auth);
-            setCurrentUser(null);
+        } catch (error) {
+           console.error("Error fetching user data during auth state change:", error);
+           await signOut(auth);
+           setCurrentUser(null);
         }
       } else {
         setCurrentUser(null);
@@ -74,7 +81,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const user = userCredential.user;
 
     const batch = writeBatch(db);
-
+    
+    // Use the sanitized username for both user and profile documents
     const userDocRef = doc(db, 'users', user.uid);
     batch.set(userDocRef, { username, email, role, id: user.uid });
 
@@ -364,15 +372,25 @@ export async function getProfile(userId: string): Promise<ShopOwnerProfile | Hom
         console.error("getProfile called with no userId");
         return undefined;
     }
-
-    let profileDoc = await getDoc(doc(db, "shopOwnerProfiles", userId));
-    if (profileDoc.exists()) {
-        return { id: profileDoc.id, ...profileDoc.data() } as ShopOwnerProfile;
+    
+    // First, determine the user's role.
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) {
+        console.warn(`No user document found for ID: ${userId}`);
+        return undefined;
     }
+    const userRole = userDoc.data().role;
 
-    profileDoc = await getDoc(doc(db, "homeownerProfiles", userId));
-     if (profileDoc.exists()) {
+    // Then, fetch from the correct profile collection based on the role.
+    const profileCollectionName = userRole === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
+    let profileDoc = await getDoc(doc(db, profileCollectionName, userId));
+    
+    if (profileDoc.exists()) {
+      if (userRole === 'homeowner') {
         return { id: profileDoc.id, ...profileDoc.data() } as HomeownerProfile;
+      } else {
+        return { id: profileDoc.id, ...profileDoc.data() } as ShopOwnerProfile;
+      }
     }
     
     return undefined;
@@ -524,4 +542,3 @@ export async function getUpdateById(id: string): Promise<Update | undefined> {
     }
     return undefined;
 }
-
