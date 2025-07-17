@@ -423,7 +423,23 @@ export async function updateUpdate(
     const newImageRef = ref(storage, `updates/${auth.currentUser.uid}/${Date.now()}.jpg`);
     await uploadString(newImageRef, newImage.dataUrl, 'data_url', { contentType: 'image/jpeg' });
     dataToUpdate.imageUrl = await getDownloadURL(newImageRef);
+  } else if (newImage === undefined && updateData.imageUrl === undefined) {
+    // This case handles removing an image without adding a new one.
+    // We assume the caller handles deleting the oldImageUrl from storage.
+    // Let's ensure the field is explicitly set to empty.
+    const updateDocSnap = await getDoc(updateRef);
+    const existingUpdate = updateDocSnap.data() as Update;
+    if (existingUpdate.imageUrl) {
+       try {
+            const oldImageRef = ref(storage, existingUpdate.imageUrl);
+            await deleteObject(oldImageRef);
+        } catch (error) {
+            console.error("Failed to delete old image, continuing update.", error);
+        }
+    }
+    dataToUpdate.imageUrl = '';
   }
+
 
   await updateDoc(updateRef, dataToUpdate);
 }
@@ -461,3 +477,5 @@ export async function getUpdateById(id: string): Promise<Update | undefined> {
     }
     return undefined;
 }
+
+    
