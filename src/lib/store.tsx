@@ -16,8 +16,8 @@ interface AuthContextType {
   currentUser: User | null;
   setCurrentUser?: Dispatch<SetStateAction<User | null>>;
   loading: boolean;
-  login: (username: string, pass: string) => Promise<UserCredential>;
-  register: (username: string, pass: string, role: 'homeowner' | 'shop-owner') => Promise<UserCredential>;
+  login: (email: string, pass: string) => Promise<UserCredential>;
+  register: (email: string, pass: string, role: 'homeowner' | 'shop-owner') => Promise<UserCredential>;
   logout: () => Promise<void>;
 }
 
@@ -59,16 +59,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => unsubscribe();
   }, []);
 
-  const login = async (username: string, pass: string) => {
-    const email = `${username.toLowerCase()}@bidarkart.app`;
+  const login = async (email: string, pass: string) => {
     return signInWithEmailAndPassword(auth, email, pass);
   };
   
-  const register = async (username: string, pass:string, role: 'homeowner' | 'shop-owner') => {
-    const email = `${username.toLowerCase()}@bidarkart.app`;
+  const register = async (email: string, pass:string, role: 'homeowner' | 'shop-owner') => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
     const user = userCredential.user;
     
+    // Create a username from the email
+    const username = email.split('@')[0];
+
     const batch = writeBatch(db);
 
     const userDocRef = doc(db, 'users', user.uid);

@@ -43,28 +43,29 @@ export function AuthForm({ mode, role }: AuthFormProps) {
     setError(null);
     setLoading(true);
     const formData = new FormData(event.currentTarget);
-    const username = formData.get('username') as string;
+    const email = formData.get('email') as string;
     const password = formData.get('password') as string;
 
     try {
       if (mode === 'register') {
-        await register(username, password, role);
+        await register(email, password, role);
         toast({
           title: "Registration successful!",
           description: "Welcome to Bidarkart.",
         });
       } else { 
-        await login(username, password);
+        await login(email, password);
       }
+      // Let the useEffect handle redirection
     } catch (e: any) {
       let errorMessage = e.message || "An error occurred. Please try again.";
       if (typeof e.message === 'string') {
         if (e.message.includes('auth/invalid-credential') || e.message.includes('auth/wrong-password') || e.message.includes('auth/user-not-found')) {
-          errorMessage = "Invalid username or password.";
+          errorMessage = "Invalid email or password.";
         } else if (e.message.includes('auth/email-already-in-use')) {
-          errorMessage = "A user with this username already exists.";
+          errorMessage = "An account with this email already exists.";
         } else if (e.message.includes('auth/invalid-email')) {
-          errorMessage = "The username format is not valid. Please try again.";
+          errorMessage = "The email format is not valid. Please try again.";
         }
       }
 
@@ -99,8 +100,8 @@ export function AuthForm({ mode, role }: AuthFormProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username</Label>
-              <Input id="username" name="username" placeholder="Choose a username" required disabled={loading} />
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" name="email" type="email" placeholder="e.g. name@example.com" required disabled={loading} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
