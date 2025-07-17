@@ -16,6 +16,20 @@ import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 import { getUser } from '@/lib/store';
 
+
+// This function sanitizes a username to be a valid email local part
+// and appends a domain to make it a full email for Firebase Auth.
+const formatUsernameForFirebase = (username: string) => {
+    // Allows letters, numbers, underscores, periods, and hyphens.
+    // Removes other characters and converts to lowercase.
+    const sanitizedUsername = username.toLowerCase().replace(/[^a-z0-9_.-]/g, '');
+    if (!sanitizedUsername) {
+        throw new Error("Username is invalid. Please use only letters, numbers, underscores, periods, or hyphens.");
+    }
+    return `${sanitizedUsername}@bidarkart.app`;
+}
+
+
 interface AuthFormProps {
   mode: 'login' | 'register';
   role: UserRole;
@@ -43,31 +57,34 @@ export function AuthForm({ mode, role }: AuthFormProps) {
     setError(null);
     setLoading(true);
     const formData = new FormData(event.currentTarget);
-    const email = formData.get('email') as string;
+    const username = formData.get('username') as string;
     const password = formData.get('password') as string;
 
     try {
+      const emailForFirebase = formatUsernameForFirebase(username);
+
       if (mode === 'register') {
-        await register(email, password, role);
+        // Pass original username and the formatted email to register function
+        await register(emailForFirebase, password, role, username);
         toast({
           title: "Registration successful!",
           description: "Welcome to Bidarkart.",
         });
       } else { 
-        await login(email, password);
+        await login(emailForFirebase, password);
       }
       // Let the useEffect handle redirection
     } catch (e: any) {
       let errorMessage = e.message || "An error occurred. Please try again.";
-      if (typeof e.message === 'string') {
-        if (e.message.includes('auth/invalid-credential') || e.message.includes('auth/wrong-password') || e.message.includes('auth/user-not-found')) {
-          errorMessage = "Invalid email or password.";
-        } else if (e.message.includes('auth/email-already-in-use')) {
-          errorMessage = "An account with this email already exists.";
-        } else if (e.message.includes('auth/invalid-email')) {
-          errorMessage = "The email format is not valid. Please try again.";
-        }
-      }
+       if (typeof e.message === 'string') {
+         if (e.message.includes('auth/invalid-credential') || e.message.includes('auth/wrong-password') || e.message.includes('auth/user-not-found')) {
+           errorMessage = "Invalid username or password.";
+         } else if (e.message.includes('auth/email-already-in-use')) {
+           errorMessage = "This username is already taken. Please try another.";
+         } else if (e.message.includes('auth/invalid-email')) {
+           errorMessage = "The username format is not valid. Please try again.";
+         }
+       }
 
       setError(errorMessage);
       toast({
@@ -100,8 +117,8 @@ export function AuthForm({ mode, role }: AuthFormProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" name="email" type="email" placeholder="e.g. name@example.com" required disabled={loading} />
+              <Label htmlFor="username">Username</Label>
+              <Input id="username" name="username" type="text" placeholder="e.g. johndoe" required disabled={loading} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>

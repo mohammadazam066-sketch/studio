@@ -17,7 +17,7 @@ interface AuthContextType {
   setCurrentUser?: Dispatch<SetStateAction<User | null>>;
   loading: boolean;
   login: (email: string, pass: string) => Promise<UserCredential>;
-  register: (email: string, pass: string, role: 'homeowner' | 'shop-owner') => Promise<UserCredential>;
+  register: (email: string, pass: string, role: 'homeowner' | 'shop-owner', username: string) => Promise<UserCredential>;
   logout: () => Promise<void>;
 }
 
@@ -63,12 +63,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return signInWithEmailAndPassword(auth, email, pass);
   };
   
-  const register = async (email: string, pass:string, role: 'homeowner' | 'shop-owner') => {
+  const register = async (email: string, pass:string, role: 'homeowner' | 'shop-owner', username: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
     const user = userCredential.user;
-    
-    // Create a username from the email
-    const username = email.split('@')[0];
 
     const batch = writeBatch(db);
 
