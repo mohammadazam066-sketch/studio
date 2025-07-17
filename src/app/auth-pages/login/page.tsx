@@ -4,16 +4,15 @@
 import { AuthForm } from '@/components/auth-form';
 import type { UserRole } from '@/lib/types';
 import { useAuth } from '@/lib/store';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
-export default function LoginPage({
-  searchParams,
-}: {
-  searchParams: { role: string };
-}) {
-  const role: UserRole = searchParams.role === 'shop-owner' ? 'shop-owner' : 'homeowner';
+export default function LoginPage() {
+  const searchParams = useSearchParams();
+  const roleParam = searchParams.get('role');
+  const role: UserRole = roleParam === 'shop-owner' ? 'shop-owner' : 'homeowner';
+  
   const { currentUser, loading } = useAuth();
   const router = useRouter();
 
