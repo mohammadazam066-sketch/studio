@@ -1,7 +1,7 @@
 
 'use client';
 
-import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, getProfile, deleteRequirement } from '@/lib/store';
+import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, getProfile, deleteRequirement, useAuth } from '@/lib/store';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -40,12 +40,12 @@ function PageSkeleton() {
     <div className="max-w-4xl mx-auto space-y-8">
       <Card>
         <CardHeader>
-          <Skeleton className="h-6 w-1/4 mb-2" />
+          <Skeleton className="h-5 w-24 mb-2" />
           <Skeleton className="h-8 w-3/4" />
           <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 sm:gap-4 pt-2">
-            <Skeleton className="h-5 w-1/3" />
-            <Skeleton className="h-5 w-1/3" />
-            <Skeleton className="h-5 w-1/3" />
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-5 w-48" />
+            <Skeleton className="h-5 w-28" />
           </div>
         </CardHeader>
         <CardContent>
@@ -55,14 +55,20 @@ function PageSkeleton() {
             <Skeleton className="h-4 w-2/3" />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            <Skeleton className="h-40 w-full" />
-            <Skeleton className="h-40 w-full" />
-            <Skeleton className="h-40 w-full" />
+            <Skeleton className="h-40 w-full aspect-video rounded-lg" />
+            <Skeleton className="h-40 w-full aspect-video rounded-lg" />
+            <Skeleton className="h-40 w-full aspect-video rounded-lg" />
           </div>
         </CardContent>
+         <CardFooter className="border-t pt-4 flex justify-end gap-2">
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-24" />
+        </CardFooter>
       </Card>
        <div>
-        <h2 className="text-xl font-bold font-headline mb-4">Quotations Received</h2>
+        <h2 className="text-xl font-bold font-headline mb-4">
+          <Skeleton className="h-7 w-48" />
+        </h2>
         <div className="space-y-4">
             <Card>
                 <CardHeader>
@@ -74,8 +80,18 @@ function PageSkeleton() {
                          <Skeleton className="h-8 w-24" />
                     </div>
                 </CardHeader>
-                <CardContent>
-                   <Skeleton className="h-10 w-full" />
+                <CardContent className="space-y-4">
+                   <div className="flex items-start gap-3">
+                        <Skeleton className="w-4 h-4 mt-1 rounded-full" />
+                        <div className="w-full space-y-2">
+                           <Skeleton className="h-4 w-full" />
+                           <Skeleton className="h-4 w-3/4" />
+                        </div>
+                   </div>
+                   <div className="flex items-start gap-3">
+                        <Skeleton className="w-4 h-4 mt-1 rounded-full" />
+                        <Skeleton className="h-4 w-1/2" />
+                   </div>
                 </CardContent>
                 <CardFooter className="flex flex-col sm:flex-row gap-2">
                   <Skeleton className="h-10 w-full" />
@@ -93,6 +109,7 @@ export default function RequirementDetailPage() {
   const router = useRouter();
   const { id } = params;
   
+  const { currentUser } = useAuth();
   const { toast } = useToast();
   
   const [requirement, setRequirement] = useState<Requirement | undefined>(undefined);
@@ -103,25 +120,41 @@ export default function RequirementDetailPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
-    if (typeof id !== 'string') return;
+    if (typeof id !== 'string' || !currentUser) return;
     setLoading(true);
 
-    const [reqData, quotesData] = await Promise.all([
-      getRequirementById(id),
-      getQuotationsForRequirement(id)
-    ]);
+    try {
+        const [reqData, quotesData] = await Promise.all([
+          getRequirementById(id),
+          getQuotationsForRequirement(id)
+        ]);
 
-    if (reqData) {
-      setRequirement(reqData);
+        if (reqData) {
+          // Security check: ensure the current user owns this requirement
+          if (reqData.homeownerId !== currentUser.id) {
+              toast({ variant: 'destructive', title: 'Access Denied', description: 'You do not have permission to view this page.' });
+              router.push('/homeowner/dashboard');
+              return;
+          }
 
-      const quotesWithProfiles = await Promise.all(quotesData.map(async (quote) => {
-        const ownerProfile = await getProfile(quote.shopOwnerId);
-        return { ...quote, ownerProfile };
-      }));
-      setRelatedQuotations(quotesWithProfiles);
+          setRequirement(reqData);
+
+          const quotesWithProfiles = await Promise.all(quotesData.map(async (quote) => {
+            const ownerProfile = await getProfile(quote.shopOwnerId);
+            return { ...quote, ownerProfile };
+          }));
+          setRelatedQuotations(quotesWithProfiles);
+        } else {
+            toast({ variant: 'destructive', title: 'Not Found', description: 'This requirement could not be found.' });
+            router.push('/homeowner/dashboard');
+        }
+    } catch (error) {
+        console.error("Error fetching requirement details:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to load requirement details.' });
+    } finally {
+        setLoading(false);
     }
-    setLoading(false);
-  }, [id]);
+  }, [id, currentUser, router, toast]);
 
 
   useEffect(() => {
@@ -189,7 +222,7 @@ export default function RequirementDetailPage() {
   }
 
   if (!requirement) {
-    return <div>Requirement not found.</div>
+    return null; // Should have been redirected by the fetch logic
   }
 
   return (
