@@ -71,7 +71,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const batch = writeBatch(db);
 
     const userDocRef = doc(db, 'users', user.uid);
-    // Use the sanitized username for both email and username fields for consistency
     batch.set(userDocRef, { username, email, role, id: user.uid });
 
     if (role === 'shop-owner') {
@@ -520,3 +519,4 @@ export async function getUpdateById(id: string): Promise<Update | undefined> {
     }
     return undefined;
 }
+
