@@ -112,28 +112,39 @@ export async function updateUser(userId: string, updatedDetails: Partial<Omit<Us
 }
 
 
-export async function addRequirement(newRequirement: Omit<Requirement, 'id' | 'createdAt' | 'photos' | 'status'>) {
+export async function addRequirement(requirementData: Omit<Requirement, 'id' | 'createdAt' | 'photos' | 'status' | 'homeownerId' | 'homeownerName'>) {
     if (!auth.currentUser) throw new Error("User not authenticated");
 
     const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
     const userData = userDoc.data();
     if (!userData) throw new Error("User data not found in Firestore");
 
-    const requirementToAdd: Omit<Requirement, 'id' | 'createdAt'> = {
-        ...newRequirement,
+    const requirementToAdd: Omit<Requirement, 'id' | 'createdAt' | 'photos'> = {
+        ...requirementData,
         homeownerId: auth.currentUser.uid,
         homeownerName: userData.username || 'Anonymous',
         status: 'Open',
-        photos: [], // Will be populated after upload
     };
+    
+    // Process photos
+    const photoDataUrls = requirementData.photos;
+    const uploadedPhotoUrls = await Promise.all(
+        photoDataUrls.map(async (dataUrl, index) => {
+            const storageRef = ref(storage, `requirements/${auth.currentUser!.uid}/${Date.now()}-photo-${index}.jpg`);
+            await uploadString(storageRef, dataUrl, 'data_url', { contentType: 'image/jpeg' });
+            return getDownloadURL(storageRef);
+        })
+    );
 
     const docRef = await addDoc(collection(db, 'requirements'), {
         ...requirementToAdd,
+        photos: uploadedPhotoUrls,
         createdAt: serverTimestamp(),
     });
 
     return docRef.id;
 }
+
 
 export async function updateRequirement(
     requirementId: string, 
@@ -148,16 +159,22 @@ export async function updateRequirement(
     // 1. Determine which new photos need uploading and which existing URLs are kept
     const photoUrlsToUpload = newPhotosState.filter(p => typeof p !== 'string') as { file: File, preview: string }[];
     const existingUrlsToKeep = newPhotosState.filter(p => typeof p === 'string') as string[];
-
+    
     // 2. Upload new photos and get their download URLs
     const newUploadedUrls = await Promise.all(
-        photoUrlsToUpload.map(async (photoState, index) => {
-            const storageRef = ref(storage, `requirements/${auth.currentUser!.uid}/${Date.now()}-updated-${index}.jpg`);
-            await uploadString(storageRef, photoState.preview, 'data_url', { contentType: 'image/jpeg' });
+        photoUrlsToUpload.map(async (photoState) => {
+             const storageRef = ref(storage, `requirements/${auth.currentUser!.uid}/${requirementId}-${Date.now()}.jpg`);
+            const dataUrl = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(photoState.file);
+            });
+            await uploadString(storageRef, dataUrl, 'data_url', { contentType: 'image/jpeg' });
             return getDownloadURL(storageRef);
         })
     );
-
+    
     const finalPhotoUrls = [...existingUrlsToKeep, ...newUploadedUrls];
 
     // 3. Determine which of the original photos were removed
@@ -176,10 +193,14 @@ export async function updateRequirement(
     );
     
     // 5. Prepare the data and update the Firestore document
-    const dataToUpdate = {
+    const dataToUpdate: any = {
         ...updateData,
-        photos: finalPhotoUrls,
     };
+
+    // Only update photos if there's a change
+    if (newPhotosState.length !== originalPhotoUrls.length || newUploadedUrls.length > 0) {
+        dataToUpdate.photos = finalPhotoUrls;
+    }
 
     await updateDoc(requirementRef, dataToUpdate);
 }
@@ -243,8 +264,6 @@ export async function updateRequirementStatus(requirementId: string, status: 'Op
 }
 
 export async function getRequirements(filters: { homeownerId?: string; status?: 'Open' | 'Purchased' } = {}) {
-    let q = query(collection(db, 'requirements'), orderBy('createdAt', 'desc'));
-
     const constraints = [];
     if (filters.homeownerId) {
         constraints.push(where('homeownerId', '==', filters.homeownerId));
@@ -253,7 +272,10 @@ export async function getRequirements(filters: { homeownerId?: string; status?: 
         constraints.push(where('status', '==', filters.status));
     }
 
-    q = query(q, ...constraints);
+    // Add ordering as the last constraint
+    constraints.push(orderBy('createdAt', 'desc'));
+
+    const q = query(collection(db, 'requirements'), ...constraints);
 
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Requirement));
@@ -297,8 +319,10 @@ export async function getQuotationById(id: string): Promise<Quotation | undefine
 export async function getQuotationsForRequirement(requirementId: string) {
     if (!auth.currentUser) throw new Error("Not authenticated");
     
-    // This query is safe because the security rules check if the user is the homeowner or shop owner
-    const q = query(collection(db, 'quotations'), where('requirementId', '==', requirementId));
+    const q = query(
+        collection(db, 'quotations'), 
+        where('requirementId', '==', requirementId)
+    );
     
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Quotation));
