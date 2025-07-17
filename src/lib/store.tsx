@@ -67,7 +67,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (role === 'shop-owner') {
         const profileDocRef = doc(db, "shopOwnerProfiles", user.uid);
         const newProfile: Omit<ShopOwnerProfile, 'id'> = {
-            username: username,
+            username: username, // Storing the username here as well
             email: email,
             shopName: `${username}'s Shop`,
             phoneNumber: '',
@@ -257,7 +257,6 @@ export async function getRequirements(filters: { homeownerId?: string; status?: 
         constraints.push(where('status', '==', filters.status));
     }
 
-    // Always sort by createdAt if no other specific order is implied
     constraints.push(orderBy('createdAt', 'desc'));
     
     const q = query(requirementsCollection, ...constraints);

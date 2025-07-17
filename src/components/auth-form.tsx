@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -30,10 +31,13 @@ export function AuthForm({ mode, role }: AuthFormProps) {
   useEffect(() => {
     // This effect handles redirection once authentication state is confirmed.
     if (!authLoading && currentUser) {
-      const dashboardUrl = currentUser.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
-      router.push(dashboardUrl);
+      // Check if the current user's role matches the required role for this page
+      if (currentUser.role === role) {
+        const dashboardUrl = currentUser.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
+        router.push(dashboardUrl);
+      }
     }
-  }, [currentUser, authLoading, router]);
+  }, [currentUser, authLoading, router, role]);
 
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
