@@ -189,7 +189,9 @@ export async function updateRequirement(
     );
     
     const dataToUpdate: any = { ...updateData };
-    dataToUpdate.photos = finalPhotoUrls;
+    if (finalPhotoUrls.length > 0 || newPhotosState.length === 0) {
+      dataToUpdate.photos = finalPhotoUrls;
+    }
 
     await updateDoc(requirementRef, dataToUpdate);
 }
@@ -301,7 +303,10 @@ export async function getQuotationById(id: string): Promise<Quotation | undefine
 }
   
 export async function getQuotationsForRequirement(requirementId: string) {
-    if (!auth.currentUser) throw new Error("Not authenticated");
+    if (!requirementId) {
+        console.error("getQuotationsForRequirement called with no requirementId");
+        return [];
+    }
     
     const q = query(
         collection(db, 'quotations'), 

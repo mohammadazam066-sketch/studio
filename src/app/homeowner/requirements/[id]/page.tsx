@@ -66,9 +66,7 @@ function PageSkeleton() {
         </CardFooter>
       </Card>
        <div>
-        <h2 className="text-xl font-bold font-headline mb-4">
-          <Skeleton className="h-7 w-48" />
-        </h2>
+        <Skeleton className="h-7 w-48 mb-4" />
         <div className="space-y-4">
             <Card>
                 <CardHeader>
@@ -94,8 +92,8 @@ function PageSkeleton() {
                    </div>
                 </CardContent>
                 <CardFooter className="flex flex-col sm:flex-row gap-2">
-                  <Skeleton className="h-10 w-full" />
-                  <Skeleton className="h-10 w-full" />
+                  <Skeleton className="h-10 w-full sm:w-1/2" />
+                  <Skeleton className="h-10 w-full sm:w-1/2" />
                 </CardFooter>
             </Card>
         </div>
@@ -298,14 +296,14 @@ export default function RequirementDetailPage() {
                   </div>
                 </CardContent>
                 <CardFooter className="flex flex-col sm:flex-row gap-2">
-                  <Button asChild variant="outline" className="w-full">
+                  <Button asChild variant="outline" className="w-full sm:w-1/2">
                     <Link href={`/homeowner/profile/${quote.shopOwnerId}`}>
                       <UserIcon className="mr-2 h-4 w-4" />
                       View Profile
                     </Link>
                   </Button>
                   <Button 
-                    className="w-full bg-accent hover:bg-accent/90 text-accent-foreground disabled:bg-gray-400"
+                    className="w-full sm:w-1/2 bg-accent hover:bg-accent/90 text-accent-foreground disabled:bg-gray-400"
                     onClick={() => handlePurchaseClick(quote)}
                     disabled={requirement.status === 'Purchased'}
                   >
