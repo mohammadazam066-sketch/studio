@@ -140,10 +140,10 @@ export function AuthForm({ mode, role }: AuthFormProps) {
                 {footerLinkText}
               </Link>
             </div>
-             { mode === 'login' && role === 'shop-owner' &&
+             { mode === 'login' && role === 'homeowner' &&
               <div className="text-sm text-muted-foreground text-center">
-                <span>Trying to log in as a Homeowner? </span>
-                <Link href={`/auth-pages/login?role=homeowner`} className="underline text-primary">
+                <span>Trying to log in as a Shop Owner? </span>
+                <Link href={`/auth-pages/login?role=shop-owner`} className="underline text-primary">
                   Click here
                 </Link>
               </div>
