@@ -37,14 +37,14 @@ export function AuthForm({ mode, role }: AuthFormProps) {
     const password = formData.get('password') as string;
 
     // Use a domain for internal email construction
-    const email = `${username.toLowerCase()}@tradeflow.app`;
+    const email = `${username.toLowerCase()}@bidarkart.app`;
 
     try {
       if (mode === 'register') {
         await register(username, password, role);
         toast({
           title: "Registration successful!",
-          description: "Welcome to TradeFlow.",
+          description: "Welcome to Bidarkart.",
         });
         const dashboardUrl = role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
         router.push(dashboardUrl);

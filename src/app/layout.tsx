@@ -4,7 +4,7 @@ import './globals.css';
 import { AuthProvider } from '@/lib/store.tsx';
 
 export const metadata: Metadata = {
-  title: 'TradeFlow',
+  title: 'Bidarkart',
   description: 'Connecting Homeowners and Service Providers',
 };
 
@@ -14,7 +14,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="dark">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />

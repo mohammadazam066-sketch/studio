@@ -77,7 +77,7 @@ export function UserProfileForm() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>
-            <Input id="email" name="email" type="email" placeholder="e.g., alice@tradeflow.app" required value={user.email || ''} onChange={handleChange} disabled={true} title="Email address cannot be changed." />
+            <Input id="email" name="email" type="email" placeholder="e.g., alice@bidarkart.app" required value={user.email || ''} onChange={handleChange} disabled={true} title="Email address cannot be changed." />
           </div>
         </CardContent>
         <CardFooter>

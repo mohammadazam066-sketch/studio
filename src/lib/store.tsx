@@ -46,20 +46,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const login = async (username: string, pass: string) => {
-    const email = `${username.toLowerCase()}@tradeflow.app`;
+    const email = `${username.toLowerCase()}@bidarkart.app`;
     const userCredential = await signInWithEmailAndPassword(auth, email, pass);
     return userCredential;
   };
   
   const register = async (username: string, pass:string, role: 'homeowner' | 'shop-owner') => {
-    const email = `${username.toLowerCase()}@tradeflow.app`;
+    const email = `${username.toLowerCase()}@bidarkart.app`;
     const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
     const user = userCredential.user;
     
     const batch = writeBatch(db);
 
     const userDocRef = doc(db, 'users', user.uid);
-    batch.set(userDocRef, { username, email, role });
+    batch.set(userDocRef, { username, email, role, id: user.uid });
 
     if (role === 'shop-owner') {
         const profileDocRef = doc(db, "shopOwnerProfiles", user.uid);
@@ -115,31 +115,33 @@ export async function updateUser(userId: string, updatedDetails: Partial<Omit<Us
 
 export async function addRequirement(requirementData: Omit<Requirement, 'id' | 'createdAt' | 'homeownerId' | 'homeownerName' | 'status'>) {
     if (!auth.currentUser) throw new Error("User not authenticated");
-
     const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
     const userData = userDoc.data();
-    if (!userData) throw new Error("User data not found in Firestore");
 
+    if (!userData) throw new Error("User data not found in Firestore");
+    
     const photoDataUrls = requirementData.photos;
     const uploadedPhotoUrls = await Promise.all(
-        photoDataUrls.map(async (dataUrl, index) => {
+        (photoDataUrls || []).map(async (dataUrl, index) => {
             const storageRef = ref(storage, `requirements/${auth.currentUser!.uid}/${Date.now()}-photo-${index}.jpg`);
             await uploadString(storageRef, dataUrl, 'data_url', { contentType: 'image/jpeg' });
             return getDownloadURL(storageRef);
         })
     );
 
-    const requirementToAdd: Omit<Requirement, 'id'> = {
-        ...requirementData,
-        photos: uploadedPhotoUrls,
+    const fullRequirementData: Omit<Requirement, 'id'> = {
+        title: requirementData.title,
+        category: requirementData.category,
+        location: requirementData.location,
+        description: requirementData.description,
         homeownerId: auth.currentUser.uid,
         homeownerName: userData.username || 'Anonymous',
         status: 'Open',
+        photos: uploadedPhotoUrls,
         createdAt: serverTimestamp(),
     };
     
-    const docRef = await addDoc(collection(db, 'requirements'), requirementToAdd);
-
+    const docRef = await addDoc(collection(db, 'requirements'), fullRequirementData);
     return docRef.id;
 }
 
@@ -151,43 +153,39 @@ export async function updateRequirement(
     originalPhotoUrls: string[]
 ) {
     if (!auth.currentUser) throw new Error("User not authenticated");
-
     const requirementRef = doc(db, 'requirements', requirementId);
 
-    const newPhotosToUpload = newPhotosState.filter(p => typeof p !== 'string') as { file: File, preview: string }[];
-    const existingUrlsToKeep = newPhotosState.filter(p => typeof p === 'string') as string[];
-    
-    const newUploadedUrls = await Promise.all(
-        newPhotosToUpload.map(async (photoState, index) => {
-            const dataUrl = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(photoState.file);
-            });
-            const storageRef = ref(storage, `requirements/${auth.currentUser!.uid}/${requirementId}-${Date.now()}-${index}.jpg`);
-            await uploadString(storageRef, dataUrl, 'data_url', { contentType: 'image/jpeg' });
-            return getDownloadURL(storageRef);
-        })
-    );
+    const existingUrlsToKeep = newPhotosState.filter((p): p is string => typeof p === 'string');
+    const newPhotoFiles = newPhotosState.filter((p): p is { file: File; preview: string } => typeof p !== 'string');
+
+    const urlsToDelete = originalPhotoUrls.filter(url => !existingUrlsToKeep.includes(url));
+    const deletionPromises = urlsToDelete.map(url => {
+        try {
+            return deleteObject(ref(storage, url));
+        } catch (error) {
+            console.error("Failed to delete photo, it may have already been removed:", url, error);
+            return Promise.resolve();
+        }
+    });
+
+    const uploadPromises = newPhotoFiles.map(async (photoState, index) => {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(photoState.file);
+        });
+        const storageRef = ref(storage, `requirements/${auth.currentUser!.uid}/${requirementId}-${Date.now()}-${index}.jpg`);
+        await uploadString(storageRef, dataUrl, 'data_url', { contentType: 'image/jpeg' });
+        return getDownloadURL(storageRef);
+    });
+
+    const [newUploadedUrls] = await Promise.all([
+        Promise.all(uploadPromises),
+        Promise.all(deletionPromises)
+    ]);
 
     const finalPhotoUrls = [...existingUrlsToKeep, ...newUploadedUrls];
-    
-    const urlsToDelete = originalPhotoUrls.filter(url => !finalPhotoUrls.includes(url));
-    
-    await Promise.all(
-        urlsToDelete.map(async (url) => {
-            try {
-                const photoRef = ref(storage, url);
-                await deleteObject(photoRef);
-            } catch (error) {
-                // Ignore errors if file doesn't exist (e.g., already deleted)
-                if (error instanceof Error && (error as any).code !== 'storage/object-not-found') {
-                    console.error("Failed to delete old photo:", url, error);
-                }
-            }
-        })
-    );
     
     const dataToUpdate: any = { ...updateData, photos: finalPhotoUrls };
 
@@ -255,11 +253,11 @@ export async function getRequirements(filters: { homeownerId?: string; status?: 
     if (filters.status) {
         constraints.push(where('status', '==', filters.status));
     }
-
+    
     constraints.push(orderBy('createdAt', 'desc'));
-
+    
     const q = query(collection(db, 'requirements'), ...constraints);
-
+    
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Requirement));
 }
@@ -335,41 +333,40 @@ export async function getProfile(shopOwnerId: string): Promise<ShopOwnerProfile 
     return undefined;
 };
 
-export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, 'id'>) {
+export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, 'id'>, newPhotosState: (string | { file: File, preview: string })[]) {
     if (!auth.currentUser) throw new Error("User not authenticated");
 
     const profileId = auth.currentUser.uid;
     const existingProfile = await getProfile(profileId);
     
-    const newFinalUrls: string[] = [];
-    const photoUploadPromises = (updatedProfileData.shopPhotos || []).map(async (photoData, index) => {
-        if (typeof photoData === 'string' && photoData.startsWith('https://')) {
-            newFinalUrls.push(photoData);
-            return;
-        }
-        const storageRef = ref(storage, `profiles/${profileId}/${Date.now()}-${index}.jpg`);
-        const uploadResult = await uploadString(storageRef, photoData as string, 'data_url');
-        const downloadUrl = await getDownloadURL(uploadResult.ref);
-        newFinalUrls.push(downloadUrl);
+    const existingUrlsToKeep = newPhotosState.filter((p): p is string => typeof p === 'string');
+    const newPhotoFiles = newPhotosState.filter((p): p is { file: File; preview: string } => typeof p !== 'string');
+    
+    const originalPhotoUrls = existingProfile?.shopPhotos || [];
+    const urlsToDelete = originalPhotoUrls.filter(url => !existingUrlsToKeep.includes(url));
+
+    const deletionPromises = urlsToDelete.map(url => deleteObject(ref(storage, url)).catch(err => console.error("Old photo deletion failed:", err)));
+    
+    const uploadPromises = newPhotoFiles.map(async (photoState) => {
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(photoState.file);
+        });
+        const storageRef = ref(storage, `profiles/${profileId}/${Date.now()}.jpg`);
+        await uploadString(storageRef, dataUrl, 'data_url', { contentType: 'image/jpeg' });
+        return getDownloadURL(storageRef);
     });
 
-    await Promise.all(photoUploadPromises);
+    const newUploadedUrls = await Promise.all(uploadPromises);
+    await Promise.all(deletionPromises);
 
-    const existingUrls = existingProfile?.shopPhotos || [];
-    const removedUrls = existingUrls.filter(url => !newFinalUrls.includes(url));
-    await Promise.all(removedUrls.map(url => {
-        try {
-            const photoRef = ref(storage, url);
-            return deleteObject(photoRef);
-        } catch (error) {
-            console.error("Failed to delete old photo:", url, error);
-            return Promise.resolve(); 
-        }
-    }));
+    const finalPhotoUrls = [...existingUrlsToKeep, ...newUploadedUrls];
 
     const profileToUpdate: Omit<ShopOwnerProfile, 'id'> = {
         ...updatedProfileData,
-        shopPhotos: newFinalUrls,
+        shopPhotos: finalPhotoUrls,
     };
     
     const batch = writeBatch(db);
@@ -380,11 +377,6 @@ export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, '
     const userDocRef = doc(db, "users", profileId);
     batch.update(userDocRef, { username: updatedProfileData.username });
     
-    if (updatedProfileData.email) {
-        const profileWithEmail: Partial<ShopOwnerProfile> = { email: updatedProfileData.email };
-        batch.set(doc(db, "shopOwnerProfiles", profileId), profileWithEmail, { merge: true });
-    }
-
     await batch.commit();
 };
 
