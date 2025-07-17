@@ -331,16 +331,17 @@ export default function RequirementDetailPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Purchase</AlertDialogTitle>
             <AlertDialogDescription>
-              You are about to purchase the quotation from <span className="font-bold">{selectedQuote?.shopOwnerName}</span> for <span className="font-bold">Rs{selectedQuote?.amount.toFixed(2)}</span>.
-              <br/><br/>
-              The shop owner will be notified. You can contact them directly:
-              <div className="flex items-center gap-2 mt-2">
-                <Mail className="h-4 w-4" /> <span>{selectedQuote?.ownerProfile?.email ?? 'N/A'}</span>
-              </div>
-              <div className="flex items-center gap-2 mt-1">
-                <Phone className="h-4 w-4" /> <span>{selectedQuote?.ownerProfile?.phoneNumber ?? 'N/A'}</span>
-              </div>
+              You are about to purchase the quotation from <span className="font-bold">{selectedQuote?.shopOwnerName}</span> for <span className="font-bold">Rs{selectedQuote?.amount.toFixed(2)}</span>. The shop owner will be notified.
             </AlertDialogDescription>
+            <div className="text-sm text-muted-foreground pt-2 text-left">
+                You can contact them directly:
+                <div className="flex items-center gap-2 mt-2">
+                    <Mail className="h-4 w-4" /> <span>{selectedQuote?.ownerProfile?.email ?? 'N/A'}</span>
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                    <Phone className="h-4 w-4" /> <span>{selectedQuote?.ownerProfile?.phoneNumber ?? 'N/A'}</span>
+                </div>
+            </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
