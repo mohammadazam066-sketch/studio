@@ -61,12 +61,3 @@ export type Update = {
   imageUrl?: string;
   createdAt: Timestamp | Date | string;
 };
-
-export type Notification = {
-  id: string;
-  userId: string; // The user to be notified
-  message: string;
-  link: string; // A URL to navigate to when the notification is clicked
-  read: boolean;
-  createdAt: Timestamp | Date | string;
-};

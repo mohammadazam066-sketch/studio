@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect, createContext, useContext, Dispatch, SetStateAction } from 'react';
-import type { Requirement, Quotation, ShopOwnerProfile, User, Update, Notification } from './types';
+import type { Requirement, Quotation, ShopOwnerProfile, User, Update } from './types';
 import { auth, db, storage } from './firebase';
 import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, type UserCredential } from 'firebase/auth';
 import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, updateDoc, serverTimestamp, writeBatch, orderBy, deleteDoc, type QueryConstraint } from 'firebase/firestore';
@@ -469,48 +469,4 @@ export async function getUpdateById(id: string): Promise<Update | undefined> {
         return { id: docSnap.id, ...docSnap.data() } as Update;
     }
     return undefined;
-}
-
-
-// --- NOTIFICATIONS FUNCTIONS ---
-
-export async function addNotification(userId: string, message: string, link: string) {
-    if (!userId) throw new Error("User ID is required to add a notification.");
-    
-    const notificationData = {
-        userId,
-        message,
-        link,
-        read: false,
-        createdAt: serverTimestamp(),
-    };
-
-    await addDoc(collection(db, 'notifications'), notificationData);
-}
-
-export async function getNotifications(userId: string): Promise<Notification[]> {
-    if (!userId) return [];
-    const q = query(
-        collection(db, 'notifications'),
-        where('userId', '==', userId),
-        orderBy('createdAt', 'desc')
-    );
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
-}
-
-export async function markNotificationsAsRead(userId: string) {
-    const q = query(
-        collection(db, 'notifications'),
-        where('userId', '==', userId),
-        where('read', '==', false)
-    );
-    const querySnapshot = await getDocs(q);
-
-    const batch = writeBatch(db);
-    querySnapshot.forEach(doc => {
-        batch.update(doc.ref, { read: true });
-    });
-
-    await batch.commit();
 }
