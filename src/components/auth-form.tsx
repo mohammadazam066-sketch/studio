@@ -8,12 +8,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
-import { useAuth, getUser } from '@/lib/store';
+import { useAuth } from '@/lib/store';
 import { useToast } from '@/hooks/use-toast';
-import type { UserRole, User } from '@/lib/types';
+import type { UserRole } from '@/lib/types';
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
-import { getAuth } from 'firebase/auth';
 
 interface AuthFormProps {
   mode: 'login' | 'register';
@@ -29,6 +28,7 @@ export function AuthForm({ mode, role }: AuthFormProps) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    // This effect handles redirection once authentication state is confirmed.
     if (!authLoading && currentUser) {
       const dashboardUrl = currentUser.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
       router.push(dashboardUrl);
@@ -51,36 +51,24 @@ export function AuthForm({ mode, role }: AuthFormProps) {
           title: "Registration successful!",
           description: "Welcome to Bidarkart.",
         });
-        // The AuthProvider will handle redirection on successful registration
+        // The useEffect will handle redirection on successful registration
       } else { // Login mode
-        
-        // This is the main fix: call login with only username and password.
-        const userCredential = await login(username, password);
-        const loggedInUser = await getUser(userCredential.user.uid);
-
-        if (!loggedInUser) {
-           throw new Error('User profile could not be found after login.');
-        }
-
-        if (loggedInUser.role !== role) {
-             throw new Error(`You are trying to log in as a ${role.replace('-', ' ')}, but this account is registered as a ${loggedInUser.role.replace('-', ' ')}. Please log in on the correct page.`);
-        }
-        
-        // Success, allow useEffect to redirect
+        await login(username, password);
+        // On successful login, the useEffect hook will detect the change in
+        // currentUser and handle the redirection. We don't need to do anything else here.
       }
-
     } catch (e: any) {
       let errorMessage = e.message || "An error occurred. Please try again.";
-       if (typeof e.message === 'string') {
+      if (typeof e.message === 'string') {
         if (e.message.includes('auth/invalid-credential') || e.message.includes('auth/wrong-password') || e.message.includes('auth/user-not-found')) {
-           errorMessage = "Invalid username or password.";
+          errorMessage = "Invalid username or password.";
         } else if (e.message.includes('auth/email-already-in-use')) {
-           errorMessage = "A user with this username already exists.";
+          errorMessage = "A user with this username already exists.";
         } else if (e.message.includes('auth/invalid-email')) {
-           errorMessage = "Username is not valid. Please use only letters, numbers, and underscores.";
+          errorMessage = "The username format is not valid. Please try again.";
         }
       }
-      
+
       setError(errorMessage);
       toast({
         variant: "destructive",
@@ -122,8 +110,8 @@ export function AuthForm({ mode, role }: AuthFormProps) {
             {error && <p className="text-sm text-center text-destructive">{error}</p>}
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button className={`w-full ${mode === 'register' ? 'bg-accent text-accent-foreground hover:bg-accent/90' : ''}`} type="submit" disabled={loading}>
-              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button className={`w-full ${mode === 'register' ? 'bg-accent text-accent-foreground hover:bg-accent/90' : ''}`} type="submit" disabled={loading || authLoading}>
+              {(loading || authLoading) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {buttonText}
             </Button>
             <div className="text-sm text-muted-foreground">
