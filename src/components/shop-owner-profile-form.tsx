@@ -13,7 +13,7 @@ import { getProfile, updateProfile, useAuth } from '@/lib/store';
 import type { ShopOwnerProfile } from '@/lib/types';
 import React, { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
-import { Skeleton } from '../ui/skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type PhotoState = string | { file: File, preview: string };
 
