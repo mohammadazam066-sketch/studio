@@ -1,7 +1,8 @@
 
+
 'use client';
 
-import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, getProfile, deleteRequirement, useAuth } from '@/lib/store';
+import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, getProfile, deleteRequirement, useAuth, addNotification } from '@/lib/store';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -175,21 +176,33 @@ export default function RequirementDetailPage() {
   
   const confirmPurchase = async () => {
     if (requirement && selectedQuote) {
-      try {
-        await updateRequirementStatus(requirement.id, 'Purchased');
-        setRequirement(prev => prev ? { ...prev, status: 'Purchased' } : undefined);
-        toast({
-          title: "Purchase Confirmed!",
-          description: `You have purchased the quotation from ${selectedQuote.shopOwnerName}.`,
-          variant: 'default',
-          className: 'bg-accent text-accent-foreground border-accent'
-        });
-      } catch (error) {
-         toast({ variant: 'destructive', title: 'Error', description: 'Failed to update purchase status.' });
-      } finally {
-        setSelectedQuote(null);
-        setIsPurchaseDialogOpen(false);
-      }
+        const batch = writeBatch(db);
+
+        try {
+            // 1. Update requirement status
+            await updateRequirementStatus(requirement.id, 'Purchased');
+
+            // 2. Send notification to shop owner
+            const notificationMessage = `Your quote for "${requirement.title}" has been accepted by the homeowner!`;
+            const notificationLink = `/shop-owner/my-quotations`; // Or link to the specific quote/requirement
+            await addNotification(selectedQuote.shopOwnerId, notificationMessage, notificationLink);
+
+            setRequirement(prev => prev ? { ...prev, status: 'Purchased' } : undefined);
+            
+            toast({
+              title: "Purchase Confirmed!",
+              description: `You have purchased the quotation from ${selectedQuote.shopOwnerName}. The shop owner has been notified.`,
+              variant: 'default',
+              className: 'bg-accent text-accent-foreground border-accent'
+            });
+
+        } catch (error) {
+           toast({ variant: 'destructive', title: 'Error', description: 'Failed to update purchase status.' });
+           console.error("Purchase confirmation error:", error);
+        } finally {
+            setSelectedQuote(null);
+            setIsPurchaseDialogOpen(false);
+        }
     }
   };
 

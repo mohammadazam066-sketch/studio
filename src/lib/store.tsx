@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect, createContext, useContext, Dispatch, SetStateAction } from 'react';
-import type { Requirement, Quotation, ShopOwnerProfile, User, Update } from './types';
+import type { Requirement, Quotation, ShopOwnerProfile, User, Update, Notification } from './types';
 import { auth, db, storage } from './firebase';
 import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, type UserCredential } from 'firebase/auth';
 import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, updateDoc, serverTimestamp, writeBatch, orderBy, deleteDoc, type QueryConstraint } from 'firebase/firestore';
@@ -230,23 +230,14 @@ export async function deleteRequirement(requirementId: string) {
     await batch.commit();
 }
   
-export async function updateRequirementStatus(requirementId: string, status: 'Open' | 'Purchased', purchasedQuote?: Quotation) {
-    const dataToUpdate: { status: string; purchasedQuote?: any } = { status };
-    if (status === 'Purchased' && purchasedQuote) {
-        dataToUpdate.purchasedQuote = {
-            id: purchasedQuote.id,
-            shopOwnerId: purchasedQuote.shopOwnerId,
-            shopOwnerName: purchasedQuote.shopOwnerName,
-            shopName: purchasedQuote.shopName,
-            amount: purchasedQuote.amount,
-        };
-    }
-    return updateDoc(doc(db, 'requirements', requirementId), dataToUpdate);
+export async function updateRequirementStatus(requirementId: string, status: 'Open' | 'Purchased') {
+    return updateDoc(doc(db, 'requirements', requirementId), { status });
 }
 
 export async function getRequirements(filters: { homeownerId?: string; status?: 'Open' | 'Purchased' } = {}) {
-    const constraints: QueryConstraint[] = [];
+    let q: any = collection(db, 'requirements'); // Use 'any' to allow dynamic query building
 
+    const constraints: QueryConstraint[] = [];
     if (filters.homeownerId) {
         constraints.push(where('homeownerId', '==', filters.homeownerId));
     }
@@ -255,8 +246,8 @@ export async function getRequirements(filters: { homeownerId?: string; status?: 
     }
     
     constraints.push(orderBy('createdAt', 'desc'));
-    
-    const q = query(collection(db, 'requirements'), ...constraints);
+
+    q = query(q, ...constraints);
     
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Requirement));
@@ -478,4 +469,48 @@ export async function getUpdateById(id: string): Promise<Update | undefined> {
         return { id: docSnap.id, ...docSnap.data() } as Update;
     }
     return undefined;
+}
+
+
+// --- NOTIFICATIONS FUNCTIONS ---
+
+export async function addNotification(userId: string, message: string, link: string) {
+    if (!userId) throw new Error("User ID is required to add a notification.");
+    
+    const notificationData = {
+        userId,
+        message,
+        link,
+        read: false,
+        createdAt: serverTimestamp(),
+    };
+
+    await addDoc(collection(db, 'notifications'), notificationData);
+}
+
+export async function getNotifications(userId: string): Promise<Notification[]> {
+    if (!userId) return [];
+    const q = query(
+        collection(db, 'notifications'),
+        where('userId', '==', userId),
+        orderBy('createdAt', 'desc')
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
+}
+
+export async function markNotificationsAsRead(userId: string) {
+    const q = query(
+        collection(db, 'notifications'),
+        where('userId', '==', userId),
+        where('read', '==', false)
+    );
+    const querySnapshot = await getDocs(q);
+
+    const batch = writeBatch(db);
+    querySnapshot.forEach(doc => {
+        batch.update(doc.ref, { read: true });
+    });
+
+    await batch.commit();
 }

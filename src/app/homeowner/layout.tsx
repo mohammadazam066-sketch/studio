@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -14,7 +15,7 @@ import { SidebarNav } from '@/components/sidebar-nav';
 import { UserNav } from '@/components/user-nav';
 import { Logo } from '@/components/logo';
 import { useAuth } from '@/lib/store.tsx';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -48,6 +49,7 @@ function LayoutSkeleton() {
 export default function HomeownerLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (loading) {
@@ -59,12 +61,13 @@ export default function HomeownerLayout({ children }: { children: React.ReactNod
       return;
     }
     
-    // This allows access to /updates for any logged-in user
-    const currentPath = window.location.pathname;
-    if (currentUser.role !== 'homeowner' && !currentPath.startsWith('/updates')) {
+    // Allow access to shared pages
+    const isSharedPage = ['/updates', '/notifications'].some(path => pathname.startsWith(path));
+    
+    if (currentUser.role !== 'homeowner' && !isSharedPage) {
        router.push('/auth-pages/login?role=homeowner');
     }
-  }, [currentUser, loading, router]);
+  }, [currentUser, loading, router, pathname]);
   
   if (loading || !currentUser) {
     return <LayoutSkeleton />;
