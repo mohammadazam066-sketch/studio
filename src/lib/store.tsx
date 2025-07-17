@@ -6,7 +6,7 @@ import { useState, useEffect, createContext, useContext, Dispatch, SetStateActio
 import type { Requirement, Quotation, ShopOwnerProfile, User, Update } from './types';
 import { auth, db, storage } from './firebase';
 import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, type UserCredential } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, updateDoc, serverTimestamp, writeBatch, orderBy, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, updateDoc, serverTimestamp, writeBatch, orderBy, deleteDoc, type QueryConstraint } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 import type { Timestamp } from 'firebase/firestore';
 
@@ -112,7 +112,7 @@ export async function updateUser(userId: string, updatedDetails: Partial<Omit<Us
 }
 
 
-export async function addRequirement(requirementData: Omit<Requirement, 'id' | 'createdAt' | 'photos' | 'status' | 'homeownerId' | 'homeownerName'>) {
+export async function addRequirement(requirementData: Omit<Requirement, 'id' | 'createdAt' | 'status' | 'homeownerId' | 'homeownerName'>) {
     if (!auth.currentUser) throw new Error("User not authenticated");
 
     const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
@@ -120,13 +120,15 @@ export async function addRequirement(requirementData: Omit<Requirement, 'id' | '
     if (!userData) throw new Error("User data not found in Firestore");
 
     const requirementToAdd: Omit<Requirement, 'id' | 'createdAt' | 'photos'> = {
-        ...requirementData,
+        title: requirementData.title,
+        category: requirementData.category,
+        location: requirementData.location,
+        description: requirementData.description,
         homeownerId: auth.currentUser.uid,
         homeownerName: userData.username || 'Anonymous',
         status: 'Open',
     };
     
-    // Process photos
     const photoDataUrls = requirementData.photos;
     const uploadedPhotoUrls = await Promise.all(
         photoDataUrls.map(async (dataUrl, index) => {
@@ -156,31 +158,26 @@ export async function updateRequirement(
 
     const requirementRef = doc(db, 'requirements', requirementId);
 
-    // 1. Determine which new photos need uploading and which existing URLs are kept
-    const photoUrlsToUpload = newPhotosState.filter(p => typeof p !== 'string') as { file: File, preview: string }[];
+    const newPhotosToUpload = newPhotosState.filter(p => typeof p !== 'string') as { file: File, preview: string }[];
     const existingUrlsToKeep = newPhotosState.filter(p => typeof p === 'string') as string[];
-    
-    // 2. Upload new photos and get their download URLs
+
     const newUploadedUrls = await Promise.all(
-        photoUrlsToUpload.map(async (photoState) => {
-             const storageRef = ref(storage, `requirements/${auth.currentUser!.uid}/${requirementId}-${Date.now()}.jpg`);
+        newPhotosToUpload.map(async (photoState) => {
             const dataUrl = await new Promise<string>((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onloadend = () => resolve(reader.result as string);
                 reader.onerror = reject;
                 reader.readAsDataURL(photoState.file);
             });
+            const storageRef = ref(storage, `requirements/${auth.currentUser!.uid}/${requirementId}-${Date.now()}.jpg`);
             await uploadString(storageRef, dataUrl, 'data_url', { contentType: 'image/jpeg' });
             return getDownloadURL(storageRef);
         })
     );
-    
+
     const finalPhotoUrls = [...existingUrlsToKeep, ...newUploadedUrls];
 
-    // 3. Determine which of the original photos were removed
     const removedUrls = originalPhotoUrls.filter(url => !finalPhotoUrls.includes(url));
-
-    // 4. Delete removed photos from storage
     await Promise.all(
         removedUrls.map(async (url) => {
             try {
@@ -192,13 +189,9 @@ export async function updateRequirement(
         })
     );
     
-    // 5. Prepare the data and update the Firestore document
-    const dataToUpdate: any = {
-        ...updateData,
-    };
-
-    // Only update photos if there's a change
-    if (newPhotosState.length !== originalPhotoUrls.length || newUploadedUrls.length > 0) {
+    const dataToUpdate: any = { ...updateData };
+    
+    if (JSON.stringify(finalPhotoUrls.sort()) !== JSON.stringify(originalPhotoUrls.sort())) {
         dataToUpdate.photos = finalPhotoUrls;
     }
 
@@ -211,41 +204,35 @@ export async function deleteRequirement(requirementId: string) {
     const batch = writeBatch(db);
     const requirementRef = doc(db, 'requirements', requirementId);
     
-    // 1. Get the requirement to find associated photos and quotations
     const reqDoc = await getDoc(requirementRef);
     if (!reqDoc.exists()) throw new Error("Requirement not found");
     
     const requirement = reqDoc.data() as Requirement;
     
-    // Ensure the user deleting is the owner
     if (requirement.homeownerId !== auth.currentUser.uid) {
         throw new Error("User does not have permission to delete this requirement.");
     }
 
-    // 2. Delete photos from storage
     if (requirement.photos && requirement.photos.length > 0) {
         const photoDeletionPromises = requirement.photos.map(url => {
             try {
                 return deleteObject(ref(storage, url));
             } catch (error) {
                 console.error("Failed to delete requirement photo:", url, error);
-                return Promise.resolve(); // Don't block if one photo fails
+                return Promise.resolve();
             }
         });
         await Promise.all(photoDeletionPromises);
     }
     
-    // 3. Find and delete all associated quotations
     const quotationsQuery = query(collection(db, 'quotations'), where('requirementId', '==', requirementId));
     const quotationsSnapshot = await getDocs(quotationsQuery);
     quotationsSnapshot.forEach(quoteDoc => {
         batch.delete(quoteDoc.ref);
     });
 
-    // 4. Delete the requirement document itself
     batch.delete(requirementRef);
 
-    // 5. Commit the batch
     await batch.commit();
 }
   
@@ -264,7 +251,8 @@ export async function updateRequirementStatus(requirementId: string, status: 'Op
 }
 
 export async function getRequirements(filters: { homeownerId?: string; status?: 'Open' | 'Purchased' } = {}) {
-    const constraints = [];
+    const constraints: QueryConstraint[] = [];
+
     if (filters.homeownerId) {
         constraints.push(where('homeownerId', '==', filters.homeownerId));
     }
@@ -272,7 +260,6 @@ export async function getRequirements(filters: { homeownerId?: string; status?: 
         constraints.push(where('status', '==', filters.status));
     }
 
-    // Add ordering as the last constraint
     constraints.push(orderBy('createdAt', 'desc'));
 
     const q = query(collection(db, 'requirements'), ...constraints);
@@ -355,15 +342,12 @@ export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, '
     const profileId = auth.currentUser.uid;
     const existingProfile = await getProfile(profileId);
     
-    // Process new photos for upload and keep track of existing URLs
     const newFinalUrls: string[] = [];
     const photoUploadPromises = (updatedProfileData.shopPhotos || []).map(async (photoData, index) => {
-        // If it's already a URL, it's an existing photo. Keep it.
         if (typeof photoData === 'string' && photoData.startsWith('https://')) {
             newFinalUrls.push(photoData);
             return;
         }
-        // Otherwise, it's a new data URI to upload.
         const storageRef = ref(storage, `profiles/${profileId}/${Date.now()}-${index}.jpg`);
         const uploadResult = await uploadString(storageRef, photoData as string, 'data_url');
         const downloadUrl = await getDownloadURL(uploadResult.ref);
@@ -372,7 +356,6 @@ export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, '
 
     await Promise.all(photoUploadPromises);
 
-    // Delete photos that were removed in the UI
     const existingUrls = existingProfile?.shopPhotos || [];
     const removedUrls = existingUrls.filter(url => !newFinalUrls.includes(url));
     await Promise.all(removedUrls.map(url => {
@@ -381,7 +364,7 @@ export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, '
             return deleteObject(photoRef);
         } catch (error) {
             console.error("Failed to delete old photo:", url, error);
-            return Promise.resolve(); // Don't block the update if deletion fails
+            return Promise.resolve(); 
         }
     }));
 
@@ -442,9 +425,7 @@ export async function updateUpdate(
   const updateRef = doc(db, 'updates', updateId);
   const dataToUpdate: any = { ...updateData };
 
-  // Case 1: A new image is provided
   if (newImage && newImage.dataUrl) {
-    // Delete the old image if it exists
     if (newImage.oldImageUrl) {
         try {
             const oldImageRef = ref(storage, newImage.oldImageUrl);
@@ -453,12 +434,10 @@ export async function updateUpdate(
             console.error("Failed to delete old image, continuing update.", error);
         }
     }
-    // Upload the new image
     const newImageRef = ref(storage, `updates/${auth.currentUser.uid}/${Date.now()}.jpg`);
     await uploadString(newImageRef, newImage.dataUrl, 'data_url', { contentType: 'image/jpeg' });
     dataToUpdate.imageUrl = await getDownloadURL(newImageRef);
   }
-  // Case 2: The image was removed (dataUrl is empty string)
   else if (newImage && newImage.dataUrl === '') {
       if (newImage.oldImageUrl) {
          try {
@@ -477,18 +456,15 @@ export async function updateUpdate(
 export async function deleteUpdate(updateId: string, imageUrl?: string) {
     if (!auth.currentUser) throw new Error("User not authenticated");
     
-    // Delete the image from storage if it exists
     if (imageUrl) {
         try {
             const imageRef = ref(storage, imageUrl);
             await deleteObject(imageRef);
         } catch (error) {
-            // Log error but don't block firestore deletion if storage deletion fails
             console.error("Failed to delete update image from storage:", error);
         }
     }
     
-    // Delete the document from Firestore
     await deleteDoc(doc(db, 'updates', updateId));
 }
 
@@ -507,7 +483,3 @@ export async function getUpdateById(id: string): Promise<Update | undefined> {
     }
     return undefined;
 }
-
-    
-
-    
