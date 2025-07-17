@@ -27,7 +27,7 @@ import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 
 // A type that combines Quotation with the shop owner's public profile
-type QuotationWithProfile = Quotation & { ownerProfile: ShopOwnerProfile | undefined };
+type QuotationWithProfile = Quotation & { ownerProfile?: ShopOwnerProfile };
 
 function formatDate(date: Date | string | Timestamp) {
     if (!date) return '';
@@ -56,8 +56,6 @@ function PageSkeleton() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <Skeleton className="h-40 w-full aspect-video rounded-lg" />
-            <Skeleton className="h-40 w-full aspect-video rounded-lg" />
-            <Skeleton className="h-40 w-full aspect-video rounded-lg" />
           </div>
         </CardContent>
          <CardFooter className="border-t pt-4 flex justify-end gap-2">
@@ -80,14 +78,14 @@ function PageSkeleton() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                    <div className="flex items-start gap-3">
-                        <Skeleton className="w-4 h-4 mt-1 rounded-full" />
+                        <Skeleton className="w-4 h-4 mt-1 rounded-full flex-shrink-0" />
                         <div className="w-full space-y-2">
                            <Skeleton className="h-4 w-full" />
                            <Skeleton className="h-4 w-3/4" />
                         </div>
                    </div>
                    <div className="flex items-start gap-3">
-                        <Skeleton className="w-4 h-4 mt-1 rounded-full" />
+                        <Skeleton className="w-4 h-4 mt-1 rounded-full flex-shrink-0" />
                         <Skeleton className="h-4 w-1/2" />
                    </div>
                 </CardContent>
@@ -122,30 +120,33 @@ export default function RequirementDetailPage() {
     setLoading(true);
 
     try {
-        const [reqData, quotesData] = await Promise.all([
-          getRequirementById(id),
-          getQuotationsForRequirement(id)
-        ]);
+        const reqData = await getRequirementById(id);
 
-        if (reqData) {
-          // Security check: ensure the current user owns this requirement
-          if (reqData.homeownerId !== currentUser.id) {
-              toast({ variant: 'destructive', title: 'Access Denied', description: 'You do not have permission to view this page.' });
-              router.push('/homeowner/dashboard');
-              return;
-          }
-
-          setRequirement(reqData);
-
-          const quotesWithProfiles = await Promise.all(quotesData.map(async (quote) => {
-            const ownerProfile = await getProfile(quote.shopOwnerId);
-            return { ...quote, ownerProfile };
-          }));
-          setRelatedQuotations(quotesWithProfiles);
-        } else {
+        if (!reqData) {
             toast({ variant: 'destructive', title: 'Not Found', description: 'This requirement could not be found.' });
             router.push('/homeowner/dashboard');
+            return;
         }
+
+        if (reqData.homeownerId !== currentUser.id) {
+            toast({ variant: 'destructive', title: 'Access Denied', description: 'You do not have permission to view this page.' });
+            router.push('/homeowner/dashboard');
+            return;
+        }
+
+        setRequirement(reqData);
+
+        const quotesData = await getQuotationsForRequirement(id);
+
+        const quotesWithProfiles = await Promise.all(
+          quotesData.map(async (quote) => {
+            const ownerProfile = await getProfile(quote.shopOwnerId);
+            return { ...quote, ownerProfile };
+          })
+        );
+        
+        setRelatedQuotations(quotesWithProfiles);
+
     } catch (error) {
         console.error("Error fetching requirement details:", error);
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to load requirement details.' });
@@ -246,11 +247,13 @@ export default function RequirementDetailPage() {
         </CardHeader>
         <CardContent>
           <p className="mb-6">{requirement.description}</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {requirement.photos.map((photo, index) => (
-              <Image key={index} src={photo} alt={`${requirement.title} photo ${index + 1}`} width={300} height={200} className="rounded-lg object-cover" data-ai-hint="construction site" />
-            ))}
-          </div>
+          {requirement.photos.length > 0 && (
+             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {requirement.photos.map((photo, index) => (
+                <Image key={index} src={photo} alt={`${requirement.title} photo ${index + 1}`} width={300} height={200} className="rounded-lg object-cover" data-ai-hint="construction site" />
+                ))}
+            </div>
+          )}
         </CardContent>
          {requirement.status !== 'Purchased' && (
           <CardFooter className="border-t pt-4 flex justify-end gap-2">
@@ -332,7 +335,7 @@ export default function RequirementDetailPage() {
               <br/><br/>
               The shop owner will be notified. You can contact them directly:
               <div className="flex items-center gap-2 mt-2">
-                <Mail className="h-4 w-4" /> <span>{selectedQuote?.shopOwnerEmail ?? 'N/A'}</span>
+                <Mail className="h-4 w-4" /> <span>{selectedQuote?.ownerProfile?.email ?? 'N/A'}</span>
               </div>
               <div className="flex items-center gap-2 mt-1">
                 <Phone className="h-4 w-4" /> <span>{selectedQuote?.ownerProfile?.phoneNumber ?? 'N/A'}</span>

@@ -65,6 +65,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const profileDocRef = doc(db, "shopOwnerProfiles", user.uid);
         const newProfile: Omit<ShopOwnerProfile, 'id'> = {
             username,
+            email: email,
             shopName: `${username}'s Shop`,
             phoneNumber: '',
             address: '',
@@ -129,10 +130,7 @@ export async function addRequirement(requirementData: Omit<Requirement, 'id' | '
     );
 
     const requirementToAdd: Omit<Requirement, 'id'> = {
-        title: requirementData.title,
-        category: requirementData.category,
-        location: requirementData.location,
-        description: requirementData.description,
+        ...requirementData,
         photos: uploadedPhotoUrls,
         homeownerId: auth.currentUser.uid,
         homeownerName: userData.username || 'Anonymous',
@@ -158,24 +156,24 @@ export async function updateRequirement(
 
     const newPhotosToUpload = newPhotosState.filter(p => typeof p !== 'string') as { file: File, preview: string }[];
     const existingUrlsToKeep = newPhotosState.filter(p => typeof p === 'string') as string[];
-
+    
     const newUploadedUrls = await Promise.all(
-        newPhotosToUpload.map(async (photoState) => {
+        newPhotosToUpload.map(async (photoState, index) => {
             const dataUrl = await new Promise<string>((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onloadend = () => resolve(reader.result as string);
                 reader.onerror = reject;
                 reader.readAsDataURL(photoState.file);
             });
-            const storageRef = ref(storage, `requirements/${auth.currentUser!.uid}/${requirementId}-${Date.now()}.jpg`);
+            const storageRef = ref(storage, `requirements/${auth.currentUser!.uid}/${requirementId}-${Date.now()}-${index}.jpg`);
             await uploadString(storageRef, dataUrl, 'data_url', { contentType: 'image/jpeg' });
             return getDownloadURL(storageRef);
         })
     );
 
     const finalPhotoUrls = [...existingUrlsToKeep, ...newUploadedUrls];
-
-    const urlsToDelete = originalPhotoUrls.filter(url => !existingUrlsToKeep.includes(url));
+    
+    const urlsToDelete = originalPhotoUrls.filter(url => !finalPhotoUrls.includes(url));
     
     await Promise.all(
         urlsToDelete.map(async (url) => {
@@ -183,15 +181,15 @@ export async function updateRequirement(
                 const photoRef = ref(storage, url);
                 await deleteObject(photoRef);
             } catch (error) {
-                console.error("Failed to delete old photo:", url, error);
+                // Ignore errors if file doesn't exist (e.g., already deleted)
+                if (error instanceof Error && (error as any).code !== 'storage/object-not-found') {
+                    console.error("Failed to delete old photo:", url, error);
+                }
             }
         })
     );
     
-    const dataToUpdate: any = { ...updateData };
-    if (finalPhotoUrls.length > 0 || newPhotosState.length === 0) {
-      dataToUpdate.photos = finalPhotoUrls;
-    }
+    const dataToUpdate: any = { ...updateData, photos: finalPhotoUrls };
 
     await updateDoc(requirementRef, dataToUpdate);
 }
@@ -258,7 +256,6 @@ export async function getRequirements(filters: { homeownerId?: string; status?: 
         constraints.push(where('status', '==', filters.status));
     }
 
-    // Always sort by creation date
     constraints.push(orderBy('createdAt', 'desc'));
 
     const q = query(collection(db, 'requirements'), ...constraints);
@@ -382,6 +379,11 @@ export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, '
 
     const userDocRef = doc(db, "users", profileId);
     batch.update(userDocRef, { username: updatedProfileData.username });
+    
+    if (updatedProfileData.email) {
+        const profileWithEmail: Partial<ShopOwnerProfile> = { email: updatedProfileData.email };
+        batch.set(doc(db, "shopOwnerProfiles", profileId), profileWithEmail, { merge: true });
+    }
 
     await batch.commit();
 };

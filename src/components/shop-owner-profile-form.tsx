@@ -3,7 +3,7 @@
 
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,8 +13,31 @@ import { getProfile, updateProfile, useAuth } from '@/lib/store';
 import type { ShopOwnerProfile } from '@/lib/types';
 import React, { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
+import { Skeleton } from '../ui/skeleton';
 
 type PhotoState = string | { file: File, preview: string };
+
+function ProfileFormSkeleton() {
+    return (
+        <Card>
+            <CardHeader>
+                <Skeleton className="h-7 w-1/3" />
+                <Skeleton className="h-4 w-2/3 mt-1" />
+            </CardHeader>
+            <CardContent className="grid gap-6 md:grid-cols-2">
+                <div className="space-y-2"><Skeleton className="h-5 w-24" /><Skeleton className="h-10 w-full" /></div>
+                <div className="space-y-2"><Skeleton className="h-5 w-24" /><Skeleton className="h-10 w-full" /></div>
+                <div className="space-y-2"><Skeleton className="h-5 w-24" /><Skeleton className="h-10 w-full" /></div>
+                <div className="space-y-2"><Skeleton className="h-5 w-24" /><Skeleton className="h-10 w-full" /></div>
+                <div className="space-y-2 md:col-span-2"><Skeleton className="h-5 w-24" /><Skeleton className="h-24 w-full" /></div>
+                <div className="space-y-2 md:col-span-2"><Skeleton className="h-5 w-24" /><Skeleton className="h-32 w-full" /></div>
+            </CardContent>
+            <CardFooter>
+                <Skeleton className="h-10 w-32" />
+            </CardFooter>
+        </Card>
+    )
+}
 
 export function ShopOwnerProfileForm() {
   const router = useRouter();
@@ -36,6 +59,7 @@ export function ShopOwnerProfileForm() {
     } else if (currentUser.username) {
       setProfile({ 
         username: currentUser.username,
+        email: currentUser.email,
         shopName: `${currentUser.username}'s Shop`,
         phoneNumber: '',
         address: '',
@@ -87,29 +111,16 @@ export function ShopOwnerProfileForm() {
         toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in.' });
         return;
     }
-    if (!profile.username || !profile.shopName || !profile.phoneNumber || !profile.location || !profile.address) {
+    if (!profile.username || !profile.email || !profile.shopName || !profile.phoneNumber || !profile.location || !profile.address) {
         toast({ variant: 'destructive', title: 'Error', description: 'Please fill out all required fields.' });
         return;
     }
     setSaving(true);
     
     try {
-        const photoDataUrls = await Promise.all(
-            photos.map(p => {
-                if (typeof p === 'string') return Promise.resolve(p); // It's an existing URL
-                return new Promise<string>((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => resolve(reader.result as string);
-                    reader.onerror = reject;
-                    reader.readAsDataURL(p.file);
-                });
-            })
-        );
-        
         await updateProfile({
             ...profile,
-            shopPhotos: photoDataUrls,
-        } as Omit<ShopOwnerProfile, 'id'>);
+        } as Omit<ShopOwnerProfile, 'id'>, photos);
 
         toast({
             title: "Profile Updated!",
@@ -126,7 +137,7 @@ export function ShopOwnerProfileForm() {
   };
   
   if (loading) {
-    return <div>Loading profile...</div>
+    return <ProfileFormSkeleton />
   }
 
   return (
@@ -134,31 +145,36 @@ export function ShopOwnerProfileForm() {
       <Card>
         <CardHeader>
           <CardTitle>Business Details</CardTitle>
+          <CardDescription>This information will be visible to homeowners when you send a quotation.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6 md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="username">Your Username</Label>
-            <Input id="username" name="username" placeholder="e.g., johnsmith" required value={profile.username || ''} onChange={handleChange} disabled={saving}/>
+            <Label htmlFor="username">Your Name</Label>
+            <Input id="username" name="username" placeholder="e.g., John Smith" required value={profile.username || ''} onChange={handleChange} disabled={saving}/>
           </div>
           <div className="space-y-2">
             <Label htmlFor="shopName">Shop Name</Label>
             <Input id="shopName" name="shopName" placeholder="e.g., Smith & Co. Plumbing" required value={profile.shopName || ''} onChange={handleChange} disabled={saving}/>
           </div>
-
+          <div className="space-y-2">
+            <Label htmlFor="email">Email Address</Label>
+            <Input id="email" name="email" type="email" required value={profile.email || ''} onChange={handleChange} disabled={saving}/>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="phoneNumber">Phone Number</Label>
             <Input id="phoneNumber" name="phoneNumber" placeholder="e.g., +91-9876543210" required value={profile.phoneNumber || ''} onChange={handleChange} disabled={saving}/>
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="location">Location</Label>
+            <Label htmlFor="location">City / Area</Label>
             <Input id="location" name="location" placeholder="e.g., Bengaluru, Karnataka" required value={profile.location || ''} onChange={handleChange} disabled={saving}/>
           </div>
-
-          <div className="space-y-2 md:col-span-2">
+          
+          <div className="space-y-2">
             <Label htmlFor="address">Full Address</Label>
-            <Textarea id="address" name="address" placeholder="Describe your full address..." required value={profile.address || ''} onChange={handleChange} disabled={saving}/>
+            <Textarea id="address" name="address" placeholder="Your complete shop address" required value={profile.address || ''} onChange={handleChange} disabled={saving}/>
           </div>
+
 
           <div className="space-y-4 md:col-span-2">
             <Label htmlFor="photos">Shop Photos (Max 5)</Label>

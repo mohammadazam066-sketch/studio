@@ -14,7 +14,7 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { CalendarIcon, Loader2, Wand2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import type { Requirement, Quotation, ShopOwnerProfile } from '@/lib/types';
+import type { Requirement, Quotation, ShopOwnerProfile, User } from '@/lib/types';
 import { getQuotationCategory } from '@/lib/actions';
 import type { CategorizeQuotationOutput } from '@/ai/flows/categorize-quotation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -37,7 +37,7 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
   const [date, setDate] = useState<Date | undefined>(existingQuotation?.deliveryDate ? (existingQuotation.deliveryDate as Timestamp).toDate() : undefined);
   const [terms, setTerms] = useState<string>(existingQuotation?.terms ?? '');
   const [profile, setProfile] = useState<ShopOwnerProfile | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   
   const [isCategorizing, setIsCategorizing] = useState(false);
   const [aiResult, setAiResult] = useState<CategorizeQuotationOutput | null>(null);
@@ -45,10 +45,12 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
 
   const fetchProfile = useCallback(async () => {
     if (!currentUser) return;
+    setLoading(true);
     const existingProfile = await getProfile(currentUser.id);
     if (existingProfile) {
       setProfile(existingProfile as ShopOwnerProfile);
     }
+    setLoading(false);
   }, [currentUser]);
 
   useEffect(() => {
@@ -97,7 +99,7 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
         toast({
             variant: "destructive",
             title: "Profile Error",
-            description: "Could not load shop owner profile. Please try again.",
+            description: "Could not load shop owner profile. Please complete your profile first.",
         });
         setLoading(false);
         return;
@@ -122,11 +124,13 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
                 shopOwnerId: currentUser.id,
                 shopOwnerName: profile.username,
                 shopName: profile.shopName,
-                shopOwnerEmail: currentUser.email,
-                shopOwnerPhone: profile.phoneNumber,
                 amount: Number(amount),
                 terms: terms,
                 deliveryDate: Timestamp.fromDate(date),
+                ownerProfile: {
+                  email: currentUser.email,
+                  phoneNumber: profile.phoneNumber
+                }
             };
             await addQuotation(newQuotation);
             toast({
@@ -143,6 +147,25 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
         setLoading(false);
     }
   };
+
+  if (loading) {
+    return (
+      <Card className="sticky top-8">
+        <CardHeader>
+          <Skeleton className="h-7 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-20 w-full" />
+        </CardContent>
+        <CardFooter>
+          <Skeleton className="h-10 w-full" />
+        </CardFooter>
+      </Card>
+    )
+  }
 
   return (
     <form onSubmit={handleSubmit}>
