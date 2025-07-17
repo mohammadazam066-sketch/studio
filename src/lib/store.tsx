@@ -34,6 +34,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (userDoc.exists()) {
           setCurrentUser({ id: user.uid, ...userDoc.data() } as User);
         } else {
+            // This case can happen if user exists in Auth but not in Firestore DB.
+            // Logging them out to prevent inconsistent state.
+            console.warn("User authenticated with Firebase, but no user record found in Firestore. Logging out.");
+            await signOut(auth);
             setCurrentUser(null);
         }
       } else {
@@ -98,12 +102,20 @@ export const useAuth = () => {
 // --- DATA FUNCTIONS ---
 
 export async function getUser(userId: string): Promise<User | undefined> {
-    if (!userId) return undefined;
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    if (userDoc.exists()) {
-        return { id: userDoc.id, ...userDoc.data() } as User;
+    if (!userId) {
+        console.error("getUser called with no userId");
+        return undefined;
     }
-    return undefined;
+    try {
+        const userDoc = await getDoc(doc(db, 'users', userId));
+        if (userDoc.exists()) {
+            return { id: userDoc.id, ...userDoc.data() } as User;
+        }
+        return undefined;
+    } catch (error) {
+        console.error("Error fetching user:", error);
+        return undefined;
+    }
 };
     
 export async function updateUser(userId: string, updatedDetails: Partial<Omit<User, 'id' | 'role' | 'password' | 'email'>>) {

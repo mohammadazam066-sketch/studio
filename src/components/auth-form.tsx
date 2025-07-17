@@ -8,12 +8,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
-import { useAuth, getUser } from '@/lib/store';
+import { useAuth } from '@/lib/store';
 import { useToast } from '@/hooks/use-toast';
 import type { UserRole } from '@/lib/types';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
-import { getAuth } from 'firebase/auth';
 
 interface AuthFormProps {
   mode: 'login' | 'register';
@@ -23,10 +22,22 @@ interface AuthFormProps {
 export function AuthForm({ mode, role }: AuthFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { login, register } = useAuth();
+  const { login, register, currentUser, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && currentUser) {
+      // If user is already logged in, check their role and redirect
+      const expectedRole = searchParams.get('role') === 'shop-owner' ? 'shop-owner' : 'homeowner';
+      if (currentUser.role === expectedRole) {
+          const dashboardUrl = currentUser.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
+          router.push(dashboardUrl);
+      }
+    }
+  }, [currentUser, authLoading, router, searchParams]);
+
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -37,33 +48,25 @@ export function AuthForm({ mode, role }: AuthFormProps) {
     const password = formData.get('password') as string;
 
     try {
-      const dashboardUrl = role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
-      
       if (mode === 'register') {
+        const dashboardUrl = role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
         await register(username, password, role);
         toast({
           title: "Registration successful!",
           description: "Welcome to Bidarkart.",
         });
-        router.push(dashboardUrl);
+        // The AuthProvider will handle redirection on successful registration
       } else { // Login mode
-        const userCredential = await login(username, password);
-        const userProfile = await getUser(userCredential.user.uid);
-
-        // Check if the role of the logged-in user matches the expected role for the page.
-        if (userProfile && userProfile.role !== role) {
-           await getAuth().signOut(); // Log the user out before showing the error
-           const expectedRoleText = role.replace('-', ' ');
-           const actualRoleText = userProfile.role.replace('-', ' ');
-           throw new Error(`This account is a ${actualRoleText}. Please log in on the correct page for a ${actualRoleText}.`);
-        }
-        
-        // If roles match, proceed to the correct dashboard
-        const targetDashboard = userProfile?.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
-        router.push(targetDashboard);
+        await login(username, password);
+        // The AuthProvider's onAuthStateChanged will set the currentUser
+        // and the useEffect above will handle redirection.
+        // We add a small delay to allow the auth state to propagate.
+        setTimeout(() => {
+            const dashboardUrl = role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
+            router.push(dashboardUrl);
+            router.refresh();
+        }, 500);
       }
-      
-      router.refresh(); 
 
     } catch (e: any) {
       let errorMessage = e.message || "An error occurred. Please try again.";
@@ -128,6 +131,14 @@ export function AuthForm({ mode, role }: AuthFormProps) {
                 {footerLinkText}
               </Link>
             </div>
+             { mode === 'login' &&
+              <div className="text-sm text-muted-foreground text-center">
+                <span>Trying to log in as a {role === 'homeowner' ? 'Shop Owner' : 'Homeowner'}? </span>
+                <Link href={`/auth-pages/login?role=${role === 'homeowner' ? 'shop-owner' : 'homeowner'}`} className="underline text-primary">
+                  Click here
+                </Link>
+              </div>
+            }
           </CardFooter>
         </form>
       </Card>
