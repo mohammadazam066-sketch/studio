@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, createContext, useContext, Dispatch, SetStateAction } from 'react';
@@ -111,77 +112,76 @@ export async function updateUser(userId: string, updatedDetails: Partial<Omit<Us
 }
 
 
-export async function addRequirement(newRequirement: Omit<Requirement, 'id' | 'createdAt' | 'homeownerId' | 'homeownerName' | 'status'>) {
+export async function addRequirement(newRequirement: Omit<Requirement, 'id' | 'createdAt' | 'photos' | 'status'>) {
     if (!auth.currentUser) throw new Error("User not authenticated");
-    
+
     const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
     const userData = userDoc.data();
     if (!userData) throw new Error("User data not found in Firestore");
 
-    const photoURLs = await Promise.all(
-        newRequirement.photos.map(async (photoDataUrl, index) => {
-            const storageRef = ref(storage, `requirements/${auth.currentUser!.uid}/${Date.now()}-${index}.jpg`);
-            await uploadString(storageRef, photoDataUrl, 'data_url', { contentType: 'image/jpeg' });
-            return getDownloadURL(storageRef);
-        })
-    );
-
-    const requirementToAdd = {
-      ...newRequirement,
-      photos: photoURLs,
-      homeownerId: auth.currentUser.uid,
-      homeownerName: userData.username || 'Anonymous',
-      createdAt: serverTimestamp(),
-      status: 'Open',
+    const requirementToAdd: Omit<Requirement, 'id' | 'createdAt'> = {
+        ...newRequirement,
+        homeownerId: auth.currentUser.uid,
+        homeownerName: userData.username || 'Anonymous',
+        status: 'Open',
+        photos: [], // Will be populated after upload
     };
-    
-    const docRef = await addDoc(collection(db, 'requirements'), requirementToAdd);
+
+    const docRef = await addDoc(collection(db, 'requirements'), {
+        ...requirementToAdd,
+        createdAt: serverTimestamp(),
+    });
+
     return docRef.id;
 }
 
 export async function updateRequirement(
     requirementId: string, 
     updateData: Partial<Omit<Requirement, 'id' | 'createdAt' | 'homeownerId' | 'homeownerName' | 'status' | 'photos'>>, 
-    newPhotos: (string | { file: File, preview: string })[], 
-    oldPhotoUrls: string[]
+    newPhotosState: (string | { file: File, preview: string })[], 
+    originalPhotoUrls: string[]
 ) {
     if (!auth.currentUser) throw new Error("User not authenticated");
 
     const requirementRef = doc(db, 'requirements', requirementId);
 
-    // Process new photos for upload and keep track of existing URLs
-    const finalPhotoUrls: string[] = [];
-    const photoUploadPromises = newPhotos.map(async (photo, index) => {
-        if (typeof photo === 'string') {
-            finalPhotoUrls.push(photo); // Keep existing URL
-            return;
-        }
-        // Upload new file
-        const storageRef = ref(storage, `requirements/${auth.currentUser.uid}/${Date.now()}-updated-${index}.jpg`);
-        const uploadResult = await uploadString(storageRef, photo.preview, 'data_url');
-        finalPhotoUrls.push(await getDownloadURL(uploadResult.ref));
-    });
+    // 1. Determine which new photos need uploading and which existing URLs are kept
+    const photoUrlsToUpload = newPhotosState.filter(p => typeof p !== 'string') as { file: File, preview: string }[];
+    const existingUrlsToKeep = newPhotosState.filter(p => typeof p === 'string') as string[];
 
-    await Promise.all(photoUploadPromises);
+    // 2. Upload new photos and get their download URLs
+    const newUploadedUrls = await Promise.all(
+        photoUrlsToUpload.map(async (photoState, index) => {
+            const storageRef = ref(storage, `requirements/${auth.currentUser!.uid}/${Date.now()}-updated-${index}.jpg`);
+            await uploadString(storageRef, photoState.preview, 'data_url', { contentType: 'image/jpeg' });
+            return getDownloadURL(storageRef);
+        })
+    );
 
-    // Delete photos from storage that were removed in the UI
-    const removedUrls = oldPhotoUrls.filter(url => !finalPhotoUrls.includes(url));
-    await Promise.all(removedUrls.map(url => {
-        try {
-            const photoRef = ref(storage, url);
-            return deleteObject(photoRef);
-        } catch (error) {
-            console.error("Failed to delete old photo:", url, error);
-            return Promise.resolve(); 
-        }
-    }));
+    const finalPhotoUrls = [...existingUrlsToKeep, ...newUploadedUrls];
+
+    // 3. Determine which of the original photos were removed
+    const removedUrls = originalPhotoUrls.filter(url => !finalPhotoUrls.includes(url));
+
+    // 4. Delete removed photos from storage
+    await Promise.all(
+        removedUrls.map(async (url) => {
+            try {
+                const photoRef = ref(storage, url);
+                await deleteObject(photoRef);
+            } catch (error) {
+                console.error("Failed to delete old photo:", url, error);
+            }
+        })
+    );
     
+    // 5. Prepare the data and update the Firestore document
     const dataToUpdate = {
         ...updateData,
         photos: finalPhotoUrls,
     };
 
-    return updateDoc(requirementRef, dataToUpdate);
+    await updateDoc(requirementRef, dataToUpdate);
 }
 
 export async function deleteRequirement(requirementId: string) {
@@ -243,17 +243,22 @@ export async function updateRequirementStatus(requirementId: string, status: 'Op
 }
 
 export async function getRequirements(filters: { homeownerId?: string; status?: 'Open' | 'Purchased' } = {}) {
-    let q = query(collection(db, 'requirements'));
+    let q = query(collection(db, 'requirements'), orderBy('createdAt', 'desc'));
+
+    const constraints = [];
     if (filters.homeownerId) {
-        q = query(q, where('homeownerId', '==', filters.homeownerId));
+        constraints.push(where('homeownerId', '==', filters.homeownerId));
     }
     if (filters.status) {
-        q = query(q, where('status', '==', filters.status));
+        constraints.push(where('status', '==', filters.status));
     }
+
+    q = query(q, ...constraints);
 
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Requirement));
 }
+
 
 export async function getRequirementById(id: string): Promise<Requirement | undefined> {
     const docRef = doc(db, 'requirements', id);
@@ -290,10 +295,15 @@ export async function getQuotationById(id: string): Promise<Quotation | undefine
 }
   
 export async function getQuotationsForRequirement(requirementId: string) {
+    if (!auth.currentUser) throw new Error("Not authenticated");
+    
+    // This query is safe because the security rules check if the user is the homeowner or shop owner
     const q = query(collection(db, 'quotations'), where('requirementId', '==', requirementId));
+    
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Quotation));
 };
+
 
 export async function getQuotationsByShopOwner(shopOwnerId: string) {
     const q = query(collection(db, 'quotations'), where('shopOwnerId', '==', shopOwnerId));
@@ -408,8 +418,8 @@ export async function updateUpdate(
   const updateRef = doc(db, 'updates', updateId);
   const dataToUpdate: any = { ...updateData };
 
-  // Handle image replacement
-  if (newImage) {
+  // Case 1: A new image is provided
+  if (newImage && newImage.dataUrl) {
     // Delete the old image if it exists
     if (newImage.oldImageUrl) {
         try {
@@ -423,15 +433,12 @@ export async function updateUpdate(
     const newImageRef = ref(storage, `updates/${auth.currentUser.uid}/${Date.now()}.jpg`);
     await uploadString(newImageRef, newImage.dataUrl, 'data_url', { contentType: 'image/jpeg' });
     dataToUpdate.imageUrl = await getDownloadURL(newImageRef);
-  } else if (newImage === undefined && updateData.imageUrl === undefined) {
-    // This case handles removing an image without adding a new one.
-    // We assume the caller handles deleting the oldImageUrl from storage.
-    // Let's ensure the field is explicitly set to empty.
-    const updateDocSnap = await getDoc(updateRef);
-    const existingUpdate = updateDocSnap.data() as Update;
-    if (existingUpdate.imageUrl) {
-       try {
-            const oldImageRef = ref(storage, existingUpdate.imageUrl);
+  }
+  // Case 2: The image was removed (dataUrl is empty string)
+  else if (newImage && newImage.dataUrl === '') {
+      if (newImage.oldImageUrl) {
+         try {
+            const oldImageRef = ref(storage, newImage.oldImageUrl);
             await deleteObject(oldImageRef);
         } catch (error) {
             console.error("Failed to delete old image, continuing update.", error);
@@ -439,7 +446,6 @@ export async function updateUpdate(
     }
     dataToUpdate.imageUrl = '';
   }
-
 
   await updateDoc(updateRef, dataToUpdate);
 }
@@ -477,5 +483,7 @@ export async function getUpdateById(id: string): Promise<Update | undefined> {
     }
     return undefined;
 }
+
+    
 
     
