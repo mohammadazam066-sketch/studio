@@ -11,16 +11,12 @@ import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { useAuth } from '@/lib/store';
 import { useToast } from '@/hooks/use-toast';
-import type { UserRole, User } from '@/lib/types';
+import type { UserRole } from '@/lib/types';
 import { useState, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
 
 
-// This function sanitizes a username to be a valid email local part
-// and appends a domain to make it a full email for Firebase Auth.
 const formatUsernameForFirebase = (username: string) => {
-    // Allows letters, numbers, underscores, periods, and hyphens.
-    // Removes other characters and converts to lowercase.
     const sanitizedUsername = username.toLowerCase().replace(/[^a-z0-9_.-]/g, '');
     if (!sanitizedUsername) {
         throw new Error("Username is invalid. Please use only letters, numbers, underscores, periods, or hyphens.");
@@ -46,7 +42,6 @@ export function AuthForm({ mode, role }: AuthFormProps) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // This effect handles redirection once authentication state is confirmed.
     if (!authLoading && currentUser) {
       const dashboardUrl = currentUser.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
       router.push(dashboardUrl);
@@ -66,26 +61,40 @@ export function AuthForm({ mode, role }: AuthFormProps) {
       const { sanitizedUsername, emailForFirebase } = formatUsernameForFirebase(username);
 
       if (mode === 'register') {
-        // Pass sanitized username and the formatted email to register function
         await register(emailForFirebase, password, role, sanitizedUsername);
         toast({
           title: "Registration successful!",
-          description: "Welcome to Bidarkart.",
+          description: "Welcome to Bidarkart. You can now log in.",
         });
+        router.push(`/auth-pages/login?role=${role}`);
+
       } else { 
         await login(emailForFirebase, password);
       }
-      // Redirection is handled by the useEffect hook
     } catch (e: any) {
-      let errorMessage = e.message || "An error occurred. Please try again.";
-       if (typeof e.message === 'string') {
-         if (e.message.includes('auth/invalid-credential') || e.message.includes('auth/wrong-password') || e.message.includes('auth/user-not-found')) {
-           errorMessage = "Invalid username or password.";
-         } else if (e.message.includes('auth/email-already-in-use')) {
-           errorMessage = "This username is already taken. Please try another.";
-         } else if (e.message.includes('auth/invalid-email')) {
-           errorMessage = "The username format is not valid. Please try again.";
-         }
+       let errorMessage = "An error occurred. Please try again.";
+       if (e?.code) {
+           switch (e.code) {
+               case 'auth/invalid-credential':
+               case 'auth/wrong-password':
+               case 'auth/user-not-found':
+                   errorMessage = "Invalid username or password.";
+                   break;
+               case 'auth/email-already-in-use':
+                   errorMessage = "This username is already taken. Please try another.";
+                   break;
+               case 'auth/weak-password':
+                   errorMessage = "Password should be at least 6 characters.";
+                   break;
+               case 'auth/invalid-email':
+                   errorMessage = "The username format is not valid. Please try again.";
+                   break;
+               default:
+                   errorMessage = e.message; 
+                   break;
+           }
+       } else if (e.message) {
+         errorMessage = e.message;
        }
 
       setError(errorMessage);
@@ -102,7 +111,7 @@ export function AuthForm({ mode, role }: AuthFormProps) {
   const title = mode === 'login' ? 'Welcome Back' : 'Create an Account';
   const description = `Enter your credentials to ${mode} as a ${role.replace('-', ' ')}.`;
   const buttonText = mode === 'login' ? 'Log In' : 'Register';
-  const footerLink = mode === 'login' ? `/auth-pages/register?${searchParams.toString()}` : `/auth-pages/login?${searchParams.toString()}`;
+  const footerLink = mode === 'login' ? `/auth-pages/register?role=${role}` : `/auth-pages/login?role=${role}`;
   const footerText = mode === 'login' ? "Don't have an account?" : 'Already have an account?';
   const footerLinkText = mode === 'login' ? 'Sign up' : 'Log in';
 
@@ -139,23 +148,24 @@ export function AuthForm({ mode, role }: AuthFormProps) {
                 {footerLinkText}
               </Link>
             </div>
-             {mode === 'login' && (
+             {mode === 'login' && role === 'homeowner' && (
               <div className="text-sm">
-                {role === 'homeowner' ? (
                   <span>
-                    Trying to log in as a Shop Owner?{' '}
+                    Shop Owner?{' '}
                     <Link href="/auth-pages/login?role=shop-owner" className="underline text-primary">
-                      Click here
+                      Log in here
                     </Link>
                   </span>
-                ) : (
-                   <span>
-                    Trying to log in as a Homeowner?{' '}
+              </div>
+            )}
+             {mode === 'login' && role === 'shop-owner' && (
+              <div className="text-sm">
+                  <span>
+                    Homeowner?{' '}
                     <Link href="/auth-pages/login?role=homeowner" className="underline text-primary">
-                      Click here
+                      Log in here
                     </Link>
                   </span>
-                )}
               </div>
             )}
           </CardFooter>
