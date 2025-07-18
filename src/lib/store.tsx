@@ -41,11 +41,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
             // Determine role and fetch the correct profile
             const profileCollectionName = userData.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
-            profileDocSnap = await getDoc(doc(db, profileCollectionName, user.uid));
+            const profileDocRef = doc(db, profileCollectionName, user.uid);
+            profileDocSnap = await getDoc(profileDocRef);
 
             if (profileDocSnap.exists()) {
-              profileData = { id: profileDocSnap.id, ...profileDocSnap.data() };
+              const rawProfileData = profileDocSnap.data();
+
+              if (userData.role === 'homeowner') {
+                 profileData = {
+                  id: profileDocSnap.id,
+                  username: rawProfileData.username,
+                  email: rawProfileData.email,
+                  phoneNumber: rawProfileData.phoneNumber ?? '', // Handle missing phone for old users
+                  address: rawProfileData.address ?? '',
+                } as HomeownerProfile;
+              } else {
+                 profileData = { id: profileDocSnap.id, ...rawProfileData } as ShopOwnerProfile;
+              }
+              
               setCurrentUser({ ...userData, profile: profileData });
+
             } else {
               console.warn(`Profile for user ${user.uid} (role: ${userData.role}) not found. Logging out.`);
               await signOut(auth);
