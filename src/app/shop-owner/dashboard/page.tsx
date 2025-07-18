@@ -47,9 +47,15 @@ export default function ShopOwnerDashboard() {
 
   const fetchOpenRequirements = useCallback(async () => {
     setLoading(true);
-    const reqs = await getRequirements({ status: 'Open' });
-    setAllRequirements(reqs);
-    setLoading(false);
+    try {
+        const reqs = await getRequirements({ status: 'Open' });
+        setAllRequirements(reqs);
+    } catch (error) {
+        console.error("Failed to fetch requirements:", error);
+        // Optionally, show a toast message to the user
+    } finally {
+        setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -59,7 +65,7 @@ export default function ShopOwnerDashboard() {
 
   const filteredRequirements = useMemo(() => {
     return allRequirements.filter(req => {
-      const categoryMatch = categoryFilter === 'all' || req.category.toLowerCase() === categoryFilter;
+      const categoryMatch = categoryFilter === 'all' || req.category.toLowerCase() === categoryFilter.toLowerCase();
       const locationMatch = req.location.toLowerCase().includes(locationFilter.toLowerCase());
       return categoryMatch && locationMatch;
     });
@@ -67,7 +73,8 @@ export default function ShopOwnerDashboard() {
 
   const categories = useMemo(() => {
     const allCategories = allRequirements.map(r => r.category);
-    return ['all', ...Array.from(new Set(allCategories))];
+    // Return a sorted list of unique categories with 'all' at the beginning
+    return ['all', ...Array.from(new Set(allCategories)).sort()];
   }, [allRequirements]);
 
   return (
@@ -80,13 +87,13 @@ export default function ShopOwnerDashboard() {
       {/* Filters */}
       <Card>
         <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <Select value={categoryFilter} onValueChange={setCategoryFilter} disabled={loading || categories.length <= 1}>
             <SelectTrigger>
               <SelectValue placeholder="Filter by category" />
             </SelectTrigger>
             <SelectContent>
               {categories.map(cat => (
-                <SelectItem key={cat} value={cat} className="capitalize">{cat}</SelectItem>
+                <SelectItem key={cat} value={cat} className="capitalize">{cat === 'all' ? 'All Categories' : cat}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -97,6 +104,7 @@ export default function ShopOwnerDashboard() {
               value={locationFilter}
               onChange={(e) => setLocationFilter(e.target.value)}
               className="pl-10"
+              disabled={loading}
             />
           </div>
         </CardContent>
@@ -133,8 +141,8 @@ export default function ShopOwnerDashboard() {
         </div>
       ) : (
         <div className="text-center py-10 sm:py-20 border-2 border-dashed rounded-lg">
-          <h2 className="text-xl font-medium">No matching requirements</h2>
-          <p className="text-muted-foreground mt-2">Try adjusting your filters or check back later.</p>
+          <h2 className="text-xl font-medium">No Matching Requirements</h2>
+          <p className="text-muted-foreground mt-2 max-w-xs mx-auto">There are no open requirements that match your current filters. Try adjusting them or check back later.</p>
         </div>
       )}
     </div>
