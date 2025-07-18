@@ -39,14 +39,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             let profileDocSnap;
             let profileData;
 
-            // Determine role and fetch the correct profile
             const profileCollectionName = userData.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
             const profileDocRef = doc(db, profileCollectionName, user.uid);
             profileDocSnap = await getDoc(profileDocRef);
 
             if (profileDocSnap.exists()) {
               const rawProfileData = profileDocSnap.data();
-
               if (userData.role === 'homeowner') {
                  profileData = {
                   id: profileDocSnap.id,
@@ -58,14 +56,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               } else {
                  profileData = { id: profileDocSnap.id, ...rawProfileData } as ShopOwnerProfile;
               }
-              
-              setCurrentUser({ ...userData, profile: profileData });
-
             } else {
-              console.warn(`Profile for user ${user.uid} (role: ${userData.role}) not found. Logging out.`);
-              await signOut(auth);
-              setCurrentUser(null);
+              // --- FIX: Create profile if it doesn't exist for an existing user ---
+              console.warn(`Profile for user ${user.uid} (role: ${userData.role}) not found. Creating a default one.`);
+              const batch = writeBatch(db);
+              
+              if (userData.role === 'shop-owner') {
+                  const newProfile: Omit<ShopOwnerProfile, 'id'> = {
+                      username: userData.username,
+                      email: userData.email,
+                      shopName: `${userData.username}'s Shop`,
+                      phoneNumber: '',
+                      address: '',
+                      location: '',
+                      shopPhotos: [],
+                  };
+                  batch.set(profileDocRef, newProfile);
+                  profileData = { id: user.uid, ...newProfile };
+              } else { // 'homeowner'
+                  const newProfile: Omit<HomeownerProfile, 'id'> = {
+                      username: userData.username,
+                      email: userData.email,
+                      phoneNumber: '',
+                      address: '',
+                  };
+                  batch.set(profileDocRef, newProfile);
+                  profileData = { id: user.uid, ...newProfile };
+              }
+              await batch.commit();
             }
+            setCurrentUser({ ...userData, profile: profileData });
           } else {
               console.warn(`User authenticated with Firebase, but no user record found in Firestore for UID: ${user.uid}. This may be due to a failed registration or data inconsistency. Logging out.`);
               await signOut(auth);
