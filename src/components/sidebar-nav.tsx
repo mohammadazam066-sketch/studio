@@ -3,11 +3,10 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, PlusCircle, Briefcase, User, FileText, LogOut, Newspaper } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { LayoutDashboard, PlusCircle, Briefcase, FileText, Newspaper, Home, Store } from 'lucide-react';
 import type { UserRole } from '@/lib/types';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton, SidebarSeparator } from '@/components/ui/sidebar';
-import { useAuth } from '@/lib/store';
 
 interface NavLink {
   href: string;
@@ -29,21 +28,15 @@ const sharedNavLinks: NavLink[] = [
     { href: '/updates', label: 'Updates', icon: Newspaper },
 ];
 
-const profileLink: NavLink = { href: '', label: 'Profile', icon: User };
-
+const homeLink: NavLink = { href: '/', label: 'Main Page', icon: Home };
 
 export function SidebarNav({ role }: { role: UserRole }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { logout } = useAuth();
-  
   const navLinks = role === 'homeowner' ? homeownerNavLinks : shopOwnerNavLinks;
-  profileLink.href = role === 'homeowner' ? '/homeowner/profile' : '/shop-owner/profile';
 
-  const handleLogout = async () => {
-    await logout();
-    router.push('/');
-  };
+  const otherRoleLink = role === 'homeowner' 
+    ? { href: '/shop-owner/dashboard', label: 'Shop Owner View', icon: Store }
+    : { href: '/homeowner/dashboard', label: 'Homeowner View', icon: Home };
 
   return (
     <SidebarMenu>
@@ -70,24 +63,27 @@ export function SidebarNav({ role }: { role: UserRole }) {
           </Link>
         </SidebarMenuItem>
       ))}
-
+      
       <SidebarSeparator />
+
+      <SidebarMenuItem>
+        <Link href={otherRoleLink.href}>
+          <SidebarMenuButton isActive={pathname.startsWith(otherRoleLink.href)} tooltip={otherRoleLink.label}>
+            <otherRoleLink.icon />
+            <span>{otherRoleLink.label}</span>
+          </SidebarMenuButton>
+        </Link>
+      </SidebarMenuItem>
       
       <SidebarMenuItem>
-          <Link href={profileLink.href}>
-            <SidebarMenuButton isActive={pathname.startsWith(profileLink.href)} tooltip={profileLink.label}>
-              <profileLink.icon />
-              <span>{profileLink.label}</span>
-            </SidebarMenuButton>
-          </Link>
+        <Link href={homeLink.href}>
+          <SidebarMenuButton isActive={pathname === homeLink.href} tooltip={homeLink.label}>
+            <homeLink.icon />
+            <span>{homeLink.label}</span>
+          </SidebarMenuButton>
+        </Link>
       </SidebarMenuItem>
 
-      <SidebarMenuItem>
-        <SidebarMenuButton onClick={handleLogout} tooltip="Log Out">
-            <LogOut />
-            <span>Log Out</span>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
     </SidebarMenu>
   );
 }

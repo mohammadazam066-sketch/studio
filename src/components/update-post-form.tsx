@@ -2,7 +2,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,11 +11,11 @@ import { Loader2, Upload, X, Newspaper } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { addUpdate } from '@/lib/store';
 import Image from 'next/image';
+import { RadioGroup, RadioGroupItem } from './ui/radio-group';
 
 type PhotoState = { file: File, preview: string };
 
 export function UpdatePostForm({ onPostSuccess }: { onPostSuccess: () => void }) {
-  const router = useRouter();
   const { toast } = useToast();
   const [photo, setPhoto] = useState<PhotoState | null>(null);
   const [loading, setLoading] = useState(false);
@@ -42,6 +41,14 @@ export function UpdatePostForm({ onPostSuccess }: { onPostSuccess: () => void })
     const formData = new FormData(e.currentTarget);
     const title = formData.get('title') as string;
     const content = formData.get('content') as string;
+    const authorName = formData.get('authorName') as string;
+    const authorRole = formData.get('authorRole') as 'homeowner' | 'shop-owner';
+
+    if (!authorName || !authorRole) {
+        toast({ variant: "destructive", title: "Missing Information", description: "Please provide your name and role." });
+        setLoading(false);
+        return;
+    }
 
     let photoDataUrl: string | undefined;
     if (photo) {
@@ -54,7 +61,7 @@ export function UpdatePostForm({ onPostSuccess }: { onPostSuccess: () => void })
     }
 
     try {
-        await addUpdate({ title, content, imageUrl: photoDataUrl });
+        await addUpdate({ title, content, imageUrl: photoDataUrl, authorName, authorRole });
         toast({
           title: "Update Posted!",
           description: "Your post is now live in the updates feed.",
@@ -89,6 +96,24 @@ export function UpdatePostForm({ onPostSuccess }: { onPostSuccess: () => void })
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+            <div className="space-y-2">
+                <Label htmlFor="authorName">Your Name</Label>
+                <Input id="authorName" name="authorName" placeholder="e.g., John Doe" required disabled={loading} />
+            </div>
+            <div className="space-y-2">
+                <Label>Your Role</Label>
+                <RadioGroup name="authorRole" required className="flex gap-4 pt-1">
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="homeowner" id="r-homeowner" />
+                        <Label htmlFor="r-homeowner">Homeowner</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="shop-owner" id="r-shop-owner" />
+                        <Label htmlFor="r-shop-owner">Shop Owner</Label>
+                    </div>
+                </RadioGroup>
+            </div>
+
             <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
                 <Input id="title" name="title" placeholder="e.g., New Eco-Friendly Bricks Available" required disabled={loading} />

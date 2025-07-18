@@ -1,218 +1,41 @@
 
 'use client';
 
-import { useState, useEffect, createContext, useContext, Dispatch, SetStateAction } from 'react';
-import type { Requirement, Quotation, ShopOwnerProfile, User, Update, HomeownerProfile } from './types';
-import { auth, db, storage } from './firebase';
-import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, type UserCredential } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, addDoc, query, where, getDocs, updateDoc, serverTimestamp, writeBatch, orderBy, deleteDoc, type QueryConstraint } from 'firebase/firestore';
+import type { Requirement, Quotation, Update } from './types';
+import { db, storage } from './firebase';
+import { doc, getDoc, collection, addDoc, query, where, getDocs, updateDoc, serverTimestamp, writeBatch, orderBy, deleteDoc, type QueryConstraint } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
-import type { Timestamp } from 'firebase/firestore';
-
-
-// --- AUTH CONTEXT ---
-interface AuthContextType {
-  currentUser: User | null;
-  setCurrentUser?: Dispatch<SetStateAction<User | null>>;
-  loading: boolean;
-  login: (email: string, pass: string) => Promise<UserCredential>;
-  register: (email: string, pass: string, role: 'homeowner' | 'shop-owner', username: string) => Promise<UserCredential>;
-  logout: () => Promise<void>;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        try {
-          const userDocRef = doc(db, 'users', user.uid);
-          const userDocSnap = await getDoc(userDocRef);
-          
-          if (userDocSnap.exists()) {
-            const userData = userDocSnap.data() as User;
-            let profileData: ShopOwnerProfile | HomeownerProfile | undefined;
-
-            const profileCollectionName = userData.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
-            const profileDocRef = doc(db, profileCollectionName, user.uid);
-            const profileDocSnap = await getDoc(profileDocRef);
-
-            if (profileDocSnap.exists()) {
-              const rawProfileData = profileDocSnap.data();
-               profileData = { id: profileDocSnap.id, ...rawProfileData } as ShopOwnerProfile | HomeownerProfile;
-            } else {
-              // --- FIX: Create profile if it doesn't exist for an existing user ---
-              console.warn(`Profile for user ${user.uid} (role: ${userData.role}) not found. Creating a default one.`);
-              const batch = writeBatch(db);
-              
-              if (userData.role === 'shop-owner') {
-                  const newProfile: Omit<ShopOwnerProfile, 'id'> = {
-                      username: userData.username,
-                      email: userData.email,
-                      shopName: `${userData.username}'s Shop`,
-                      phoneNumber: '',
-                      address: '',
-                      location: '',
-                      shopPhotos: [],
-                  };
-                  batch.set(profileDocRef, newProfile);
-                  profileData = { id: user.uid, ...newProfile };
-              } else { // 'homeowner'
-                  const newProfile: Omit<HomeownerProfile, 'id'> = {
-                      username: userData.username,
-                      email: userData.email,
-                      phoneNumber: '',
-                      address: '',
-                  };
-                  batch.set(profileDocRef, newProfile);
-                  profileData = { id: user.uid, ...newProfile };
-              }
-              await batch.commit();
-            }
-            setCurrentUser({ ...userData, profile: profileData });
-          } else {
-              console.warn(`User authenticated with Firebase, but no user record found in Firestore for UID: ${user.uid}. This may be due to a failed registration or data inconsistency. Logging out.`);
-              await signOut(auth);
-              setCurrentUser(null);
-          }
-        } catch (error) {
-           console.error("Error fetching user data during auth state change:", error);
-           await signOut(auth);
-           setCurrentUser(null);
-        }
-      } else {
-        setCurrentUser(null);
-      }
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-  const login = async (email: string, pass: string) => {
-    return signInWithEmailAndPassword(auth, email, pass);
-  };
-  
-  const register = async (email: string, pass:string, role: 'homeowner' | 'shop-owner', username: string) => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-    const user = userCredential.user;
-
-    const batch = writeBatch(db);
-    
-    // Create the main user document
-    const userDocRef = doc(db, 'users', user.uid);
-    batch.set(userDocRef, { username, email, role, id: user.uid });
-
-    // Create the role-specific profile document
-    if (role === 'shop-owner') {
-        const profileDocRef = doc(db, "shopOwnerProfiles", user.uid);
-        const newProfile: Omit<ShopOwnerProfile, 'id'> = {
-            username,
-            email,
-            shopName: `${username}'s Shop`,
-            phoneNumber: '',
-            address: '',
-            location: '',
-            shopPhotos: [],
-        };
-        batch.set(profileDocRef, newProfile);
-    } else if (role === 'homeowner') {
-        const profileDocRef = doc(db, "homeownerProfiles", user.uid);
-        const newProfile: Omit<HomeownerProfile, 'id'> = {
-            username,
-            email,
-            phoneNumber: '',
-            address: '',
-        };
-        batch.set(profileDocRef, newProfile);
-    }
-    
-    await batch.commit();
-    return userCredential;
-  }
-
-  const logout = () => {
-    return signOut(auth);
-  };
-
-  const value = { currentUser, setCurrentUser, loading, login, register, logout };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
-
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
 
 // --- DATA FUNCTIONS ---
 
-export async function getUser(userId: string): Promise<User | undefined> {
-    if (!userId) {
-        console.error("getUser called with no userId");
-        return undefined;
-    }
-    try {
-        const userDoc = await getDoc(doc(db, 'users', userId));
-        if (userDoc.exists()) {
-            return { id: userDoc.id, ...userDoc.data() } as User;
-        }
-        return undefined;
-    } catch (error) {
-        console.error("Error fetching user:", error);
-        return undefined;
-    }
+// NOTE: All functions that relied on auth.currentUser have been modified.
+// A dummy userId is used where necessary to maintain data structure.
+const DUMMY_USER_ID = 'public_user';
+
+export async function getUser(userId: string) {
+    // This function is now a stub as users are anonymous
+    return undefined;
 };
     
-export async function updateUser(userId: string, updatedDetails: Partial<HomeownerProfile>) {
-    if (!auth.currentUser || auth.currentUser.uid !== userId) throw new Error("User not authorized");
-    
-    const user = await getUser(userId);
-    if (!user) throw new Error("User not found");
-    
-    const batch = writeBatch(db);
-
-    const userRef = doc(db, 'users', userId);
-    batch.update(userRef, { username: updatedDetails.username });
-    
-    const profileCollection = user.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
-    const profileRef = doc(db, profileCollection, userId);
-    batch.update(profileRef, updatedDetails);
-
-    await batch.commit();
+export async function updateUser(userId: string, updatedDetails: any) {
+    // This function is now a stub as users are anonymous
+    console.log("updateUser is a stub and does not write to the database anymore.");
+    return Promise.resolve();
 }
 
-
-export async function addRequirement(requirementData: Omit<Requirement, 'id' | 'createdAt' | 'homeownerId' | 'homeownerName' | 'status'>) {
-    if (!auth.currentUser) throw new Error("User not authenticated");
-    const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
-    const userData = userDoc.data();
-
-    if (!userData) throw new Error("User data not found in Firestore");
-    
+export async function addRequirement(requirementData: Omit<Requirement, 'id' | 'createdAt' | 'homeownerId' | 'status'>) {
     const photoDataUrls = requirementData.photos;
     const uploadedPhotoUrls = await Promise.all(
         (photoDataUrls || []).map(async (dataUrl, index) => {
-            const storageRef = ref(storage, `requirements/${auth.currentUser!.uid}/${Date.now()}-photo-${index}.jpg`);
+            const storageRef = ref(storage, `requirements/${DUMMY_USER_ID}/${Date.now()}-photo-${index}.jpg`);
             await uploadString(storageRef, dataUrl, 'data_url', { contentType: 'image/jpeg' });
             return getDownloadURL(storageRef);
         })
     );
 
     const fullRequirementData: Omit<Requirement, 'id'> = {
-        title: requirementData.title,
-        category: requirementData.category,
-        location: requirementData.location,
-        description: requirementData.description,
-        homeownerId: auth.currentUser.uid,
-        homeownerName: userData.username || 'Anonymous',
+        ...requirementData,
+        homeownerId: DUMMY_USER_ID,
         status: 'Open',
         photos: uploadedPhotoUrls,
         createdAt: serverTimestamp(),
@@ -225,11 +48,10 @@ export async function addRequirement(requirementData: Omit<Requirement, 'id' | '
 
 export async function updateRequirement(
     requirementId: string, 
-    updateData: Partial<Omit<Requirement, 'id' | 'createdAt' | 'homeownerId' | 'homeownerName' | 'status' | 'photos'>>, 
+    updateData: Partial<Omit<Requirement, 'id' | 'createdAt' | 'homeownerId' | 'status' | 'photos'>>, 
     newPhotosState: (string | { file: File, preview: string })[], 
     originalPhotoUrls: string[]
 ) {
-    if (!auth.currentUser) throw new Error("User not authenticated");
     const requirementRef = doc(db, 'requirements', requirementId);
 
     const existingUrlsToKeep = newPhotosState.filter((p): p is string => typeof p === 'string');
@@ -252,7 +74,7 @@ export async function updateRequirement(
             reader.onerror = reject;
             reader.readAsDataURL(photoState.file);
         });
-        const storageRef = ref(storage, `requirements/${auth.currentUser!.uid}/${requirementId}-${Date.now()}-${index}.jpg`);
+        const storageRef = ref(storage, `requirements/${DUMMY_USER_ID}/${requirementId}-${Date.now()}-${index}.jpg`);
         await uploadString(storageRef, dataUrl, 'data_url', { contentType: 'image/jpeg' });
         return getDownloadURL(storageRef);
     });
@@ -270,8 +92,6 @@ export async function updateRequirement(
 }
 
 export async function deleteRequirement(requirementId: string) {
-    if (!auth.currentUser) throw new Error("User not authenticated");
-
     const batch = writeBatch(db);
     const requirementRef = doc(db, 'requirements', requirementId);
     
@@ -279,10 +99,6 @@ export async function deleteRequirement(requirementId: string) {
     if (!reqDoc.exists()) throw new Error("Requirement not found");
     
     const requirement = reqDoc.data() as Requirement;
-    
-    if (requirement.homeownerId !== auth.currentUser.uid) {
-        throw new Error("User does not have permission to delete this requirement.");
-    }
 
     if (requirement.photos && requirement.photos.length > 0) {
         const photoDeletionPromises = requirement.photos.map(url => {
@@ -342,9 +158,10 @@ export async function getRequirementById(id: string): Promise<Requirement | unde
 }
 
 
-export async function addQuotation(newQuotation: Omit<Quotation, 'id' | 'createdAt'>) {
+export async function addQuotation(newQuotation: Omit<Quotation, 'id' | 'createdAt' | 'shopOwnerId'>) {
     const quotationToAdd = {
         ...newQuotation,
+        shopOwnerId: DUMMY_USER_ID,
         createdAt: serverTimestamp(),
     };
     const docRef = await addDoc(collection(db, 'quotations'), quotationToAdd);
@@ -352,7 +169,6 @@ export async function addQuotation(newQuotation: Omit<Quotation, 'id' | 'created
 };
 
 export async function updateQuotation(quotationId: string, updatedData: Partial<Quotation>) {
-    if (!auth.currentUser) throw new Error("User not authenticated");
     const quotationRef = doc(db, 'quotations', quotationId);
     return updateDoc(quotationRef, updatedData);
 }
@@ -389,95 +205,24 @@ export async function getQuotationsByShopOwner(shopOwnerId: string) {
 }
 
 
-export async function getProfile(userId: string): Promise<ShopOwnerProfile | HomeownerProfile | undefined> {
-    if (!userId) {
-        console.error("getProfile called with no userId");
-        return undefined;
-    }
-    
-    // First, determine the user's role.
-    const userDoc = await getDoc(doc(db, 'users', userId));
-    if (!userDoc.exists()) {
-        console.warn(`No user document found for ID: ${userId}`);
-        return undefined;
-    }
-    const userRole = userDoc.data().role;
-
-    // Then, fetch from the correct profile collection based on the role.
-    const profileCollectionName = userRole === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
-    let profileDoc = await getDoc(doc(db, profileCollectionName, userId));
-    
-    if (profileDoc.exists()) {
-      if (userRole === 'homeowner') {
-        return { id: profileDoc.id, ...profileDoc.data() } as HomeownerProfile;
-      } else {
-        return { id: profileDoc.id, ...profileDoc.data() } as ShopOwnerProfile;
-      }
-    }
-    
+export async function getProfile(userId: string) {
+    // This function is now a stub as users are anonymous
     return undefined;
 };
 
-export async function updateProfile(updatedProfileData: Omit<ShopOwnerProfile, 'id'>, newPhotosState: (string | { file: File, preview: string })[]) {
-    if (!auth.currentUser) throw new Error("User not authenticated");
-
-    const profileId = auth.currentUser.uid;
-    const existingProfile = await getProfile(profileId) as ShopOwnerProfile;
-    
-    const existingUrlsToKeep = newPhotosState.filter((p): p is string => typeof p === 'string');
-    const newPhotoFiles = newPhotosState.filter((p): p is { file: File; preview: string } => typeof p !== 'string');
-    
-    const originalPhotoUrls = existingProfile?.shopPhotos || [];
-    const urlsToDelete = originalPhotoUrls.filter(url => !existingUrlsToKeep.includes(url));
-
-    const deletionPromises = urlsToDelete.map(url => deleteObject(ref(storage, url)).catch(err => console.error("Old photo deletion failed:", err)));
-    
-    const uploadPromises = newPhotoFiles.map(async (photoState) => {
-        const dataUrl = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(photoState.file);
-        });
-        const storageRef = ref(storage, `profiles/${profileId}/${Date.now()}.jpg`);
-        await uploadString(storageRef, dataUrl, 'data_url', { contentType: 'image/jpeg' });
-        return getDownloadURL(storageRef);
-    });
-
-    const newUploadedUrls = await Promise.all(uploadPromises);
-    await Promise.all(deletionPromises);
-
-    const finalPhotoUrls = [...existingUrlsToKeep, ...newUploadedUrls];
-
-    const profileToUpdate: Omit<ShopOwnerProfile, 'id'> = {
-        ...updatedProfileData,
-        shopPhotos: finalPhotoUrls,
-    };
-    
-    const batch = writeBatch(db);
-
-    const profileDocRef = doc(db, "shopOwnerProfiles", profileId);
-    batch.set(profileDocRef, profileToUpdate, { merge: true });
-
-    const userDocRef = doc(db, "users", profileId);
-    batch.update(userDocRef, { username: updatedProfileData.username });
-    
-    await batch.commit();
+export async function updateProfile(updatedProfileData: any, newPhotosState: any) {
+    // This function is now a stub as users are anonymous
+    console.log("updateProfile is a stub and does not write to the database anymore.");
+    return Promise.resolve();
 };
 
 
 // --- UPDATES FEED FUNCTIONS ---
 
-export async function addUpdate(newUpdate: Omit<Update, 'id' | 'createdAt' | 'authorId' | 'authorName' | 'authorRole'> & { imageUrl?: string }) {
-    if (!auth.currentUser) throw new Error("User not authenticated");
-    
-    const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
-    const userData = userDoc.data() as User;
-    if (!userData) throw new Error("User data not found in Firestore");
-
+export async function addUpdate(newUpdate: Omit<Update, 'id' | 'createdAt' | 'authorId' | 'authorName' | 'authorRole'> & { imageUrl?: string; authorName: string, authorRole: 'homeowner' | 'shop-owner' }) {
     let finalImageUrl = newUpdate.imageUrl;
     if (newUpdate.imageUrl) {
-        const storageRef = ref(storage, `updates/${auth.currentUser!.uid}/${Date.now()}.jpg`);
+        const storageRef = ref(storage, `updates/${DUMMY_USER_ID}/${Date.now()}.jpg`);
         await uploadString(storageRef, newUpdate.imageUrl, 'data_url', { contentType: 'image/jpeg' });
         finalImageUrl = await getDownloadURL(storageRef);
     }
@@ -486,9 +231,9 @@ export async function addUpdate(newUpdate: Omit<Update, 'id' | 'createdAt' | 'au
       title: newUpdate.title,
       content: newUpdate.content,
       imageUrl: finalImageUrl || '',
-      authorId: auth.currentUser.uid,
-      authorName: userData.username,
-      authorRole: userData.role,
+      authorId: DUMMY_USER_ID,
+      authorName: newUpdate.authorName,
+      authorRole: newUpdate.authorRole,
       createdAt: serverTimestamp(),
     };
     
@@ -501,8 +246,6 @@ export async function updateUpdate(
   updateData: { title: string; content: string }, 
   newImage?: { dataUrl: string; oldImageUrl?: string }
 ) {
-  if (!auth.currentUser) throw new Error("User not authenticated");
-  
   const updateRef = doc(db, 'updates', updateId);
   const dataToUpdate: any = { ...updateData };
 
@@ -515,7 +258,7 @@ export async function updateUpdate(
             console.error("Failed to delete old image, continuing update.", error);
         }
     }
-    const newImageRef = ref(storage, `updates/${auth.currentUser.uid}/${Date.now()}.jpg`);
+    const newImageRef = ref(storage, `updates/${DUMMY_USER_ID}/${Date.now()}.jpg`);
     await uploadString(newImageRef, newImage.dataUrl, 'data_url', { contentType: 'image/jpeg' });
     dataToUpdate.imageUrl = await getDownloadURL(newImageRef);
   }
@@ -535,8 +278,6 @@ export async function updateUpdate(
 }
 
 export async function deleteUpdate(updateId: string, imageUrl?: string) {
-    if (!auth.currentUser) throw new Error("User not authenticated");
-    
     if (imageUrl) {
         try {
             const imageRef = ref(storage, imageUrl);
@@ -564,5 +305,3 @@ export async function getUpdateById(id: string): Promise<Update | undefined> {
     }
     return undefined;
 }
-
-    

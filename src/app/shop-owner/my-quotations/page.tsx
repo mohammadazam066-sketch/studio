@@ -1,11 +1,12 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth, getQuotationsByShopOwner, getRequirementById } from '@/lib/store';
+import { getQuotationsByShopOwner, getRequirementById } from '@/lib/store';
 import type { Quotation, Requirement } from '@/lib/types';
 import { format } from 'date-fns';
 import type { Timestamp } from 'firebase/firestore';
@@ -47,14 +48,15 @@ function QuotationCardSkeleton() {
 
 
 export default function MyQuotationsPage() {
-  const { currentUser } = useAuth();
   const [quotations, setQuotations] = useState<QuotationWithRequirement[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchQuotations = useCallback(async () => {
-    if (!currentUser) return;
     setLoading(true);
-    const userQuotations = await getQuotationsByShopOwner(currentUser.id);
+    // Note: Since auth is removed, this page would ideally filter quotes
+    // based on an identifier stored in localStorage. For now, it's empty.
+    // To see quotes, you'd need to re-implement a filter.
+    const userQuotations = await getQuotationsByShopOwner("public_user");
 
     const quotationsWithReqs = await Promise.all(
         userQuotations.map(async (quote) => {
@@ -65,7 +67,7 @@ export default function MyQuotationsPage() {
 
     setQuotations(quotationsWithReqs);
     setLoading(false);
-  }, [currentUser]);
+  }, []);
 
   useEffect(() => {
     fetchQuotations();
@@ -75,7 +77,7 @@ export default function MyQuotationsPage() {
      return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold font-headline tracking-tight">My Sent Quotations</h1>
+                <h1 className="text-2xl font-bold font-headline tracking-tight">Sent Quotations</h1>
                 <p className="text-muted-foreground">View and manage all the quotes you have submitted.</p>
             </div>
             <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
@@ -88,7 +90,7 @@ export default function MyQuotationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold font-headline tracking-tight">My Sent Quotations</h1>
+        <h1 className="text-2xl font-bold font-headline tracking-tight">Sent Quotations</h1>
         <p className="text-muted-foreground">View and manage all the quotes you have submitted.</p>
       </div>
 
@@ -143,4 +145,3 @@ export default function MyQuotationsPage() {
     </div>
   );
 }
-

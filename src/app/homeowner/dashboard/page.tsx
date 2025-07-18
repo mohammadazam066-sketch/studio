@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { getQuotationsForRequirement, useAuth, getRequirements } from '@/lib/store';
+import { getQuotationsForRequirement, getRequirements } from '@/lib/store';
 import { PlusCircle, MessageSquare } from 'lucide-react';
 import type { Requirement } from '@/lib/types';
 import { useEffect, useState, useCallback } from 'react';
@@ -35,18 +36,17 @@ function RequirementCardSkeleton() {
 
 
 export default function HomeownerDashboard() {
-  const { currentUser } = useAuth();
   const [myRequirements, setMyRequirements] = useState<Requirement[]>([]);
   const [quoteCounts, setQuoteCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   const fetchDashboardData = useCallback(async () => {
-    if (!currentUser) return;
     setLoading(true);
-    const reqs = await getRequirements({ homeownerId: currentUser.id });
+    // Since there's no logged-in user, we show all requirements on the homeowner dash.
+    // A real app might use local storage to track "my" requirements.
+    const reqs = await getRequirements();
     setMyRequirements(reqs);
 
-    // Fetch quote counts for all requirements in parallel
     if (reqs.length > 0) {
       const quoteCountPromises = reqs.map(req => 
         getQuotationsForRequirement(req.id).then(quotes => ({ reqId: req.id, count: quotes.length }))
@@ -60,7 +60,7 @@ export default function HomeownerDashboard() {
     }
     
     setLoading(false);
-  }, [currentUser]);
+  }, []);
 
   useEffect(() => {
     fetchDashboardData();
@@ -71,8 +71,8 @@ export default function HomeownerDashboard() {
       <div className="space-y-6">
          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold font-headline tracking-tight">My Requirements</h1>
-              <p className="text-muted-foreground">View and manage all your project requirements.</p>
+              <h1 className="text-2xl font-bold font-headline tracking-tight">Project Requirements</h1>
+              <p className="text-muted-foreground">View and manage all project requirements.</p>
             </div>
             <Button asChild className="w-full sm:w-auto">
               <Link href="/homeowner/requirements/new">
@@ -92,8 +92,8 @@ export default function HomeownerDashboard() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold font-headline tracking-tight">My Requirements</h1>
-          <p className="text-muted-foreground">View and manage all your project requirements.</p>
+          <h1 className="text-2xl font-bold font-headline tracking-tight">Project Requirements</h1>
+          <p className="text-muted-foreground">View and manage all project requirements.</p>
         </div>
         <Button asChild className="w-full sm:w-auto">
           <Link href="/homeowner/requirements/new">
@@ -113,6 +113,7 @@ export default function HomeownerDashboard() {
               </CardHeader>
               <CardContent className="flex-grow">
                 <p className="text-sm text-muted-foreground line-clamp-3">{req.description}</p>
+                 <p className="text-sm text-foreground mt-2 font-medium">Posted by: {req.homeownerName}</p>
               </CardContent>
               <CardFooter className="flex justify-between items-center">
                  <div className={`text-sm font-medium flex items-center gap-2 ${req.status === 'Purchased' ? 'text-accent' : 'text-primary'}`}>
@@ -135,7 +136,7 @@ export default function HomeownerDashboard() {
       ) : (
         <div className="text-center py-10 sm:py-20 border-2 border-dashed rounded-lg">
           <h2 className="text-xl font-medium">No requirements yet</h2>
-          <p className="text-muted-foreground mt-2 max-w-xs mx-auto">Get started by posting your first requirement.</p>
+          <p className="text-muted-foreground mt-2 max-w-xs mx-auto">Get started by posting the first requirement.</p>
           <Button asChild className="mt-4">
             <Link href="/homeowner/requirements/new">Post a Requirement</Link>
           </Button>

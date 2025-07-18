@@ -1,35 +1,14 @@
 
+
 'use client';
 
 import Link from 'next/link';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Home, Store, Loader2 } from 'lucide-react';
+import { Home, Store } from 'lucide-react';
 import { Logo } from '@/components/logo';
-import { useAuth } from '@/lib/store';
 
 export default function HomePage() {
-  const { currentUser, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && currentUser) {
-      const dashboardUrl = currentUser.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
-      router.push(dashboardUrl);
-    }
-  }, [currentUser, loading, router]);
-
-  if (loading || currentUser) {
-    return (
-      <div className="flex flex-col min-h-screen items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Loading your experience...</p>
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col min-h-screen">
       <header className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -58,7 +37,7 @@ export default function HomePage() {
                 </CardHeader>
                 <CardContent>
                   <Button asChild className="w-full">
-                    <Link href="/auth-pages/login?role=homeowner">Get Started</Link>
+                    <Link href="/homeowner/dashboard">View Dashboard</Link>
                   </Button>
                 </CardContent>
               </Card>
@@ -72,7 +51,7 @@ export default function HomePage() {
                 </CardHeader>
                 <CardContent>
                   <Button asChild className="w-full">
-                    <Link href="/auth-pages/login?role=shop-owner">Find Projects</Link>
+                    <Link href="/shop-owner/dashboard">View Requirements</Link>
                   </Button>
                 </CardContent>
               </Card>

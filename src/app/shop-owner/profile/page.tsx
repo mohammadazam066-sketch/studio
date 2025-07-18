@@ -1,13 +1,19 @@
-import { ShopOwnerProfileForm } from "@/components/shop-owner-profile-form";
+
+'use client';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function ShopOwnerProfilePage() {
+  const router = useRouter();
+  
+  useEffect(() => {
+    // Since profile pages are removed, redirect to dashboard.
+    router.replace('/shop-owner/dashboard');
+  }, [router]);
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold font-headline tracking-tight">My Profile</h1>
-        <p className="text-muted-foreground">Keep your business information up to date.</p>
-      </div>
-      <ShopOwnerProfileForm />
+      <p>Redirecting...</p>
     </div>
   );
 }

@@ -28,6 +28,7 @@ export function RequirementForm({ existingRequirement }: RequirementFormProps) {
   const isEditMode = !!existingRequirement;
 
   const [title, setTitle] = useState(existingRequirement?.title ?? '');
+  const [homeownerName, setHomeownerName] = useState(existingRequirement?.homeownerName ?? '');
   const [category, setCategory] = useState(existingRequirement?.category ?? '');
   const [location, setLocation] = useState(existingRequirement?.location ?? '');
   const [description, setDescription] = useState(existingRequirement?.description ?? '');
@@ -38,6 +39,7 @@ export function RequirementForm({ existingRequirement }: RequirementFormProps) {
   useEffect(() => {
     if (existingRequirement) {
         setTitle(existingRequirement.title);
+        setHomeownerName(existingRequirement.homeownerName);
         setCategory(existingRequirement.category);
         setLocation(existingRequirement.location);
         setDescription(existingRequirement.description);
@@ -81,6 +83,7 @@ export function RequirementForm({ existingRequirement }: RequirementFormProps) {
         // Handle editing logic
         await updateRequirement(existingRequirement.id, {
             title,
+            homeownerName,
             category,
             location,
             description,
@@ -103,8 +106,9 @@ export function RequirementForm({ existingRequirement }: RequirementFormProps) {
                 });
             })
         );
-        const newRequirement: Omit<Requirement, 'id' | 'createdAt' | 'homeownerId' | 'homeownerName' | 'status'> = {
+        const newRequirement: Omit<Requirement, 'id' | 'createdAt' | 'homeownerId' | 'status'> = {
           title,
+          homeownerName,
           category,
           location,
           description,
@@ -138,9 +142,14 @@ export function RequirementForm({ existingRequirement }: RequirementFormProps) {
           {!isEditMode && <CardDescription>Describe your project to get quotes from qualified professionals.</CardDescription>}
         </CardHeader>
         <CardContent className="grid gap-6 md:grid-cols-2">
-          <div className="space-y-2 md:col-span-2">
+          <div className="space-y-2">
             <Label htmlFor="title">Requirement Title</Label>
             <Input id="title" name="title" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g., 100 bags of cement" required disabled={loading} />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="homeownerName">Your Name</Label>
+            <Input id="homeownerName" name="homeownerName" value={homeownerName} onChange={e => setHomeownerName(e.target.value)} placeholder="e.g., John Doe" required disabled={loading} />
           </div>
 
           <div className="space-y-2">

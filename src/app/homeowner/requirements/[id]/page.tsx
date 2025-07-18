@@ -2,16 +2,16 @@
 
 'use client';
 
-import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, getProfile, deleteRequirement, useAuth } from '@/lib/store';
+import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, deleteRequirement } from '@/lib/store';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Calendar, Wrench, FileText, CheckCircle, Mail, Phone, User as UserIcon, Edit, Trash2 } from 'lucide-react';
+import { MapPin, Calendar, Wrench, FileText, CheckCircle, Edit, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
-import { useEffect, useState, useCallback, useMemo } from 'react';
-import type { Requirement, Quotation, ShopOwnerProfile } from '@/lib/types';
+import { useEffect, useState, useCallback } from 'react';
+import type { Requirement, Quotation } from '@/lib/types';
 import type { Timestamp } from 'firebase/firestore';
 import {
   AlertDialog,
@@ -26,9 +26,6 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
-
-// A type that combines Quotation with the shop owner's public profile
-type QuotationWithProfile = Quotation & { ownerProfile?: ShopOwnerProfile };
 
 function formatDate(date: Date | string | Timestamp) {
     if (!date) return '';
@@ -92,7 +89,6 @@ function PageSkeleton() {
                 </CardContent>
                 <CardFooter className="flex flex-col sm:flex-row gap-2">
                   <Skeleton className="h-10 w-full sm:w-1/2" />
-                  <Skeleton className="h-10 w-full sm:w-1/2" />
                 </CardFooter>
             </Card>
         </div>
@@ -106,18 +102,17 @@ export default function RequirementDetailPage() {
   const router = useRouter();
   const { id } = params;
   
-  const { currentUser } = useAuth();
   const { toast } = useToast();
   
   const [requirement, setRequirement] = useState<Requirement | undefined>(undefined);
-  const [relatedQuotations, setRelatedQuotations] = useState<QuotationWithProfile[]>([]);
-  const [selectedQuote, setSelectedQuote] = useState<QuotationWithProfile | null>(null);
+  const [relatedQuotations, setRelatedQuotations] = useState<Quotation[]>([]);
+  const [selectedQuote, setSelectedQuote] = useState<Quotation | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const fetchData = useCallback(async () => {
-    if (typeof id !== 'string' || !currentUser) return;
+    if (typeof id !== 'string') return;
     setLoading(true);
 
     try {
@@ -129,24 +124,10 @@ export default function RequirementDetailPage() {
             return;
         }
 
-        if (reqData.homeownerId !== currentUser.id) {
-            toast({ variant: 'destructive', title: 'Access Denied', description: 'You do not have permission to view this page.' });
-            router.push('/homeowner/dashboard');
-            return;
-        }
-
         setRequirement(reqData);
 
         const quotesData = await getQuotationsForRequirement(id);
-
-        const quotesWithProfiles = await Promise.all(
-          quotesData.map(async (quote) => {
-            const ownerProfile = await getProfile(quote.shopOwnerId);
-            return { ...quote, ownerProfile };
-          })
-        );
-        
-        setRelatedQuotations(quotesWithProfiles);
+        setRelatedQuotations(quotesData);
 
     } catch (error) {
         console.error("Error fetching requirement details:", error);
@@ -154,14 +135,14 @@ export default function RequirementDetailPage() {
     } finally {
         setLoading(false);
     }
-  }, [id, currentUser, router, toast]);
+  }, [id, router, toast]);
 
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  const handlePurchaseClick = (quote: QuotationWithProfile) => {
+  const handlePurchaseClick = (quote: Quotation) => {
     if (requirement?.status === 'Purchased') {
       toast({
         variant: "default",
@@ -302,15 +283,9 @@ export default function RequirementDetailPage() {
                     <p className="text-muted-foreground">Expected by: {formatDate(quote.deliveryDate)}</p>
                   </div>
                 </CardContent>
-                <CardFooter className="flex flex-col sm:flex-row gap-2">
-                  <Button asChild variant="outline" className="w-full sm:w-1/2">
-                    <Link href={`/homeowner/profile/${quote.shopOwnerId}`}>
-                      <UserIcon className="mr-2 h-4 w-4" />
-                      View Profile
-                    </Link>
-                  </Button>
+                <CardFooter>
                   <Button 
-                    className="w-full sm:w-1/2 bg-accent hover:bg-accent/90 text-accent-foreground disabled:bg-gray-400"
+                    className="w-full bg-accent hover:bg-accent/90 text-accent-foreground disabled:bg-gray-400"
                     onClick={() => handlePurchaseClick(quote)}
                     disabled={requirement.status === 'Purchased'}
                   >
@@ -335,17 +310,8 @@ export default function RequirementDetailPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Purchase</AlertDialogTitle>
             <AlertDialogDescription>
-              You are about to purchase the quotation from <span className="font-bold">{selectedQuote?.shopOwnerName}</span> for <span className="font-bold">Rs{selectedQuote?.amount.toFixed(2)}</span>. The shop owner will be notified.
+              You are about to mark the quotation from <span className="font-bold">{selectedQuote?.shopOwnerName}</span> for <span className="font-bold">Rs{selectedQuote?.amount.toFixed(2)}</span> as purchased.
             </AlertDialogDescription>
-            <div className="text-sm text-muted-foreground pt-2 text-left">
-                You can contact them directly:
-                <div className="flex items-center gap-2 mt-2">
-                    <Mail className="h-4 w-4" /> <span>{selectedQuote?.ownerProfile?.email ?? 'N/A'}</span>
-                </div>
-                <div className="flex items-center gap-2 mt-1">
-                    <Phone className="h-4 w-4" /> <span>{selectedQuote?.ownerProfile?.phoneNumber ?? 'N/A'}</span>
-                </div>
-            </div>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>

@@ -8,9 +8,9 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Upload, X, Newspaper } from 'lucide-react';
+import { Loader2, Upload, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getUpdateById, updateUpdate, useAuth } from '@/lib/store';
+import { getUpdateById, updateUpdate } from '@/lib/store';
 import Image from 'next/image';
 import type { Update } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -47,7 +47,6 @@ export default function EditUpdatePage() {
   const params = useParams();
   const { id } = params;
   const { toast } = useToast();
-  const { currentUser } = useAuth();
 
   const [update, setUpdate] = useState<Update | null>(null);
   const [title, setTitle] = useState('');
@@ -62,8 +61,8 @@ export default function EditUpdatePage() {
     if (typeof id !== 'string') return;
     setLoading(true);
     const updateData = await getUpdateById(id);
-    if (!updateData || !currentUser || updateData.authorId !== currentUser.id) {
-        toast({ variant: "destructive", title: "Unauthorized", description: "You cannot edit this post." });
+    if (!updateData) {
+        toast({ variant: "destructive", title: "Not Found", description: "This post could not be found." });
         router.push('/updates');
         return;
     }
@@ -72,7 +71,7 @@ export default function EditUpdatePage() {
     setContent(updateData.content);
     setExistingImageUrl(updateData.imageUrl);
     setLoading(false);
-  }, [id, currentUser, router, toast]);
+  }, [id, router, toast]);
 
   useEffect(() => {
     fetchUpdate();
@@ -82,14 +81,12 @@ export default function EditUpdatePage() {
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Clear existing image url when a new file is chosen
       setExistingImageUrl(undefined);
       setPhoto({ file, preview: URL.createObjectURL(file) });
     }
   };
 
   const handleRemovePhoto = () => {
-    // This handles both newly selected and existing photos
     if (photo) {
       URL.revokeObjectURL(photo.preview);
     }

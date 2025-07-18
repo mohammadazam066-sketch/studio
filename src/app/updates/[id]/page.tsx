@@ -1,7 +1,7 @@
 
 'use client';
 
-import { getUpdateById, useAuth, deleteUpdate } from '@/lib/store';
+import { getUpdateById, deleteUpdate } from '@/lib/store';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -66,7 +66,6 @@ export default function UpdateDetailPage() {
   const router = useRouter();
   const { id } = params;
   
-  const { currentUser } = useAuth();
   const { toast } = useToast();
   
   const [update, setUpdate] = useState<Update | undefined>(undefined);
@@ -109,8 +108,6 @@ export default function UpdateDetailPage() {
     }
   }
   
-  const isAuthor = currentUser && update && currentUser.id === update.authorId;
-
   if (loading) {
     return <PageSkeleton />;
   }
@@ -139,20 +136,18 @@ export default function UpdateDetailPage() {
             Back to All Updates
           </Link>
         </Button>
-        {isAuthor && (
-            <div className="flex gap-2">
-                <Button asChild variant="outline" size="sm">
-                    <Link href={`/updates/edit/${update.id}`}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit
-                    </Link>
-                </Button>
-                <Button variant="destructive" size="sm" onClick={() => setIsDeleteDialogOpen(true)}>
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
-                </Button>
-            </div>
-        )}
+        <div className="flex gap-2">
+            <Button asChild variant="outline" size="sm">
+                <Link href={`/updates/edit/${update.id}`}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                </Link>
+            </Button>
+            <Button variant="destructive" size="sm" onClick={() => setIsDeleteDialogOpen(true)}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+            </Button>
+        </div>
       </div>
       <Card>
          {update.imageUrl && (

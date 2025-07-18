@@ -14,13 +14,12 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { CalendarIcon, Loader2, Wand2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import type { Requirement, Quotation, ShopOwnerProfile, User } from '@/lib/types';
+import type { Requirement, Quotation } from '@/lib/types';
 import { getQuotationCategory } from '@/lib/actions';
 import type { CategorizeQuotationOutput } from '@/ai/flows/categorize-quotation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { addQuotation, updateQuotation, getProfile, useAuth } from '@/lib/store';
+import { addQuotation, updateQuotation } from '@/lib/store';
 import { Timestamp } from 'firebase/firestore';
-import { Skeleton } from './ui/skeleton';
 
 interface QuotationFormProps {
     requirement: Requirement;
@@ -30,34 +29,19 @@ interface QuotationFormProps {
 export function QuotationForm({ requirement, existingQuotation }: QuotationFormProps) {
   const router = useRouter();
   const { toast } = useToast();
-  const { currentUser } = useAuth();
   
   const isEditMode = !!existingQuotation;
 
   const [amount, setAmount] = useState<number | string>(existingQuotation?.amount ?? '');
   const [date, setDate] = useState<Date | undefined>(existingQuotation?.deliveryDate ? (existingQuotation.deliveryDate as Timestamp).toDate() : undefined);
   const [terms, setTerms] = useState<string>(existingQuotation?.terms ?? '');
-  const [profile, setProfile] = useState<ShopOwnerProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [shopOwnerName, setShopOwnerName] = useState<string>(existingQuotation?.shopOwnerName ?? '');
+  const [shopName, setShopName] = useState<string>(existingQuotation?.shopName ?? '');
   
+  const [loading, setLoading] = useState(false);
   const [isCategorizing, setIsCategorizing] = useState(false);
   const [aiResult, setAiResult] = useState<CategorizeQuotationOutput | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
-
-  const fetchProfile = useCallback(async () => {
-    if (!currentUser) return;
-    setLoading(true);
-    const existingProfile = await getProfile(currentUser.id);
-    if (existingProfile) {
-      setProfile(existingProfile as ShopOwnerProfile);
-    }
-    setLoading(false);
-  }, [currentUser]);
-
-  useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
-
 
   const handleCategorize = async () => {
     if (!terms) {
@@ -95,23 +79,15 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
         setLoading(false);
         return;
     }
-    
-    if (!profile || !currentUser || !currentUser.email) {
-        toast({
-            variant: "destructive",
-            title: "Profile Error",
-            description: "Could not load shop owner profile. Please complete your profile first.",
-        });
-        setLoading(false);
-        return;
-    }
 
     try {
         if (isEditMode) {
             const updatedQuotationData = {
                 amount: Number(amount),
-                terms: terms,
+                terms,
                 deliveryDate: Timestamp.fromDate(date),
+                shopOwnerName,
+                shopName,
             };
             await updateQuotation(existingQuotation.id, updatedQuotationData);
             toast({
@@ -120,18 +96,13 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
             });
             router.push('/shop-owner/my-quotations');
         } else {
-            const newQuotation: Omit<Quotation, 'id' | 'createdAt'> = {
+            const newQuotation: Omit<Quotation, 'id' | 'createdAt' | 'shopOwnerId'> = {
                 requirementId: requirement.id,
-                shopOwnerId: currentUser.id,
-                shopOwnerName: profile.username,
-                shopName: profile.shopName,
+                shopOwnerName,
+                shopName,
                 amount: Number(amount),
                 terms: terms,
                 deliveryDate: Timestamp.fromDate(date),
-                ownerProfile: {
-                  email: currentUser.email,
-                  phoneNumber: profile.phoneNumber
-                }
             };
             await addQuotation(newQuotation);
             toast({
@@ -149,25 +120,6 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
     }
   };
 
-  if (loading) {
-    return (
-      <Card className="sticky top-8">
-        <CardHeader>
-          <Skeleton className="h-7 w-3/4" />
-          <Skeleton className="h-4 w-1/2" />
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-20 w-full" />
-        </CardContent>
-        <CardFooter>
-          <Skeleton className="h-10 w-full" />
-        </CardFooter>
-      </Card>
-    )
-  }
-
   return (
     <form onSubmit={handleSubmit}>
       <Card className="sticky top-8">
@@ -176,6 +128,14 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
           <CardDescription>{isEditMode ? 'Update your quote for this project.' : 'Provide your quote for this project.'}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="shopOwnerName">Your Name</Label>
+            <Input id="shopOwnerName" name="shopOwnerName" type="text" placeholder="e.g., Jane Smith" required disabled={loading} value={shopOwnerName} onChange={(e) => setShopOwnerName(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="shopName">Shop Name</Label>
+            <Input id="shopName" name="shopName" type="text" placeholder="e.g., Smith's Hardware" required disabled={loading} value={shopName} onChange={(e) => setShopName(e.target.value)} />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="amount">Amount (Rs)</Label>
             <Input id="amount" name="amount" type="number" placeholder="e.g., 450.00" required disabled={loading} value={amount} onChange={(e) => setAmount(e.target.value)} />
