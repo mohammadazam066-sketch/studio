@@ -1,3 +1,4 @@
+
 import {
   getAuth,
   createUserWithEmailAndPassword,
@@ -19,14 +20,9 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // Register user
-export const registerUser = async (email: string, password) => {
+export const registerUser = async (email: string, password, username, role: UserRole) => {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
-
-  // Default username to be the part of the email before the @
-  const username = email.split('@')[0];
-  // Default role to homeowner
-  const role: UserRole = 'homeowner';
 
   // Create user document in 'users' collection
   const userDocRef = doc(db, 'users', user.uid);
@@ -45,13 +41,14 @@ export const registerUser = async (email: string, password) => {
   const profileData: any = {
     id: user.uid,
     username,
+    name: username,
     email: user.email,
     createdAt: serverTimestamp(),
   };
 
   if (role === 'shop-owner') {
     // Add shop-owner specific fields with default empty values
-    profileData.shopName = '';
+    profileData.shopName = `${username}'s Shop`;
     profileData.phoneNumber = '';
     profileData.address = '';
     profileData.location = '';

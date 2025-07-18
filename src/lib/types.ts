@@ -12,23 +12,28 @@ export type User = {
   password?: string; 
   role: UserRole;
   profile?: HomeownerProfile | ShopOwnerProfile;
+  createdAt: Timestamp | Date | string;
 };
 export type ShopOwnerProfile = {
   id: string; // Corresponds to user.uid
   username: string;
+  name: string;
   email: string;
   shopName: string;
   phoneNumber: string;
   address: string;
   location: string;
   shopPhotos: string[];
+  createdAt?: Timestamp | Date | string;
 };
 export type HomeownerProfile = {
     id: string;
     username: string;
+    name: string;
     email: string;
     phoneNumber?: string;
     address?: string;
+    createdAt?: Timestamp | Date | string;
 }
 
 
