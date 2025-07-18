@@ -14,7 +14,7 @@ interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
   login: (email, password) => Promise<any>;
-  register: (email, password, username, role: UserRole) => Promise<any>;
+  register: (email, password) => Promise<any>;
   logout: () => Promise<void>;
   updateUserProfile: (updatedProfile: Partial<HomeownerProfile | ShopOwnerProfile>, newPhotos?: { file: File, preview: string }[]) => Promise<void>;
 }
@@ -37,8 +37,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return loginUser(email, password);
   };
 
-  const register = async (email, password, username, role: UserRole) => {
-    return registerUser(email, password, username, role);
+  const register = async (email, password) => {
+    return registerUser(email, password);
   };
 
   const logout = async () => {

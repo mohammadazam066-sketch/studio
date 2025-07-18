@@ -19,9 +19,14 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // Register user
-export const registerUser = async (email, password, username, role: UserRole) => {
+export const registerUser = async (email: string, password) => {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
+
+  // Default username to be the part of the email before the @
+  const username = email.split('@')[0];
+  // Default role to homeowner
+  const role: UserRole = 'homeowner';
 
   // Create user document in 'users' collection
   const userDocRef = doc(db, 'users', user.uid);
