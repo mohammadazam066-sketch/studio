@@ -14,13 +14,13 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { app } from './firebase'; // Ensure your firebase.ts exports the initialized app
-import type { User, UserRole } from './types';
+import type { User, UserRole, HomeownerProfile, ShopOwnerProfile } from './types';
 
 const auth = getAuth(app);
 const db = getFirestore(app);
 
 // Register user
-export const registerUser = async (email: string, password, username, role: UserRole) => {
+export const registerUser = async (email: string, password: string, username: string, role: UserRole) => {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
 
@@ -38,25 +38,31 @@ export const registerUser = async (email: string, password, username, role: User
   const profileCollection = role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
   const profileDocRef = doc(db, profileCollection, user.uid);
   
-  const profileData: any = {
-    id: user.uid,
-    username,
-    name: username,
-    email: user.email,
-    createdAt: serverTimestamp(),
-  };
+  let profileData: Omit<HomeownerProfile, 'id'> | Omit<ShopOwnerProfile, 'id'>;
 
   if (role === 'shop-owner') {
     // Add shop-owner specific fields with default empty values
-    profileData.shopName = `${username}'s Shop`;
-    profileData.phoneNumber = '';
-    profileData.address = '';
-    profileData.location = '';
-    profileData.shopPhotos = [];
+    profileData = {
+        username: username,
+        name: username,
+        email: user.email,
+        createdAt: serverTimestamp(),
+        shopName: `${username}'s Shop`,
+        phoneNumber: '',
+        address: '',
+        location: '',
+        shopPhotos: [],
+    };
   } else {
     // Add homeowner-specific fields if any (optional)
-    profileData.phoneNumber = '';
-    profileData.address = '';
+     profileData = {
+        username: username,
+        name: username,
+        email: user.email,
+        createdAt: serverTimestamp(),
+        phoneNumber: '',
+        address: '',
+    };
   }
 
   await setDoc(profileDocRef, profileData);
@@ -97,6 +103,7 @@ export const onAuthChanged = (callback: (user: User | null) => void) => {
           const defaultProfileData: any = {
             id: user.uid,
             username: userData.username,
+            name: userData.username,
             email: userData.email,
             createdAt: serverTimestamp(),
           };
