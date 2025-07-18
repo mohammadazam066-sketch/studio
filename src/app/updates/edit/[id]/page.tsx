@@ -8,9 +8,9 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Upload, X } from 'lucide-react';
+import { Loader2, Upload, X, Newspaper } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getUpdateById, updateUpdate } from '@/lib/store';
+import { getUpdateById, updateUpdate, useAuth } from '@/lib/store';
 import Image from 'next/image';
 import type { Update } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -47,12 +47,14 @@ export default function EditUpdatePage() {
   const params = useParams();
   const { id } = params;
   const { toast } = useToast();
+  const { currentUser } = useAuth();
 
   const [update, setUpdate] = useState<Update | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [photo, setPhoto] = useState<PhotoState | null>(null);
   const [existingImageUrl, setExistingImageUrl] = useState<string | undefined>(undefined);
+  const [isImageRemoved, setIsImageRemoved] = useState(false);
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -61,8 +63,8 @@ export default function EditUpdatePage() {
     if (typeof id !== 'string') return;
     setLoading(true);
     const updateData = await getUpdateById(id);
-    if (!updateData) {
-        toast({ variant: "destructive", title: "Not Found", description: "This post could not be found." });
+    if (!updateData || !currentUser || updateData.authorId !== currentUser.id) {
+        toast({ variant: "destructive", title: "Unauthorized", description: "You cannot edit this post." });
         router.push('/updates');
         return;
     }
@@ -71,7 +73,7 @@ export default function EditUpdatePage() {
     setContent(updateData.content);
     setExistingImageUrl(updateData.imageUrl);
     setLoading(false);
-  }, [id, router, toast]);
+  }, [id, currentUser, router, toast]);
 
   useEffect(() => {
     fetchUpdate();
@@ -82,6 +84,7 @@ export default function EditUpdatePage() {
     const file = e.target.files?.[0];
     if (file) {
       setExistingImageUrl(undefined);
+      setIsImageRemoved(false);
       setPhoto({ file, preview: URL.createObjectURL(file) });
     }
   };
@@ -92,6 +95,7 @@ export default function EditUpdatePage() {
     }
     setPhoto(null);
     setExistingImageUrl(undefined);
+    setIsImageRemoved(true);
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -100,6 +104,8 @@ export default function EditUpdatePage() {
     setSaving(true);
 
     let newImageData: { dataUrl: string; oldImageUrl?: string } | undefined;
+    
+    // Case 1: A new photo was uploaded
     if (photo) {
         newImageData = {
             dataUrl: await new Promise<string>((resolve, reject) => {
@@ -108,8 +114,12 @@ export default function EditUpdatePage() {
                 reader.onerror = reject;
                 reader.readAsDataURL(photo.file);
             }),
-            oldImageUrl: update.imageUrl,
+            oldImageUrl: update.imageUrl, // Pass old URL for deletion
         }
+    } 
+    // Case 2: An existing photo was removed, and no new one was added
+    else if (isImageRemoved) {
+        newImageData = { dataUrl: '', oldImageUrl: update.imageUrl };
     }
 
     try {
@@ -204,3 +214,5 @@ export default function EditUpdatePage() {
     </div>
   );
 }
+
+    
