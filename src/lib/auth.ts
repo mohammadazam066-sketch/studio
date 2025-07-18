@@ -4,6 +4,7 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  deleteUser,
 } from 'firebase/auth';
 import {
   getFirestore,
@@ -26,50 +27,60 @@ export const registerUser = async (username: string, password: string, role: Use
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
 
-  // Create user document in 'users' collection
-  const userDocRef = doc(db, 'users', user.uid);
-  await setDoc(userDocRef, {
-    id: user.uid,
-    username,
-    email: '', // Store an empty string for email, as it's not provided by user
-    role: role,
-    createdAt: serverTimestamp(),
-  });
+  try {
+    // Create user document in 'users' collection
+    const userDocRef = doc(db, 'users', user.uid);
+    await setDoc(userDocRef, {
+      id: user.uid,
+      username,
+      email: '', // Store an empty string for email, as it's not provided by user
+      role: role,
+      createdAt: serverTimestamp(),
+    });
 
-  // Create corresponding profile document
-  const profileCollection = role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
-  const profileDocRef = doc(db, profileCollection, user.uid);
-  
-  let profileData: Omit<HomeownerProfile, 'id'> | Omit<ShopOwnerProfile, 'id'>;
+    // Create corresponding profile document
+    const profileCollection = role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
+    const profileDocRef = doc(db, profileCollection, user.uid);
+    
+    let profileData: Omit<HomeownerProfile, 'id'> | Omit<ShopOwnerProfile, 'id'>;
 
-  if (role === 'shop-owner') {
-    // Add shop-owner specific fields with default empty values
-    profileData = {
-        username: username,
-        name: username, // Default name to username
-        email: '',
-        createdAt: serverTimestamp(),
-        shopName: `${username}'s Shop`, // Default shop name
-        phoneNumber: '',
-        address: '',
-        location: '',
-        shopPhotos: [],
-    };
-  } else {
-    // Add homeowner-specific fields if any
-     profileData = {
-        username: username,
-        name: username, // Default name to username
-        email: '',
-        createdAt: serverTimestamp(),
-        phoneNumber: '',
-        address: '',
-    };
+    if (role === 'shop-owner') {
+      // Add shop-owner specific fields with default empty values
+      profileData = {
+          username: username,
+          name: username, // Default name to username
+          email: '',
+          createdAt: serverTimestamp(),
+          shopName: `${username}'s Shop`, // Default shop name
+          phoneNumber: '',
+          address: '',
+          location: '',
+          shopPhotos: [],
+      };
+    } else {
+      // Add homeowner-specific fields if any
+      profileData = {
+          username: username,
+          name: username, // Default name to username
+          email: '',
+          createdAt: serverTimestamp(),
+          phoneNumber: '',
+          address: '',
+      };
+    }
+
+    await setDoc(profileDocRef, profileData);
+
+    return user;
+  } catch (error) {
+    // If creating the Firestore documents fails, delete the Firebase Auth user
+    // to prevent inconsistent states.
+    if (user) {
+      await deleteUser(user);
+    }
+    // Rethrow the error to be caught by the UI
+    throw error;
   }
-
-  await setDoc(profileDocRef, profileData);
-
-  return user;
 };
 
 // Login user with username and password
