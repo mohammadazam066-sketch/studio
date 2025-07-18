@@ -1,73 +1,56 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper Functions
+    
     function isSignedIn() {
       return request.auth != null;
     }
 
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return isSignedIn() && request.auth.uid == userId;
     }
 
-    function isSigningUp(userId) {
-      return !exists(/databases/$(database)/documents/users/$(userId))
-             && request.auth.uid == userId;
-    }
-
-    // USERS Collection
-    // Users can read their own data.
-    // New users can create their own user document.
-    // Users can update their own username.
+    // --- User and Profile Rules ---
     match /users/{userId} {
-      allow read: if isSignedIn() && isOwner(userId);
-      allow create: if isSigningUp(userId);
-      allow update: if isSignedIn() && isOwner(userId);
-    }
-
-    // PROFILES Collections
-    // New users can create their own profile document.
-    // Users can read/update their own profile.
-    // All users can read other shop owner profiles (for viewing).
-    match /homeownerProfiles/{userId} {
-       allow read, update: if isSignedIn() && isOwner(userId);
-       allow create: if isSigningUp(userId);
-    }
-
-    match /shopOwnerProfiles/{userId} {
-       allow read, update: if isSignedIn() && isOwner(userId);
-       allow create: if isSigningUp(userId);
-    }
-
-    // REQUIREMENTS Collection
-    // Homeowners can create/read/update/delete their own requirements.
-    // Shop owners can read all 'Open' requirements.
-    match /requirements/{requirementId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.homeownerId == request.auth.uid;
-      allow update, delete: if isSignedIn() && resource.data.homeownerId == request.auth.uid;
-    }
-
-    // QUOTATIONS Collection
-    // Shop owners can create/update their own quotations.
-    // Homeowners can read quotations linked to their requirements.
-    match /quotations/{quotationId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.resource.data.shopOwnerId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.shopOwnerId == request.auth.uid;
+      allow read, update: if isOwner(userId);
+      // Allow user creation if the user is signing up and the ID matches.
+      allow create: if isOwner(userId);
     }
     
-    // UPDATES Collection
-    // Any signed-in user can read all updates.
-    // Any signed-in user can create an update.
-    // Only the original author can update or delete their post.
+    match /shopOwnerProfiles/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(userId);
+    }
+
+    // --- ADDED: Missing rules for homeowner profiles ---
+    match /homeownerProfiles/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(userId);
+    }
+
+    // --- Requirement and Quotation Rules ---
+    match /requirements/{requirementId} {
+      allow read: if isSignedIn();
+      // On create, check the incoming document's ID
+      allow create: if isOwner(request.resource.data.homeownerId);
+      // On update/delete, check the existing document's ID
+      allow update, delete: if isOwner(resource.data.homeownerId);
+    }
+    
+    match /quotations/{quotationId} {
+      allow read: if isOwner(resource.data.shopOwnerId) || 
+                   isOwner(get(/databases/$(database)/documents/requirements/$(resource.data.requirementId)).data.homeownerId);
+      
+      allow create: if isOwner(request.resource.data.shopOwnerId);
+      allow update: if isOwner(resource.data.shopOwnerId);
+    }
+
+    // --- Updates Feed Rules ---
     match /updates/{updateId} {
-        allow read: if isSignedIn();
-        allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
-        allow update, delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
+      allow read: if isSignedIn();
+      allow create: if isOwner(request.resource.data.authorId);
+      allow update, delete: if isOwner(resource.data.authorId);
     }
   }
 }
