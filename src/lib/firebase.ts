@@ -1,8 +1,8 @@
 
 // Import the functions you need from the SDKs you need
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { initializeFirestore, CACHE_SIZE_UNLIMITED } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
+import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
+import { initializeFirestore, CACHE_SIZE_UNLIMITED, getFirestore, type Firestore } from "firebase/firestore";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -14,15 +14,21 @@ const firebaseConfig = {
   appId: "1:28930351057:web:c67a6859f2ffdfd5da0af0"
 };
 
-// Initialize Firebase
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+// This robust singleton pattern ensures Firebase is initialized only once.
+let app: FirebaseApp;
+let db: Firestore;
+let storage: FirebaseStorage;
 
-// Initialize Firestore with caching enabled.
-// This is the modern and more reliable way to enable offline persistence.
-const db = initializeFirestore(app, {
-  cacheSizeBytes: CACHE_SIZE_UNLIMITED
-});
+if (getApps().length === 0) {
+  app = initializeApp(firebaseConfig);
+  db = initializeFirestore(app, {
+    cacheSizeBytes: CACHE_SIZE_UNLIMITED
+  });
+} else {
+  app = getApp();
+  db = getFirestore(app);
+}
 
-const storage = getStorage(app);
+storage = getStorage(app);
 
 export { app, db, storage };
