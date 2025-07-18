@@ -52,7 +52,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               setCurrentUser(null);
             }
           } else {
-              console.warn("User authenticated with Firebase, but no user record found in Firestore. Logging out.");
+              console.warn(`User authenticated with Firebase, but no user record found in Firestore for UID: ${user.uid}. This may be due to a failed registration or data inconsistency. Logging out.`);
               await signOut(auth);
               setCurrentUser(null);
           }
