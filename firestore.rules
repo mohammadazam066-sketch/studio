@@ -4,85 +4,65 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper Functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
+    // Helper functions
     function isOwner(userId) {
-      return request.auth.uid == userId;
+      return request.auth != null && request.auth.uid == userId;
     }
 
-    // USER & PROFILE RULES
+    // USERS
+    // Users can read their own user document.
+    // Anyone can create their own user document during sign-up.
+    // Users can only update their own username.
     match /users/{userId} {
-      // READ: Any authenticated user can read their own user document.
-      allow read: if isSignedIn() && isOwner(userId);
-
-      // CREATE: A new user can create their own user document during sign-up.
+      allow read: if isOwner(userId);
       allow create: if isOwner(userId);
-      
-      // UPDATE: A user can only update their own username. Role and email are immutable.
-      allow update: if isSignedIn() && isOwner(userId) && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['username']);
+      allow update: if isOwner(userId) && request.resource.data.keys().hasAny(['username', 'profile']);
     }
 
+    // PROFILES (Homeowner & Shop Owner)
+    // Users can read/write their own profile.
+    // Shop owner profiles are public to all logged-in users.
     match /homeownerProfiles/{userId} {
-      // READ: A user can read their own profile.
-      allow read: if isSignedIn() && isOwner(userId);
-      // CREATE: A user can create their own profile upon registration.
-      allow create: if isSignedIn() && isOwner(userId);
-      // UPDATE: A user can update their own profile.
-      allow update: if isSignedIn() && isOwner(userId);
+      allow read, write: if isOwner(userId);
     }
-    
     match /shopOwnerProfiles/{userId} {
-       // READ: A user can read their own profile. Homeowners can read any shop owner profile.
-      allow read: if isSignedIn();
-      // CREATE: A user can create their own profile upon registration.
-      allow create: if isSignedIn() && isOwner(userId);
-      // UPDATE: A user can update their own profile.
-      allow update: if isSignedIn() && isOwner(userId);
+      allow write: if isOwner(userId);
+      allow read: if request.auth != null;
     }
 
-    // REQUIREMENT RULES
+    // REQUIREMENTS
+    // Homeowners can create, read, update, delete their own requirements.
+    // Shop owners can read all 'Open' requirements.
     match /requirements/{requirementId} {
-      // READ: Any authenticated user can read requirements (for the feed).
-      allow read: if isSignedIn();
-      
-      // CREATE: Only authenticated homeowners can create requirements.
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.homeownerId;
+      allow create: if request.auth != null && request.resource.data.homeownerId == request.auth.uid;
+      allow read: if (resource.data.homeownerId == request.auth.uid) || (resource.data.status == 'Open');
+      allow update, delete: if request.auth != null && resource.data.homeownerId == request.auth.uid;
+    }
 
-      // UPDATE: Only the homeowner who created it can update it.
-      allow update: if isSignedIn() && isOwner(resource.data.homeownerId);
-      
-      // DELETE: Only the homeowner who created it can delete it.
-      allow delete: if isSignedIn() && isOwner(resource.data.homeownerId);
-    }
-    
-    // QUOTATION RULES
+    // QUOTATIONS
+    // Shop owners can create quotations for requirements.
+    // Shop owners can only update/delete their own quotations.
+    // Homeowners can read quotations for their own requirements.
     match /quotations/{quotationId} {
-      // READ: Only the shop owner who made the quote or the homeowner who owns the requirement can read it.
-      allow read: if isSignedIn() && (isOwner(resource.data.shopOwnerId) || isOwner(get(/databases/$(database)/documents/requirements/$(resource.data.requirementId)).data.homeownerId));
-      
-      // CREATE: Only an authenticated user can create a quotation.
-      allow create: if isSignedIn() && isOwner(request.resource.data.shopOwnerId);
-      
-      // UPDATE: Only the shop owner who created it can update it.
-      allow update: if isSignedIn() && isOwner(resource.data.shopOwnerId);
-      
-      // DELETE: No one can delete quotations for record-keeping.
-      allow delete: if false;
+      allow create: if request.auth != null && request.resource.data.shopOwnerId == request.auth.uid;
+      allow read: if (resource.data.shopOwnerId == request.auth.uid) || isRequirementOwner(resource.data.requirementId);
+      allow update, delete: if request.auth != null && resource.data.shopOwnerId == request.auth.uid;
+    }
+
+    // Helper function to check if the current user owns the requirement linked to a quotation.
+    function isRequirementOwner(requirementId) {
+      return exists(/databases/$(database)/documents/requirements/$(requirementId)) &&
+             get(/databases/$(database)/documents/requirements/$(requirementId)).data.homeownerId == request.auth.uid;
     }
     
-    // UPDATES FEED RULES
+    // UPDATES
+    // Any authenticated user can read all updates.
+    // Any authenticated user can create an update.
+    // Users can only update/delete their own updates.
     match /updates/{updateId} {
-       // READ: Any authenticated user can read updates.
-       allow read: if isSignedIn();
-       
-       // CREATE: Any authenticated user can create an update.
-       allow create: if isSignedIn() && isOwner(request.resource.data.authorId);
-       
-       // UPDATE, DELETE: Only the author can update or delete their own post.
-       allow update, delete: if isSignedIn() && isOwner(resource.data.authorId);
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && request.resource.data.authorId == request.auth.uid;
+        allow update, delete: if request.auth != null && resource.data.authorId == request.auth.uid;
     }
   }
 }
