@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { UpdatePostForm } from '@/components/update-post-form';

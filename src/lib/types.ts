@@ -3,8 +3,6 @@ import type { Timestamp } from 'firebase/firestore';
 
 export type UserRole = 'homeowner' | 'shop-owner';
 
-// User types are no longer needed as auth is removed
-// but kept for potential future use to avoid breaking other types.
 export type User = {
   id: string;
   username: string;
@@ -39,7 +37,7 @@ export type HomeownerProfile = {
 
 export type Requirement = {
   id: string;
-  homeownerId: string; // Kept for data structure, but will be a dummy value
+  homeownerId: string;
   homeownerName: string;
   title: string;
   category: string;
@@ -53,7 +51,7 @@ export type Requirement = {
 export type Quotation = {
   id:string;
   requirementId: string;
-  shopOwnerId: string; // Kept for data structure, but will be a dummy value
+  shopOwnerId: string;
   shopOwnerName: string;
   shopName: string;
   amount: number;
@@ -64,7 +62,7 @@ export type Quotation = {
 
 export type Update = {
   id: string;
-  authorId: string; // Kept for data structure, but will be a dummy value
+  authorId: string;
   authorName: string;
   authorRole: UserRole;
   title: string;
