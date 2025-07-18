@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, createContext, useContext, Dispatch, SetStateAction } from 'react';
@@ -36,26 +35,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           
           if (userDocSnap.exists()) {
             const userData = userDocSnap.data() as User;
-            let profileDocSnap;
-            let profileData;
+            let profileData: ShopOwnerProfile | HomeownerProfile | undefined;
 
             const profileCollectionName = userData.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
             const profileDocRef = doc(db, profileCollectionName, user.uid);
-            profileDocSnap = await getDoc(profileDocRef);
+            const profileDocSnap = await getDoc(profileDocRef);
 
             if (profileDocSnap.exists()) {
               const rawProfileData = profileDocSnap.data();
-              if (userData.role === 'homeowner') {
-                 profileData = {
-                  id: profileDocSnap.id,
-                  username: rawProfileData.username,
-                  email: rawProfileData.email,
-                  phoneNumber: rawProfileData.phoneNumber,
-                  address: rawProfileData.address,
-                } as HomeownerProfile;
-              } else {
-                 profileData = { id: profileDocSnap.id, ...rawProfileData } as ShopOwnerProfile;
-              }
+               profileData = { id: profileDocSnap.id, ...rawProfileData } as ShopOwnerProfile | HomeownerProfile;
             } else {
               // --- FIX: Create profile if it doesn't exist for an existing user ---
               console.warn(`Profile for user ${user.uid} (role: ${userData.role}) not found. Creating a default one.`);
@@ -576,3 +564,5 @@ export async function getUpdateById(id: string): Promise<Update | undefined> {
     }
     return undefined;
 }
+
+    
