@@ -1,6 +1,5 @@
 
 import {
-  getAuth,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
@@ -13,11 +12,9 @@ import {
   getDoc,
   serverTimestamp,
 } from 'firebase/firestore';
-import { app } from './firebase'; // Ensure your firebase.ts exports the initialized app
+import { auth, db } from './firebase'; // Ensure your firebase.ts exports the initialized services
 import type { User, UserRole, HomeownerProfile, ShopOwnerProfile } from './types';
 
-const auth = getAuth(app);
-const db = getFirestore(app);
 
 // Register user
 export const registerUser = async (email: string, password: string, username: string, role: UserRole) => {

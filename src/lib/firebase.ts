@@ -7,6 +7,7 @@ import {
   Firestore
 } from "firebase/firestore";
 import { getStorage, FirebaseStorage } from "firebase/storage";
+import { getAuth, Auth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBrm6-aomerOz7DZlgSwmPFlU_FrhQj1m4",
@@ -18,6 +19,7 @@ const firebaseConfig = {
 };
 
 let app: FirebaseApp;
+let auth: Auth;
 let db: Firestore;
 let storage: FirebaseStorage;
 let persistenceEnabled = false;
@@ -28,8 +30,10 @@ if (getApps().length === 0) {
   app = getApp();
 }
 
+auth = getAuth(app);
 db = getFirestore(app);
 storage = getStorage(app);
+
 
 // This function can be called from a client-side component's useEffect hook
 // to ensure it only runs in the browser.
@@ -38,6 +42,7 @@ export const enablePersistence = async () => {
         try {
             await enableMultiTabIndexedDbPersistence(db);
             persistenceEnabled = true;
+            console.log("Firestore persistence enabled.");
         } catch (err: any) {
             if (err.code === 'failed-precondition') {
                 console.warn('Firestore persistence failed: Multiple tabs open, persistence can only be enabled in one tab at a time.');
@@ -50,4 +55,4 @@ export const enablePersistence = async () => {
     }
 }
 
-export { app, db, storage };
+export { app, auth, db, storage };

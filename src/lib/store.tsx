@@ -3,16 +3,13 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { User, UserRole, HomeownerProfile, ShopOwnerProfile, Requirement, Quotation, Update } from './types';
-import { db, storage, app as firebaseApp } from './firebase';
+import { db, storage, auth } from './firebase';
 import { 
     doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, 
     collection, query, where, getDocs, serverTimestamp, orderBy 
 } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
 import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 import { onAuthChanged, loginUser, registerUser, logoutUser } from './auth';
-
-const auth = getAuth(firebaseApp);
 
 // --- AUTH CONTEXT & PROVIDER ---
 
@@ -148,16 +145,15 @@ const uploadPhotos = async (collectionName: string, id: string, photos: { file: 
 // == REQUIREMENTS ==
 
 export const addRequirement = async (data, photos) => {
-    const user = auth.currentUser;
-    if (!user) throw new Error("User not authenticated");
+    if (!auth.currentUser) throw new Error("User not authenticated");
     
-    const userDocRef = doc(db, 'users', user.uid);
+    const userDocRef = doc(db, 'users', auth.currentUser.uid);
     const userDocSnap = await getDoc(userDocRef);
     const userData = userDocSnap.data();
 
     const requirementRef = await addDoc(collection(db, 'requirements'), {
         ...data,
-        homeownerId: user.uid,
+        homeownerId: auth.currentUser.uid,
         homeownerName: userData?.username || 'Anonymous',
         createdAt: serverTimestamp(),
         status: 'Open',
@@ -223,16 +219,15 @@ export const updateRequirementStatus = async (id: string, status: 'Open' | 'Purc
 // == QUOTATIONS ==
 
 export const addQuotation = async (data) => {
-    const user = auth.currentUser;
-    if (!user) throw new Error("User not authenticated");
+    if (!auth.currentUser) throw new Error("User not authenticated");
     
-    const profileDocRef = doc(db, 'shopOwnerProfiles', user.uid);
+    const profileDocRef = doc(db, 'shopOwnerProfiles', auth.currentUser.uid);
     const profileDocSnap = await getDoc(profileDocRef);
     const profileData = profileDocSnap.data() as ShopOwnerProfile;
 
     const quotationData = {
         ...data,
-        shopOwnerId: user.uid,
+        shopOwnerId: auth.currentUser.uid,
         shopOwnerName: profileData?.name || 'Anonymous',
         shopName: profileData?.shopName || 'Unnamed Shop',
         createdAt: serverTimestamp(),
@@ -306,17 +301,16 @@ export const getUser = async (userId: string): Promise<User | undefined> => {
 // == UPDATES ==
 
 export const addUpdate = async (data: { title: string, content: string }, photoDataUrl?: string) => {
-    const user = auth.currentUser;
-    if (!user) throw new Error("User not authenticated");
+    if (!auth.currentUser) throw new Error("User not authenticated");
     
-    const userDocSnap = await getDoc(doc(db, 'users', user.uid));
+    const userDocSnap = await getDoc(doc(db, 'users', auth.currentUser.uid));
     const userData = userDocSnap.data() as User;
 
     let imageUrl: string | undefined = undefined;
 
     const updateRef = await addDoc(collection(db, 'updates'), {
         ...data,
-        authorId: user.uid,
+        authorId: auth.currentUser.uid,
         authorName: userData.username,
         authorRole: userData.role,
         createdAt: serverTimestamp(),
