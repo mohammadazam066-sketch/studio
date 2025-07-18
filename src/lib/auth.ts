@@ -102,13 +102,35 @@ export const onAuthChanged = (callback: (user: User | null) => void) => {
       const userDocRef = doc(db, 'users', user.uid);
       let userDocSnap = await getDoc(userDocRef);
 
-      // FIX: If the user document doesn't exist, we can't determine their role.
-      // This is an inconsistent state. We should log them out.
+      // --- SELF-HEALING LOGIC ---
+      // If the user document doesn't exist, create it and a default profile.
       if (!userDocSnap.exists()) {
-        console.error("Critical: User is authenticated but has no user document. Logging out.");
-        await logoutUser();
-        callback(null);
-        return;
+        console.warn(`User document not found for user ${user.uid}. Re-creating document and default profile.`);
+        const defaultRole: UserRole = 'homeowner';
+        const username = user.email?.split('@')[0] || 'recovered_user';
+
+        // 1. Create the user document
+        await setDoc(userDocRef, {
+            id: user.uid,
+            username: username,
+            email: '',
+            role: defaultRole,
+            createdAt: serverTimestamp(),
+        });
+
+        // 2. Create the default homeowner profile
+        const profileDocRef = doc(db, 'homeownerProfiles', user.uid);
+        await setDoc(profileDocRef, {
+            username: username,
+            name: username,
+            email: '',
+            createdAt: serverTimestamp(),
+            phoneNumber: '',
+            address: '',
+        });
+        
+        // 3. Re-fetch the user document snapshot
+        userDocSnap = await getDoc(userDocRef);
       }
       
       const userData = userDocSnap.data() as Omit<User, 'id'> & { id: string };
@@ -117,32 +139,6 @@ export const onAuthChanged = (callback: (user: User | null) => void) => {
       const profileCollection = userData.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
       const profileDocRef = doc(db, profileCollection, user.uid);
       let profileDocSnap = await getDoc(profileDocRef);
-
-      // --- DEFENSIVE PROFILE CREATION ---
-      // If profile doesn't exist for a valid user, create a default one.
-      if (!profileDocSnap.exists()) {
-        console.warn(`Profile not found for user ${user.uid}. Creating a default profile.`);
-        const defaultProfileData: any = {
-          username: userData.username,
-          name: userData.username,
-          email: '',
-          createdAt: serverTimestamp(),
-        };
-
-        if (userData.role === 'shop-owner') {
-          defaultProfileData.shopName = `${userData.username}'s Shop`;
-          defaultProfileData.phoneNumber = '';
-          defaultProfileData.address = '';
-          defaultProfileData.location = '';
-          defaultProfileData.shopPhotos = [];
-        } else { // homeowner
-          defaultProfileData.phoneNumber = '';
-          defaultProfileData.address = '';
-        }
-        await setDoc(profileDocRef, defaultProfileData);
-        // Re-fetch the profile snapshot after creating it
-        profileDocSnap = await getDoc(profileDocRef);
-      }
       
       const userProfile = profileDocSnap.exists() ? profileDocSnap.data() : null;
 
