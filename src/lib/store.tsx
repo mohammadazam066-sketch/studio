@@ -89,7 +89,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (finalProfileData.name && finalProfileData.name !== currentUser.username) {
         await updateDoc(doc(db, 'users', currentUser.id), { username: finalProfileData.name });
     }
-    if (finalProfileData.email && finalProfileData.email !== currentUser.email) {
+    if (finalProfileData.email && finalProfileData.email !== currentUser.profile?.email) {
        await updateDoc(doc(db, 'users', currentUser.id), { email: finalProfileData.email });
     }
 

@@ -7,13 +7,12 @@ import {
   deleteUser,
 } from 'firebase/auth';
 import {
-  getFirestore,
   doc,
   setDoc,
   getDoc,
   serverTimestamp,
 } from 'firebase/firestore';
-import { auth, db } from './firebase'; // Ensure your firebase.ts exports the initialized services
+import { auth, db } from './firebase'; 
 import type { User, UserRole, HomeownerProfile, ShopOwnerProfile } from './types';
 
 // Dummy domain for creating emails from usernames
@@ -101,55 +100,57 @@ export const onAuthChanged = (callback: (user: User | null) => void) => {
     if (user) {
       // User is signed in, fetch their data from 'users' and their profile.
       const userDocRef = doc(db, 'users', user.uid);
-      const userDocSnap = await getDoc(userDocRef);
+      let userDocSnap = await getDoc(userDocRef);
 
-      if (userDocSnap.exists()) {
-        const userData = userDocSnap.data() as Omit<User, 'id'> & { id: string };
-
-        // Determine profile collection based on role
-        const profileCollection = userData.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
-        const profileDocRef = doc(db, profileCollection, user.uid);
-        let profileDocSnap = await getDoc(profileDocRef);
-
-        // --- FIX FOR EXISTING USERS ---
-        // If profile doesn't exist, create a default one.
-        if (!profileDocSnap.exists()) {
-          console.warn(`Profile not found for user ${user.uid}. Creating a default profile.`);
-          const defaultProfileData: any = {
-            id: user.uid,
-            username: userData.username,
-            name: userData.username,
-            email: '',
-            createdAt: serverTimestamp(),
-          };
-
-          if (userData.role === 'shop-owner') {
-            defaultProfileData.shopName = `${userData.username}'s Shop`;
-            defaultProfileData.phoneNumber = '';
-            defaultProfileData.address = '';
-            defaultProfileData.location = '';
-            defaultProfileData.shopPhotos = [];
-          } else {
-            defaultProfileData.phoneNumber = '';
-            defaultProfileData.address = '';
-          }
-          await setDoc(profileDocRef, defaultProfileData);
-          // Re-fetch the profile snapshot after creating it
-          profileDocSnap = await getDoc(profileDocRef);
-        }
-        
-        const userProfile = profileDocSnap.exists() ? profileDocSnap.data() : null;
-
-        callback({
-          ...userData,
-          profile: userProfile,
-        });
-
-      } else {
-        // This case should ideally not happen if registration is done correctly.
-        console.error("User document not found in Firestore for authenticated user.");
+      // FIX: If the user document doesn't exist, we can't determine their role.
+      // This is an inconsistent state. We should log them out.
+      if (!userDocSnap.exists()) {
+        console.error("Critical: User is authenticated but has no user document. Logging out.");
+        await logoutUser();
         callback(null);
+        return;
       }
+      
+      const userData = userDocSnap.data() as Omit<User, 'id'> & { id: string };
+
+      // Determine profile collection based on role
+      const profileCollection = userData.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
+      const profileDocRef = doc(db, profileCollection, user.uid);
+      let profileDocSnap = await getDoc(profileDocRef);
+
+      // --- DEFENSIVE PROFILE CREATION ---
+      // If profile doesn't exist for a valid user, create a default one.
+      if (!profileDocSnap.exists()) {
+        console.warn(`Profile not found for user ${user.uid}. Creating a default profile.`);
+        const defaultProfileData: any = {
+          username: userData.username,
+          name: userData.username,
+          email: '',
+          createdAt: serverTimestamp(),
+        };
+
+        if (userData.role === 'shop-owner') {
+          defaultProfileData.shopName = `${userData.username}'s Shop`;
+          defaultProfileData.phoneNumber = '';
+          defaultProfileData.address = '';
+          defaultProfileData.location = '';
+          defaultProfileData.shopPhotos = [];
+        } else { // homeowner
+          defaultProfileData.phoneNumber = '';
+          defaultProfileData.address = '';
+        }
+        await setDoc(profileDocRef, defaultProfileData);
+        // Re-fetch the profile snapshot after creating it
+        profileDocSnap = await getDoc(profileDocRef);
+      }
+      
+      const userProfile = profileDocSnap.exists() ? profileDocSnap.data() : null;
+
+      callback({
+        ...userData,
+        profile: userProfile,
+      });
+
     } else {
       // User is signed out.
       callback(null);

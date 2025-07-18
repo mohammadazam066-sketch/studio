@@ -7,18 +7,25 @@ import { useEffect } from 'react';
 import { Logo } from '@/components/logo';
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  const { currentUser, loading } = useAuth();
+  const { currentUser, loading, logout } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading && currentUser) {
+      // Graceful handling for inconsistent state. If user has no role, log them out.
+      if (!currentUser.role) {
+        console.error("User object is missing role. Logging out.");
+        logout();
+        router.replace('/auth/login');
+        return;
+      }
       if (currentUser.role === 'homeowner') {
         router.replace('/homeowner/dashboard');
       } else if (currentUser.role === 'shop-owner') {
         router.replace('/shop-owner/dashboard');
       }
     }
-  }, [currentUser, loading, router]);
+  }, [currentUser, loading, router, logout]);
 
   if (loading || currentUser) {
     return (
