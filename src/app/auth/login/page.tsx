@@ -13,7 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -24,7 +24,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      const user = await login(email, password);
+      const user = await login(username, password);
       toast({
         title: 'Login Successful',
         description: 'Welcome back!',
@@ -50,14 +50,14 @@ export default function LoginPage() {
       <form onSubmit={handleLogin}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="username">Username</Label>
             <Input
-              id="email"
-              type="email"
-              placeholder="m@example.com"
+              id="username"
+              type="text"
+              placeholder="your-username"
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               disabled={loading}
             />
           </div>

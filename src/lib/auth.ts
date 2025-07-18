@@ -15,9 +15,14 @@ import {
 import { auth, db } from './firebase'; // Ensure your firebase.ts exports the initialized services
 import type { User, UserRole, HomeownerProfile, ShopOwnerProfile } from './types';
 
+// Dummy domain for creating emails from usernames
+const DUMMY_EMAIL_DOMAIN = 'tradeflow.app';
 
-// Register user
-export const registerUser = async (email: string, password: string, username: string, role: UserRole) => {
+// Register user with username and password
+export const registerUser = async (username: string, password: string, role: UserRole) => {
+  // Create a dummy email for Firebase Auth
+  const email = `${username.toLowerCase()}@${DUMMY_EMAIL_DOMAIN}`;
+  
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
 
@@ -26,7 +31,7 @@ export const registerUser = async (email: string, password: string, username: st
   await setDoc(userDocRef, {
     id: user.uid,
     username,
-    email: user.email,
+    email: '', // Store an empty string for email, as it's not provided by user
     role: role,
     createdAt: serverTimestamp(),
   });
@@ -41,21 +46,21 @@ export const registerUser = async (email: string, password: string, username: st
     // Add shop-owner specific fields with default empty values
     profileData = {
         username: username,
-        name: username,
-        email: user.email,
+        name: username, // Default name to username
+        email: '',
         createdAt: serverTimestamp(),
-        shopName: `${username}'s Shop`,
+        shopName: `${username}'s Shop`, // Default shop name
         phoneNumber: '',
         address: '',
         location: '',
         shopPhotos: [],
     };
   } else {
-    // Add homeowner-specific fields if any (optional)
+    // Add homeowner-specific fields if any
      profileData = {
         username: username,
-        name: username,
-        email: user.email,
+        name: username, // Default name to username
+        email: '',
         createdAt: serverTimestamp(),
         phoneNumber: '',
         address: '',
@@ -67,8 +72,10 @@ export const registerUser = async (email: string, password: string, username: st
   return user;
 };
 
-// Login user
-export const loginUser = async (email, password) => {
+// Login user with username and password
+export const loginUser = async (username: string, password: string) => {
+  // Create the dummy email to check against Firebase Auth
+  const email = `${username.toLowerCase()}@${DUMMY_EMAIL_DOMAIN}`;
   return await signInWithEmailAndPassword(auth, email, password);
 };
 
@@ -101,7 +108,7 @@ export const onAuthChanged = (callback: (user: User | null) => void) => {
             id: user.uid,
             username: userData.username,
             name: userData.username,
-            email: userData.email,
+            email: '',
             createdAt: serverTimestamp(),
           };
 

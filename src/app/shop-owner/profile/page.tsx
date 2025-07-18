@@ -23,7 +23,7 @@ const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  email: z.string().email({ message: "Please enter a valid email." }),
+  email: z.string().email({ message: "Please enter a valid email." }).optional().or(z.literal('')),
   shopName: z.string().min(3, { message: "Shop name must be at least 3 characters." }),
   phoneNumber: z.string().optional(),
   address: z.string().optional(),
@@ -213,9 +213,9 @@ export default function ShopOwnerProfilePage() {
                             name="email"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Email Address</FormLabel>
+                                <FormLabel>Email Address (Optional)</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="you@example.com" {...field} disabled />
+                                    <Input placeholder="you@example.com" {...field} disabled={isSaving} />
                                 </FormControl>
                                 </FormItem>
                             )}

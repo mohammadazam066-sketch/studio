@@ -16,8 +16,8 @@ import { onAuthChanged, loginUser, registerUser, logoutUser } from './auth';
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
-  login: (email, password) => Promise<any>;
-  register: (email, password, username, role) => Promise<any>;
+  login: (username, password) => Promise<any>;
+  register: (username, password, role) => Promise<any>;
   logout: () => Promise<void>;
   updateUserProfile: (updatedProfile: Partial<HomeownerProfile | ShopOwnerProfile>, newPhotos?: { file: File, preview: string }[]) => Promise<void>;
 }
@@ -41,12 +41,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => unsubscribe();
   }, [setCurrentUserAndLog]);
 
-  const login = async (email, password) => {
-    return loginUser(email, password);
+  const login = async (username, password) => {
+    return loginUser(username, password);
   };
 
-  const register = async (email, password, username, role) => {
-    return registerUser(email, password, username, role);
+  const register = async (username, password, role) => {
+    return registerUser(username, password, role);
   };
 
   const logout = async () => {
@@ -84,6 +84,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     await updateDoc(profileDocRef, finalProfileData);
+    
+    // Also update the 'users' collection if the name has changed
+    if (finalProfileData.name && finalProfileData.name !== currentUser.username) {
+        await updateDoc(doc(db, 'users', currentUser.id), { username: finalProfileData.name });
+    }
+    if (finalProfileData.email && finalProfileData.email !== currentUser.email) {
+       await updateDoc(doc(db, 'users', currentUser.id), { email: finalProfileData.email });
+    }
+
 
     // After updating, we need to refresh the currentUser state
      const updatedUserDocSnap = await getDoc(doc(db, 'users', currentUser.id));

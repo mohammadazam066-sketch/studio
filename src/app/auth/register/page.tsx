@@ -14,7 +14,6 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import type { UserRole } from '@/lib/types';
 
 export default function RegisterPage() {
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [role, setRole] = useState<UserRole>('homeowner');
@@ -26,7 +25,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await register(email, password, username, role);
+      await register(username, password, role);
       toast({
         title: 'Registration Successful',
         description: "Welcome! We're redirecting you to your dashboard.",
@@ -53,11 +52,7 @@ export default function RegisterPage() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
-            <Input id="username" type="text" placeholder="John Doe" required value={username} onChange={(e) => setUsername(e.target.value)} disabled={loading} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="m@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} />
+            <Input id="username" type="text" placeholder="john.doe" required value={username} onChange={(e) => setUsername(e.target.value)} disabled={loading} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
