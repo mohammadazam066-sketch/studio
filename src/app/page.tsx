@@ -3,7 +3,7 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Home, Store, UserPlus } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { useAuth } from '@/lib/store';
