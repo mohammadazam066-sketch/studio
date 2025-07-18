@@ -2,46 +2,50 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+  
+    // Helper function to check ownership
     function isOwner(userId) {
       return request.auth != null && request.auth.uid == userId;
     }
-    
-    function isRole(role) {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == role;
-    }
-    
+
+    // Users collection can be read by the owner and created by anyone (for signup)
     match /users/{userId} {
-      allow read, create: if isOwner(userId);
-      allow update: if isOwner(userId) && request.resource.data.role == resource.data.role;
-    }
-    
-    match /homeownerProfiles/{userId} {
-      allow read, create: if isOwner(userId);
+      allow read: if isOwner(userId);
+      allow create: if request.auth != null; 
       allow update: if isOwner(userId);
-    }
-    
-    match /shopOwnerProfiles/{userId} {
-      allow read, create: if isOwner(userId);
-      allow update: if isOwner(userId);
-    }
-    
-    match /requirements/{requirementId} {
-      allow read: if request.auth != null;
-      allow create: if isRole('homeowner');
-      allow update, delete: if isRole('homeowner') && resource.data.homeownerId == request.auth.uid;
-    }
-    
-    match /quotations/{quotationId} {
-      allow create: if isRole('shop-owner');
-      allow update: if isRole('shop-owner') && resource.data.shopOwnerId == request.auth.uid;
-      allow read: if (isRole('shop-owner') && resource.data.shopOwnerId == request.auth.uid) || 
-                     (isRole('homeowner') && get(/databases/$(database)/documents/requirements/$(resource.data.requirementId)).data.homeownerId == request.auth.uid);
     }
 
+    // Homeowner profiles can be managed by the owner
+    match /homeownerProfiles/{userId} {
+        allow read, create, update: if isOwner(userId);
+    }
+    
+    // Shop owner profiles can be managed by the owner, but read by any logged-in user
+    match /shopOwnerProfiles/{userId} {
+        allow read: if request.auth != null;
+        allow create, update: if isOwner(userId);
+    }
+    
+    // Requirements can be managed by the owner, but read by shop owners
+    match /requirements/{requirementId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null && request.resource.data.homeownerId == request.auth.uid;
+        allow update, delete: if request.auth != null && resource.data.homeownerId == request.auth.uid;
+    }
+    
+    // Quotations can be created by shop owners.
+    // They can be read by the shop owner who created it or the homeowner of the requirement.
+    match /quotations/{quotationId} {
+      allow read: if request.auth != null && (resource.data.shopOwnerId == request.auth.uid || get(/databases/$(database)/documents/requirements/$(resource.data.requirementId)).data.homeownerId == request.auth.uid);
+      allow create: if request.auth != null && request.resource.data.shopOwnerId == request.auth.uid;
+      allow update: if request.auth != null && resource.data.shopOwnerId == request.auth.uid;
+      allow delete: if false; // Don't allow deletion for now
+    }
+
+    // Updates can be read by anyone logged in, but only created/managed by the author.
     match /updates/{updateId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.authorId == request.auth.uid;
       allow update, delete: if request.auth != null && resource.data.authorId == request.auth.uid;
     }
   }

@@ -39,11 +39,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             let profileDocSnap;
             let profileData;
 
-            if (userData.role === 'homeowner') {
-              profileDocSnap = await getDoc(doc(db, "homeownerProfiles", user.uid));
-            } else {
-              profileDocSnap = await getDoc(doc(db, "shopOwnerProfiles", user.uid));
-            }
+            // Determine role and fetch the correct profile
+            const profileCollectionName = userData.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
+            profileDocSnap = await getDoc(doc(db, profileCollectionName, user.uid));
 
             if (profileDocSnap.exists()) {
               profileData = { id: profileDocSnap.id, ...profileDocSnap.data() };
@@ -82,10 +80,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const batch = writeBatch(db);
     
-    // Use the sanitized username for both user and profile documents
+    // Create the main user document
     const userDocRef = doc(db, 'users', user.uid);
     batch.set(userDocRef, { username, email, role, id: user.uid });
 
+    // Create the role-specific profile document
     if (role === 'shop-owner') {
         const profileDocRef = doc(db, "shopOwnerProfiles", user.uid);
         const newProfile: Omit<ShopOwnerProfile, 'id'> = {
@@ -149,8 +148,8 @@ export async function getUser(userId: string): Promise<User | undefined> {
     }
 };
     
-export async function updateUser(userId: string, updatedDetails: Partial<Omit<User, 'id' | 'role' | 'password' | 'email' | 'profile'>>) {
-    if (!userId) throw new Error("User ID is required to update user.");
+export async function updateUser(userId: string, updatedDetails: Partial<HomeownerProfile>) {
+    if (!auth.currentUser || auth.currentUser.uid !== userId) throw new Error("User not authorized");
     
     const user = await getUser(userId);
     if (!user) throw new Error("User not found");
@@ -158,11 +157,11 @@ export async function updateUser(userId: string, updatedDetails: Partial<Omit<Us
     const batch = writeBatch(db);
 
     const userRef = doc(db, 'users', userId);
-    batch.update(userRef, updatedDetails);
+    batch.update(userRef, { username: updatedDetails.username });
     
     const profileCollection = user.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
     const profileRef = doc(db, profileCollection, userId);
-    batch.update(profileRef, { username: updatedDetails.username });
+    batch.update(profileRef, updatedDetails);
 
     await batch.commit();
 }
