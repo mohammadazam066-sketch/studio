@@ -13,6 +13,8 @@ import type { Requirement, Quotation } from '@/lib/types';
 import type { Timestamp } from 'firebase/firestore';
 import { QuotationForm } from '@/components/quotation-form';
 import { Skeleton } from '@/components/ui/skeleton';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 
 function formatDate(date: Date | string | Timestamp) {
     if (!date) return '';
@@ -138,8 +140,8 @@ export default function RequirementDetailPageForShop() {
                             <Image 
                                 src={photo} 
                                 alt={`${requirement.title} photo ${index + 1}`} 
-                                layout="fill"
-                                objectFit="cover"
+                                fill
+                                style={{objectFit: 'cover'}}
                                 className="rounded-lg"
                                 data-ai-hint="construction site" 
                             />

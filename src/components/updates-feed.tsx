@@ -91,8 +91,8 @@ export function UpdatesFeed({ refreshKey }: { refreshKey: number }) {
                              <Image 
                                 src={update.imageUrl} 
                                 alt={update.title} 
-                                layout="fill" 
-                                objectFit="cover" 
+                                fill
+                                style={{objectFit: 'cover'}} 
                                 data-ai-hint="construction industry news"
                             />
                         </Link>

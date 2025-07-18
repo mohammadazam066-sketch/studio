@@ -155,8 +155,8 @@ export default function UpdateDetailPage() {
                 <Image 
                     src={update.imageUrl} 
                     alt={update.title} 
-                    layout="fill"
-                    objectFit="cover"
+                    fill
+                    style={{objectFit: 'cover'}}
                     className="rounded-t-lg"
                     data-ai-hint="construction industry news"
                 />
