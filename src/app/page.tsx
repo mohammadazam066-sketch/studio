@@ -39,7 +39,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <section className="py-12 sm:py-20">
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-headline font-bold text-primary tracking-tighter">
-              Welcome to TradeFlow
+              Welcome to Tradelinkk
             </h1>
             <p className="mt-4 max-w-3xl mx-auto text-base sm:text-lg text-muted-foreground">
               Connecting homeowners with trusted local material suppliers and construction professionals.
@@ -81,7 +81,7 @@ export default function HomePage() {
         </div>
       </main>
       <footer className="py-6 text-center text-muted-foreground text-sm">
-        © {new Date().getFullYear()} TradeFlow. All rights reserved.
+        © {new Date().getFullYear()} Tradelinkk. All rights reserved.
       </footer>
     </div>
   );
