@@ -10,7 +10,7 @@ import { getStorage, FirebaseStorage } from "firebase/storage";
 import { getAuth, Auth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBrm6-aomerOz7DZlgSwmPFlU_FrhQj1m4",
+  apiKey: "AIzaSyCCquKGJkSrIgAmldIBN9dIQwdYkyJ6XDY",
   authDomain: "tradelinkk.firebaseapp.com",
   projectId: "tradelinkk",
   storageBucket: "tradelinkk.appspot.com",
