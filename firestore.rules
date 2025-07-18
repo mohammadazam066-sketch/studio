@@ -2,48 +2,69 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
+  
+    // --- Helper Functions ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
     function isOwner(userId) {
-      return request.auth != null && request.auth.uid == userId;
+      return request.auth.uid == userId;
     }
-
+    
+    function isSigningUp(userId) {
+      return isSignedIn() && isOwner(userId);
+    }
+    
+    function canUpdateUser() {
+      // Users can update their username, but not their role.
+      return !('role' in request.resource.data);
+    }
+    
+    // --- User and Profile Rules ---
     match /users/{userId} {
-      // Allow any authenticated user to read from the users collection.
-      // This is necessary to fetch user roles and other public info.
-      allow read: if request.auth != null;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId) && !("role" in request.resource.data);
+      // A user can read their own user document. This is required for login.
+      allow read: if isSignedIn() && isOwner(userId);
+      allow create: if isSigningUp(userId);
+      allow update: if isSignedIn() && isOwner(userId) && canUpdateUser();
     }
-
+    
     match /homeownerProfiles/{userId} {
-      allow read: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
+      allow read: if isSignedIn();
+      allow create: if isSigningUp(userId) && request.resource.data.role == 'homeowner';
+      allow update: if isSignedIn() && isOwner(userId);
     }
     
     match /shopOwnerProfiles/{userId} {
-      allow read: if isOwner(userId);
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
+      allow read: if isSignedIn();
+      allow create: if isSigningUp(userId) && request.resource.data.role == 'shop-owner';
+      allow update: if isSignedIn() && isOwner(userId);
     }
 
+    // --- Requirement Rules ---
     match /requirements/{requirementId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.homeownerId == request.auth.uid;
-      allow update, delete: if request.auth != null && resource.data.homeownerId == request.auth.uid;
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.homeownerId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.homeownerId == request.auth.uid;
     }
-
+    
+    // --- Quotation Rules ---
     match /quotations/{quotationId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.shopOwnerId == request.auth.uid;
-      allow update: if request.auth != null && resource.data.shopOwnerId == request.auth.uid;
-      allow delete: if request.auth != null && resource.data.shopOwnerId == request.auth.uid;
+      // Homeowners can read quotes for their requirements.
+      // Shop owners can read quotes they have created.
+      allow read: if isSignedIn() && 
+                  (resource.data.shopOwnerId == request.auth.uid || 
+                  get(/databases/$(database)/documents/requirements/$(resource.data.requirementId)).data.homeownerId == request.auth.uid);
+      allow create: if isSignedIn() && request.resource.data.shopOwnerId == request.auth.uid;
+      allow update: if isSignedIn() && resource.data.shopOwnerId == request.auth.uid;
+      // Note: Deleting quotations is generally not recommended.
     }
-
+    
+    // --- Updates Feed Rules ---
     match /updates/{updateId} {
-        allow read: if request.auth != null;
-        allow create: if request.auth != null && request.resource.data.authorId == request.auth.uid;
-        allow update, delete: if request.auth != null && resource.data.authorId == request.auth.uid;
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.resource.data.authorId == request.auth.uid;
+      allow update, delete: if isSignedIn() && resource.data.authorId == request.auth.uid;
     }
   }
 }
