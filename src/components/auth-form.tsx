@@ -23,7 +23,7 @@ const formatUsernameForFirebase = (username: string) => {
     }
     return {
       sanitizedUsername,
-      emailForFirebase: `${sanitizedUsername}@bidarkart.app`
+      emailForFirebase: `${sanitizedUsername}@tradeflow.app`
     };
 }
 
@@ -65,7 +65,7 @@ export function AuthForm({ mode, role }: AuthFormProps) {
         await register(emailForFirebase, password, role, sanitizedUsername);
         toast({
           title: "Registration successful!",
-          description: "Welcome to Bidarkart. You can now log in.",
+          description: "Welcome to TradeFlow. You can now log in.",
         });
         router.push(`/auth-pages/login?role=${role}`);
 
