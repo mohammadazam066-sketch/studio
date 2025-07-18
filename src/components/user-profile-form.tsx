@@ -49,7 +49,8 @@ export function UserProfileForm() {
     if (!currentUser || !profile.username) return;
     setSaving(true);
     try {
-        await updateUser(currentUser.id, { username: profile.username });
+        const { email, ...updateData } = profile; // Exclude email from the update data
+        await updateUser(currentUser.id, updateData);
         
         if (setCurrentUser) {
           setCurrentUser(prevUser => prevUser ? {...prevUser, username: profile.username, profile: {...prevUser.profile, ...profile}} : null);
@@ -102,6 +103,10 @@ export function UserProfileForm() {
           <div className="space-y-2">
             <Label htmlFor="email">Email Address</Label>
             <Input id="email" name="email" type="email" required value={profile.email || ''} onChange={handleChange} disabled={true} title="Email address cannot be changed." />
+          </div>
+           <div className="space-y-2">
+            <Label htmlFor="phoneNumber">Phone Number</Label>
+            <Input id="phoneNumber" name="phoneNumber" placeholder="e.g. +91-9876543210" value={profile.phoneNumber || ''} onChange={handleChange} disabled={saving}/>
           </div>
         </CardContent>
         <CardFooter>
