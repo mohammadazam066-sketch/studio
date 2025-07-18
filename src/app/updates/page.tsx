@@ -5,16 +5,21 @@
 import { UpdatePostForm } from '@/components/update-post-form';
 import { UpdatesFeed } from '@/components/updates-feed';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/lib/store';
 import { LayoutDashboard } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
 export default function UpdatesPage() {
+    const { currentUser } = useAuth();
     const [refreshKey, setRefreshKey] = useState(0);
 
     const handlePostSuccess = () => {
         setRefreshKey(prevKey => prevKey + 1);
     }
+    
+    const backLink = !currentUser ? "/" : currentUser.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
+
 
     return (
         <div className="grid lg:grid-cols-3 gap-8 items-start">
@@ -28,9 +33,9 @@ export default function UpdatesPage() {
                         <p className="text-muted-foreground">Latest news and knowledge from the TradeFlow community.</p>
                     </div>
                      <Button asChild variant="outline">
-                        <Link href="/">
+                        <Link href={backLink}>
                             <LayoutDashboard className="mr-2 h-4 w-4" />
-                            Back to Home
+                            Back to Dashboard
                         </Link>
                     </Button>
                 </div>

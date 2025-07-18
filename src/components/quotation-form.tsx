@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -18,7 +19,7 @@ import type { Requirement, Quotation } from '@/lib/types';
 import { getQuotationCategory } from '@/lib/actions';
 import type { CategorizeQuotationOutput } from '@/ai/flows/categorize-quotation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { addQuotation, updateQuotation } from '@/lib/store';
+import { addQuotation, updateQuotation, useAuth } from '@/lib/store';
 import { Timestamp } from 'firebase/firestore';
 
 interface QuotationFormProps {
@@ -29,14 +30,13 @@ interface QuotationFormProps {
 export function QuotationForm({ requirement, existingQuotation }: QuotationFormProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const { currentUser } = useAuth();
   
   const isEditMode = !!existingQuotation;
 
   const [amount, setAmount] = useState<number | string>(existingQuotation?.amount ?? '');
   const [date, setDate] = useState<Date | undefined>(existingQuotation?.deliveryDate ? (existingQuotation.deliveryDate as Timestamp).toDate() : undefined);
   const [terms, setTerms] = useState<string>(existingQuotation?.terms ?? '');
-  const [shopOwnerName, setShopOwnerName] = useState<string>(existingQuotation?.shopOwnerName ?? '');
-  const [shopName, setShopName] = useState<string>(existingQuotation?.shopName ?? '');
   
   const [loading, setLoading] = useState(false);
   const [isCategorizing, setIsCategorizing] = useState(false);
@@ -68,6 +68,10 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!currentUser || !currentUser.profile) {
+        toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to submit a quote.' });
+        return;
+    }
     setLoading(true);
 
     if (!date) {
@@ -86,8 +90,6 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
                 amount: Number(amount),
                 terms,
                 deliveryDate: Timestamp.fromDate(date),
-                shopOwnerName,
-                shopName,
             };
             await updateQuotation(existingQuotation.id, updatedQuotationData);
             toast({
@@ -96,10 +98,16 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
             });
             router.push('/shop-owner/my-quotations');
         } else {
-            const newQuotation: Omit<Quotation, 'id' | 'createdAt' | 'shopOwnerId'> = {
+             if (currentUser.role !== 'shop-owner' || !currentUser.profile.shopName) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Only shop owners can submit quotes.' });
+                setLoading(false);
+                return;
+             }
+            const newQuotation: Omit<Quotation, 'id' | 'createdAt'> = {
                 requirementId: requirement.id,
-                shopOwnerName,
-                shopName,
+                shopOwnerId: currentUser.id,
+                shopOwnerName: currentUser.username,
+                shopName: currentUser.profile.shopName,
                 amount: Number(amount),
                 terms: terms,
                 deliveryDate: Timestamp.fromDate(date),
@@ -128,14 +136,6 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
           <CardDescription>{isEditMode ? 'Update your quote for this project.' : 'Provide your quote for this project.'}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="shopOwnerName">Your Name</Label>
-            <Input id="shopOwnerName" name="shopOwnerName" type="text" placeholder="e.g., Jane Smith" required disabled={loading} value={shopOwnerName} onChange={(e) => setShopOwnerName(e.target.value)} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="shopName">Shop Name</Label>
-            <Input id="shopName" name="shopName" type="text" placeholder="e.g., Smith's Hardware" required disabled={loading} value={shopName} onChange={(e) => setShopName(e.target.value)} />
-          </div>
           <div className="space-y-2">
             <Label htmlFor="amount">Amount (Rs)</Label>
             <Input id="amount" name="amount" type="number" placeholder="e.g., 450.00" required disabled={loading} value={amount} onChange={(e) => setAmount(e.target.value)} />

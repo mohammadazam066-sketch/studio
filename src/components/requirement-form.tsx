@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Upload, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { addRequirement, updateRequirement } from '@/lib/store';
+import { addRequirement, updateRequirement, useAuth } from '@/lib/store';
 import type { Requirement } from '@/lib/types';
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
@@ -24,11 +24,11 @@ interface RequirementFormProps {
 export function RequirementForm({ existingRequirement }: RequirementFormProps) {
   const router = useRouter();
   const { toast } = useToast();
+  const { currentUser } = useAuth();
   
   const isEditMode = !!existingRequirement;
 
   const [title, setTitle] = useState(existingRequirement?.title ?? '');
-  const [homeownerName, setHomeownerName] = useState(existingRequirement?.homeownerName ?? '');
   const [category, setCategory] = useState(existingRequirement?.category ?? '');
   const [location, setLocation] = useState(existingRequirement?.location ?? '');
   const [description, setDescription] = useState(existingRequirement?.description ?? '');
@@ -39,7 +39,6 @@ export function RequirementForm({ existingRequirement }: RequirementFormProps) {
   useEffect(() => {
     if (existingRequirement) {
         setTitle(existingRequirement.title);
-        setHomeownerName(existingRequirement.homeownerName);
         setCategory(existingRequirement.category);
         setLocation(existingRequirement.location);
         setDescription(existingRequirement.description);
@@ -76,6 +75,10 @@ export function RequirementForm({ existingRequirement }: RequirementFormProps) {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!currentUser) {
+        toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in.' });
+        return;
+    }
     setLoading(true);
 
     try {
@@ -83,7 +86,6 @@ export function RequirementForm({ existingRequirement }: RequirementFormProps) {
         // Handle editing logic
         await updateRequirement(existingRequirement.id, {
             title,
-            homeownerName,
             category,
             location,
             description,
@@ -106,9 +108,10 @@ export function RequirementForm({ existingRequirement }: RequirementFormProps) {
                 });
             })
         );
-        const newRequirement: Omit<Requirement, 'id' | 'createdAt' | 'homeownerId' | 'status'> = {
+        const newRequirement: Omit<Requirement, 'id' | 'createdAt' | 'status'> = {
+          homeownerId: currentUser.id,
+          homeownerName: currentUser.username,
           title,
-          homeownerName,
           category,
           location,
           description,
@@ -142,14 +145,9 @@ export function RequirementForm({ existingRequirement }: RequirementFormProps) {
           {!isEditMode && <CardDescription>Describe your project to get quotes from qualified professionals.</CardDescription>}
         </CardHeader>
         <CardContent className="grid gap-6 md:grid-cols-2">
-          <div className="space-y-2">
+          <div className="space-y-2 md:col-span-2">
             <Label htmlFor="title">Requirement Title</Label>
             <Input id="title" name="title" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g., 100 bags of cement" required disabled={loading} />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="homeownerName">Your Name</Label>
-            <Input id="homeownerName" name="homeownerName" value={homeownerName} onChange={e => setHomeownerName(e.target.value)} placeholder="e.g., John Doe" required disabled={loading} />
           </div>
 
           <div className="space-y-2">

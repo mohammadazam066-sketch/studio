@@ -1,33 +1,114 @@
 
 'use client';
 
-import type { Requirement, Quotation, Update } from './types';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import type { Requirement, Quotation, Update, User, UserRole, HomeownerProfile, ShopOwnerProfile } from './types';
 import { db, storage } from './firebase';
 import { doc, getDoc, collection, addDoc, query, where, getDocs, updateDoc, serverTimestamp, writeBatch, orderBy, deleteDoc, type QueryConstraint } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
+import { onAuthChanged, loginUser, registerUser, logoutUser } from './auth';
+
+// --- AUTH CONTEXT & PROVIDER ---
+
+interface AuthContextType {
+  currentUser: User | null;
+  loading: boolean;
+  login: (email, password) => Promise<any>;
+  register: (email, password, username, role: UserRole) => Promise<any>;
+  logout: () => Promise<void>;
+  updateUserProfile: (updatedProfile: Partial<HomeownerProfile | ShopOwnerProfile>, newPhotos?: { file: File, preview: string }[]) => Promise<void>;
+}
+
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthChanged((user) => {
+      setCurrentUser(user);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const login = async (email, password) => {
+    return loginUser(email, password);
+  };
+
+  const register = async (email, password, username, role: UserRole) => {
+    return registerUser(email, password, username, role);
+  };
+
+  const logout = async () => {
+    await logoutUser();
+    setCurrentUser(null);
+  };
+  
+  const updateUserProfile = async (updatedProfile, newPhotos) => {
+     if (!currentUser) throw new Error("Not authenticated");
+     await updateProfile(currentUser, updatedProfile, newPhotos);
+     // Re-fetch user to update context
+     const userDocRef = doc(db, 'users', currentUser.id);
+     const userDocSnap = await getDoc(userDocRef);
+     if (userDocSnap.exists()) {
+        const profileCollection = currentUser.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
+        const profileDocRef = doc(db, profileCollection, currentUser.id);
+        const profileDocSnap = await getDoc(profileDocRef);
+        setCurrentUser({ ...userDocSnap.data(), id: currentUser.id, profile: profileDocSnap.data() } as User);
+     }
+  };
+
+
+  const value = {
+    currentUser,
+    loading,
+    login,
+    register,
+    logout,
+    updateUserProfile,
+  };
+
+  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
 
 // --- DATA FUNCTIONS ---
 
-// NOTE: All functions that relied on auth.currentUser have been modified.
-// A dummy userId is used where necessary to maintain data structure.
-const DUMMY_USER_ID = 'public_user';
-
-export async function getUser(userId: string) {
-    // This function is now a stub as users are anonymous
+export async function getUser(userId: string): Promise<User | undefined> {
+    const docRef = doc(db, 'users', userId);
+    const docSnap = await getDoc(docRef);
+     if (docSnap.exists()) {
+        const userData = { id: docSnap.id, ...docSnap.data() } as User;
+        const profileCollection = userData.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
+        const profileDocRef = doc(db, profileCollection, userId);
+        const profileDocSnap = await getDoc(profileDocRef);
+        if (profileDocSnap.exists()) {
+            userData.profile = profileDocSnap.data() as any;
+        }
+        return userData;
+    }
     return undefined;
 };
     
-export async function updateUser(userId: string, updatedDetails: any) {
-    // This function is now a stub as users are anonymous
-    console.log("updateUser is a stub and does not write to the database anymore.");
-    return Promise.resolve();
+export async function updateUser(userId: string, updatedDetails: Partial<User>) {
+    const userRef = doc(db, "users", userId);
+    await updateDoc(userRef, updatedDetails);
 }
 
-export async function addRequirement(requirementData: Omit<Requirement, 'id' | 'createdAt' | 'homeownerId' | 'status'>) {
+export async function addRequirement(requirementData: Omit<Requirement, 'id' | 'createdAt' | 'status'>) {
     const photoDataUrls = requirementData.photos;
     const uploadedPhotoUrls = await Promise.all(
         (photoDataUrls || []).map(async (dataUrl, index) => {
-            const storageRef = ref(storage, `requirements/${DUMMY_USER_ID}/${Date.now()}-photo-${index}.jpg`);
+            const storageRef = ref(storage, `requirements/${requirementData.homeownerId}/${Date.now()}-photo-${index}.jpg`);
             await uploadString(storageRef, dataUrl, 'data_url', { contentType: 'image/jpeg' });
             return getDownloadURL(storageRef);
         })
@@ -35,7 +116,6 @@ export async function addRequirement(requirementData: Omit<Requirement, 'id' | '
 
     const fullRequirementData: Omit<Requirement, 'id'> = {
         ...requirementData,
-        homeownerId: DUMMY_USER_ID,
         status: 'Open',
         photos: uploadedPhotoUrls,
         createdAt: serverTimestamp(),
@@ -44,7 +124,6 @@ export async function addRequirement(requirementData: Omit<Requirement, 'id' | '
     const docRef = await addDoc(collection(db, 'requirements'), fullRequirementData);
     return docRef.id;
 }
-
 
 export async function updateRequirement(
     requirementId: string, 
@@ -74,7 +153,9 @@ export async function updateRequirement(
             reader.onerror = reject;
             reader.readAsDataURL(photoState.file);
         });
-        const storageRef = ref(storage, `requirements/${DUMMY_USER_ID}/${requirementId}-${Date.now()}-${index}.jpg`);
+        const reqDoc = await getDoc(requirementRef);
+        const ownerId = reqDoc.data()?.homeownerId;
+        const storageRef = ref(storage, `requirements/${ownerId}/${requirementId}-${Date.now()}-${index}.jpg`);
         await uploadString(storageRef, dataUrl, 'data_url', { contentType: 'image/jpeg' });
         return getDownloadURL(storageRef);
     });
@@ -90,6 +171,7 @@ export async function updateRequirement(
 
     await updateDoc(requirementRef, dataToUpdate);
 }
+
 
 export async function deleteRequirement(requirementId: string) {
     const batch = writeBatch(db);
@@ -158,10 +240,9 @@ export async function getRequirementById(id: string): Promise<Requirement | unde
 }
 
 
-export async function addQuotation(newQuotation: Omit<Quotation, 'id' | 'createdAt' | 'shopOwnerId'>) {
+export async function addQuotation(newQuotation: Omit<Quotation, 'id' | 'createdAt'>) {
     const quotationToAdd = {
         ...newQuotation,
-        shopOwnerId: DUMMY_USER_ID,
         createdAt: serverTimestamp(),
     };
     const docRef = await addDoc(collection(db, 'quotations'), quotationToAdd);
@@ -199,6 +280,7 @@ export async function getQuotationsForRequirement(requirementId: string) {
 
 
 export async function getQuotationsByShopOwner(shopOwnerId: string) {
+    if (!shopOwnerId) return [];
     const q = query(collection(db, 'quotations'), where('shopOwnerId', '==', shopOwnerId));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Quotation));
@@ -206,34 +288,74 @@ export async function getQuotationsByShopOwner(shopOwnerId: string) {
 
 
 export async function getProfile(userId: string) {
-    // This function is now a stub as users are anonymous
-    return undefined;
+    if (!userId) return undefined;
+    const userDoc = await getDoc(doc(db, 'users', userId));
+    if (!userDoc.exists()) return undefined;
+
+    const userRole = userDoc.data()?.role;
+    const profileCollection = userRole === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
+    
+    const profileDoc = await getDoc(doc(db, profileCollection, userId));
+    return profileDoc.exists() ? profileDoc.data() : undefined;
 };
 
-export async function updateProfile(updatedProfileData: any, newPhotosState: any) {
-    // This function is now a stub as users are anonymous
-    console.log("updateProfile is a stub and does not write to the database anymore.");
-    return Promise.resolve();
+export async function updateProfile(
+    currentUser: User, 
+    updatedProfileData: Partial<ShopOwnerProfile | HomeownerProfile>, 
+    newPhotos?: { file: File, preview: string }[]
+) {
+    if (!currentUser?.id) throw new Error("User not found.");
+
+    const profileCollectionName = currentUser.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
+    const profileRef = doc(db, profileCollectionName, currentUser.id);
+
+    const dataToUpdate: any = { ...updatedProfileData };
+
+    if (currentUser.role === 'shop-owner' && newPhotos) {
+        const existingProfile = currentUser.profile as ShopOwnerProfile;
+        const originalPhotoUrls = existingProfile.shopPhotos || [];
+
+        const newPhotoStates = newPhotos.map(p => p.preview);
+        const existingUrlsToKeep = originalPhotoUrls.filter(url => newPhotoStates.includes(url));
+
+        const urlsToDelete = originalPhotoUrls.filter(url => !newPhotoStates.includes(url));
+        const deletionPromises = urlsToDelete.map(url => deleteObject(ref(storage, url)).catch(err => console.error("Old photo deletion failed:", err)));
+        
+        const photosToUpload = newPhotos.filter(p => !p.preview.startsWith('https'));
+
+        const uploadPromises = photosToUpload.map(async (photoState, index) => {
+             const dataUrl = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result as string);
+                reader.onerror = reject;
+                reader.readAsDataURL(photoState.file);
+            });
+            const storageRef = ref(storage, `profiles/${currentUser.id}/shop-photo-${Date.now()}-${index}.jpg`);
+            await uploadString(storageRef, dataUrl, 'data_url', { contentType: 'image/jpeg' });
+            return getDownloadURL(storageRef);
+        });
+
+        const [newUploadedUrls] = await Promise.all([Promise.all(uploadPromises), Promise.all(deletionPromises)]);
+        dataToUpdate.shopPhotos = [...existingUrlsToKeep, ...newUploadedUrls];
+    }
+    
+    await updateDoc(profileRef, dataToUpdate);
 };
 
 
 // --- UPDATES FEED FUNCTIONS ---
 
-export async function addUpdate(newUpdate: Omit<Update, 'id' | 'createdAt' | 'authorId' | 'authorName' | 'authorRole'> & { imageUrl?: string; authorName: string, authorRole: 'homeowner' | 'shop-owner' }) {
+export async function addUpdate(newUpdate: Omit<Update, 'id' | 'createdAt' | 'authorId'> & { imageUrl?: string }) {
     let finalImageUrl = newUpdate.imageUrl;
     if (newUpdate.imageUrl) {
-        const storageRef = ref(storage, `updates/${DUMMY_USER_ID}/${Date.now()}.jpg`);
+        const storageRef = ref(storage, `updates/${newUpdate.authorName}/${Date.now()}.jpg`);
         await uploadString(storageRef, newUpdate.imageUrl, 'data_url', { contentType: 'image/jpeg' });
         finalImageUrl = await getDownloadURL(storageRef);
     }
 
     const updateToAdd = {
-      title: newUpdate.title,
-      content: newUpdate.content,
+      ...newUpdate,
       imageUrl: finalImageUrl || '',
-      authorId: DUMMY_USER_ID,
-      authorName: newUpdate.authorName,
-      authorRole: newUpdate.authorRole,
       createdAt: serverTimestamp(),
     };
     
@@ -248,6 +370,9 @@ export async function updateUpdate(
 ) {
   const updateRef = doc(db, 'updates', updateId);
   const dataToUpdate: any = { ...updateData };
+  const updateDocSnap = await getDoc(updateRef);
+  if (!updateDocSnap.exists()) throw new Error("Update not found");
+  const authorId = updateDocSnap.data().authorId;
 
   if (newImage && newImage.dataUrl) {
     if (newImage.oldImageUrl) {
@@ -258,7 +383,7 @@ export async function updateUpdate(
             console.error("Failed to delete old image, continuing update.", error);
         }
     }
-    const newImageRef = ref(storage, `updates/${DUMMY_USER_ID}/${Date.now()}.jpg`);
+    const newImageRef = ref(storage, `updates/${authorId}/${Date.now()}.jpg`);
     await uploadString(newImageRef, newImage.dataUrl, 'data_url', { contentType: 'image/jpeg' });
     dataToUpdate.imageUrl = await getDownloadURL(newImageRef);
   }

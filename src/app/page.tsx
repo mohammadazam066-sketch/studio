@@ -5,14 +5,38 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Home, Store } from 'lucide-react';
+import { Home, Store, UserPlus } from 'lucide-react';
 import { Logo } from '@/components/logo';
+import { useAuth } from '@/lib/store';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function HomePage() {
+   const { currentUser, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && currentUser) {
+      const destination = currentUser.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
+      router.replace(destination);
+    }
+  }, [currentUser, loading, router]);
+
+  if (loading || currentUser) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+      <header className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
         <Logo />
+         <Button asChild variant="outline">
+            <Link href="/auth/login">Login</Link>
+          </Button>
       </header>
       <main className="flex-grow flex items-center justify-center">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -26,8 +50,18 @@ export default function HomePage() {
              <p className="mt-2 max-w-3xl mx-auto text-base sm:text-lg text-muted-foreground">
               Find the right materials for your site, post your exact needs with photos, and get competitive local quotes directly in one place—saving your time and money.
             </p>
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-              <Card className="text-left shadow-lg hover:shadow-xl transition-shadow duration-300">
+
+            <div className="mt-8 flex justify-center">
+              <Button asChild size="lg">
+                <Link href="/auth/register">
+                  <UserPlus className="mr-2" />
+                  Get Started for Free
+                </Link>
+              </Button>
+            </div>
+
+            <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto text-left">
+              <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <CardHeader>
                   <Home className="h-8 w-8 text-primary mb-2" />
                   <CardTitle className="font-headline text-xl sm:text-2xl">For Homeowners</CardTitle>
@@ -35,13 +69,8 @@ export default function HomePage() {
                     Post your construction material needs with site photos and preferred brands. Receive transparent, competitive quotes from verified local shop owners near you.
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <Button asChild className="w-full">
-                    <Link href="/homeowner/dashboard">View Dashboard</Link>
-                  </Button>
-                </CardContent>
               </Card>
-              <Card className="text-left shadow-lg hover:shadow-xl transition-shadow duration-300">
+              <Card className="shadow-lg hover:shadow-xl transition-shadow duration-300">
                 <CardHeader>
                   <Store className="h-8 w-8 text-primary mb-2" />
                   <CardTitle className="font-headline text-xl sm:text-2xl">For Shop Owners</CardTitle>
@@ -49,11 +78,6 @@ export default function HomePage() {
                     View real homeowner requirements, send your best quotations, and win local business while growing your customer base effortlessly
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <Button asChild className="w-full">
-                    <Link href="/shop-owner/dashboard">View Requirements</Link>
-                  </Button>
-                </CardContent>
               </Card>
             </div>
           </section>

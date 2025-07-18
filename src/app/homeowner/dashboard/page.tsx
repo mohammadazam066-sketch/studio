@@ -5,7 +5,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { getQuotationsForRequirement, getRequirements } from '@/lib/store';
+import { getQuotationsForRequirement, getRequirements, useAuth } from '@/lib/store';
 import { PlusCircle, MessageSquare } from 'lucide-react';
 import type { Requirement } from '@/lib/types';
 import { useEffect, useState, useCallback } from 'react';
@@ -36,15 +36,16 @@ function RequirementCardSkeleton() {
 
 
 export default function HomeownerDashboard() {
+  const { currentUser } = useAuth();
   const [myRequirements, setMyRequirements] = useState<Requirement[]>([]);
   const [quoteCounts, setQuoteCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   const fetchDashboardData = useCallback(async () => {
+    if (!currentUser) return;
     setLoading(true);
-    // Since there's no logged-in user, we show all requirements on the homeowner dash.
-    // A real app might use local storage to track "my" requirements.
-    const reqs = await getRequirements();
+    
+    const reqs = await getRequirements({ homeownerId: currentUser.id });
     setMyRequirements(reqs);
 
     if (reqs.length > 0) {
@@ -60,7 +61,7 @@ export default function HomeownerDashboard() {
     }
     
     setLoading(false);
-  }, []);
+  }, [currentUser]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -113,7 +114,6 @@ export default function HomeownerDashboard() {
               </CardHeader>
               <CardContent className="flex-grow">
                 <p className="text-sm text-muted-foreground line-clamp-3">{req.description}</p>
-                 <p className="text-sm text-foreground mt-2 font-medium">Posted by: {req.homeownerName}</p>
               </CardContent>
               <CardFooter className="flex justify-between items-center">
                  <div className={`text-sm font-medium flex items-center gap-2 ${req.status === 'Purchased' ? 'text-accent' : 'text-primary'}`}>
