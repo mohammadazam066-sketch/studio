@@ -4,7 +4,7 @@ import './globals.css';
 import { AuthProvider } from '@/lib/store.tsx';
 
 export const metadata: Metadata = {
-  title: 'Tradelinkk',
+  title: 'TradeFlow',
   description: 'Connecting homeowners with trusted local material suppliers and construction professionals.',
 };
 

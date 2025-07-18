@@ -28,7 +28,7 @@ export default function UpdatesPage() {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div>
                         <h1 className="text-2xl font-bold font-headline tracking-tight">Community Updates</h1>
-                        <p className="text-muted-foreground">Latest news and knowledge from the Tradelinkk community.</p>
+                        <p className="text-muted-foreground">Latest news and knowledge from the TradeFlow community.</p>
                     </div>
                     {currentUser && (
                          <Button asChild variant="outline">

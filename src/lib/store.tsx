@@ -52,8 +52,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                   id: profileDocSnap.id,
                   username: rawProfileData.username,
                   email: rawProfileData.email,
-                  phoneNumber: rawProfileData.phoneNumber ?? '', // Handle missing phone for old users
-                  address: rawProfileData.address ?? '',
+                  phoneNumber: rawProfileData.phoneNumber,
+                  address: rawProfileData.address,
                 } as HomeownerProfile;
               } else {
                  profileData = { id: profileDocSnap.id, ...rawProfileData } as ShopOwnerProfile;
