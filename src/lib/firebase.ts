@@ -2,7 +2,6 @@
 import { initializeApp, getApps, getApp, type FirebaseApp } from "firebase/app";
 import { 
   getFirestore, 
-  initializeFirestore, 
   enableMultiTabIndexedDbPersistence,
   Firestore
 } from "firebase/firestore";
@@ -31,25 +30,27 @@ if (getApps().length === 0) {
 }
 
 auth = getAuth(app);
-db = getFirestore(app);
 storage = getStorage(app);
+db = getFirestore(app);
 
-
-// This function can be called from a client-side component's useEffect hook
-// to ensure it only runs in the browser.
-export const enablePersistence = async () => {
+// Self-invoking function to enable persistence as soon as this module is loaded on the client.
+(async () => {
     if (typeof window !== 'undefined' && !persistenceEnabled) {
         try {
             await enableMultiTabIndexedDbPersistence(db);
             persistenceEnabled = true;
+            console.log("Firestore persistence enabled.");
         } catch (err: any) {
             if (err.code === 'failed-precondition') {
                 // This is okay, means another tab has it open
+                persistenceEnabled = true;
             } else if (err.code === 'unimplemented') {
                 // Browser doesn't support persistence
+            } else {
+                console.error("Error enabling Firestore persistence:", err);
             }
         }
     }
-}
+})();
 
 export { app, auth, db, storage };
