@@ -3,7 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User, UserRole, HomeownerProfile, ShopOwnerProfile } from './types';
-import { db, storage } from './firebase';
+import { db, storage, app as firebaseApp } from './firebase';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { onAuthChanged, loginUser, registerUser, logoutUser } from './auth';
 
