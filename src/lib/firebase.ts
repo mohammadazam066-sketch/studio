@@ -4,9 +4,9 @@ import {
   getFirestore, 
   initializeFirestore, 
   enableMultiTabIndexedDbPersistence,
-  type Firestore
+  Firestore
 } from "firebase/firestore";
-import { getStorage, type FirebaseStorage } from "firebase/storage";
+import { getStorage, FirebaseStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBrm6-aomerOz7DZlgSwmPFlU_FrhQj1m4",
@@ -17,28 +17,37 @@ const firebaseConfig = {
   appId: "1:28930351057:web:c67a6859f2ffdfd5da0af0"
 };
 
-// Helper function to initialize Firebase App and services
-const getFirebaseServices = () => {
-  const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-  const storage = getStorage(app);
-  const db = getFirestore(app);
+let app: FirebaseApp;
+let db: Firestore;
+let storage: FirebaseStorage;
+let persistenceEnabled = false;
 
-  // Enable multi-tab persistence
-  if (typeof window !== 'undefined') {
-    enableMultiTabIndexedDbPersistence(db).catch((err) => {
-      if (err.code === 'failed-precondition') {
-        console.warn('Firestore persistence failed: Multiple tabs open, this is a normal occurrence.');
-      } else if (err.code === 'unimplemented') {
-        console.warn('Firestore persistence failed: The current browser does not support all of the features required to enable persistence.');
-      } else {
-        console.error("Firestore persistence error:", err);
-      }
-    });
-  }
+if (getApps().length === 0) {
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApp();
+}
 
-  return { app, db, storage };
-};
+db = getFirestore(app);
+storage = getStorage(app);
 
-const { app, db, storage } = getFirebaseServices();
+// This function can be called from a client-side component's useEffect hook
+// to ensure it only runs in the browser.
+export const enablePersistence = async () => {
+    if (typeof window !== 'undefined' && !persistenceEnabled) {
+        try {
+            await enableMultiTabIndexedDbPersistence(db);
+            persistenceEnabled = true;
+        } catch (err: any) {
+            if (err.code === 'failed-precondition') {
+                console.warn('Firestore persistence failed: Multiple tabs open, persistence can only be enabled in one tab at a time.');
+            } else if (err.code === 'unimplemented') {
+                console.warn('Firestore persistence failed: The current browser does not support all of the features required to enable persistence.');
+            } else {
+                console.error("Firestore persistence error:", err);
+            }
+        }
+    }
+}
 
 export { app, db, storage };

@@ -2,6 +2,7 @@ import type {Metadata} from 'next';
 import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
 import { AuthProvider } from '@/lib/store';
+import { FirebasePersistenceProvider } from '@/lib/firebase-persistence-provider';
 
 export const metadata: Metadata = {
   title: 'TradeFlow',
@@ -22,7 +23,9 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <AuthProvider>
-          {children}
+            <FirebasePersistenceProvider>
+              {children}
+            </FirebasePersistenceProvider>
           <Toaster />
         </AuthProvider>
       </body>
