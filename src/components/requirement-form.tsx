@@ -93,11 +93,22 @@ export function RequirementForm({ existingRequirement }: RequirementFormProps) {
       toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in.' });
       return;
     }
+    
+    const newPhotosAsDataUrls = await Promise.all(
+        photos.map(photo => {
+            return new Promise<{ dataUrl: string, name: string }>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve({ dataUrl: reader.result as string, name: photo.file.name });
+                reader.onerror = reject;
+                reader.readAsDataURL(photo.file);
+            });
+        })
+    );
 
     try {
         if (existingRequirement) {
             // Update logic
-             await updateRequirement(existingRequirement.id, data, photos, existingPhotos);
+             await updateRequirement(existingRequirement.id, data, newPhotosAsDataUrls, existingPhotos);
              toast({
                 title: 'Requirement Updated!',
                 description: 'Your requirement has been successfully updated.',
@@ -106,7 +117,7 @@ export function RequirementForm({ existingRequirement }: RequirementFormProps) {
 
         } else {
             // Create logic
-            await addRequirement(data, photos);
+            await addRequirement(data, newPhotosAsDataUrls);
             toast({
                 title: 'Requirement Posted!',
                 description: 'Shop owners in your area will now be able to see your requirement.',
@@ -144,7 +155,7 @@ export function RequirementForm({ existingRequirement }: RequirementFormProps) {
                                 <FormItem className="md:col-span-2">
                                 <FormLabel>Requirement Title</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="e.g., 80 bags acc or 80 rod's 10mm" {...field} disabled={isSubmitting} />
+                                    <Input placeholder="e.g., 80 bags of ACC cement and 80 10mm TMT rods" {...field} disabled={isSubmitting} />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>

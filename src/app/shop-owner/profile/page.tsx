@@ -153,14 +153,25 @@ export default function ShopOwnerProfilePage() {
   async function onSubmit(data: ProfileFormValues) {
     setIsSaving(true);
     
-    // The data passed to the core updateUserProfile function now includes the list of photos to keep.
+    // Convert new photos to data URLs before sending to the store
+    const newPhotosAsDataUrls = await Promise.all(
+        photos.map(photo => {
+            return new Promise<{ dataUrl: string, name: string }>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve({ dataUrl: reader.result as string, name: photo.file.name });
+                reader.onerror = reject;
+                reader.readAsDataURL(photo.file);
+            });
+        })
+    );
+    
     const profileUpdateData = {
         ...data,
-        shopPhotos: existingPhotos, // Pass the current state of existing photos
+        photosToKeep: existingPhotos,
     };
 
     try {
-        await updateUserProfile(profileUpdateData, photos);
+        await updateUserProfile(profileUpdateData, newPhotosAsDataUrls);
         toast({
             title: "Profile Updated",
             description: "Your shop information has been successfully saved.",

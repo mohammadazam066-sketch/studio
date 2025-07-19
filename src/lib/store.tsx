@@ -19,7 +19,7 @@ interface AuthContextType {
   login: (username, password) => Promise<any>;
   register: (username, password, role) => Promise<any>;
   logout: () => Promise<void>;
-  updateUserProfile: (updatedProfile: Partial<HomeownerProfile | ShopOwnerProfile>, newPhotos?: { file: File, preview: string }[]) => Promise<void>;
+  updateUserProfile: (updatedProfile: Partial<HomeownerProfile | ShopOwnerProfile> & { photosToKeep?: string[] }, newPhotos?: { dataUrl: string, name: string }[]) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -60,16 +60,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const profileCollection = currentUser.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
     const profileDocRef = doc(db, profileCollection, currentUser.id);
 
-    // Get the current profile to check for photos to delete
     const currentProfileSnap = await getDoc(profileDocRef);
     const currentProfile = currentProfileSnap.data() as ShopOwnerProfile;
     const currentPhotos = currentProfile?.shopPhotos || [];
-
-    // Determine which photos were removed by the user
-    const photosToKeep = updatedProfileData.shopPhotos || [];
+    
+    const photosToKeep = updatedProfileData.photosToKeep || [];
     const photosToDelete = currentPhotos.filter(url => !photosToKeep.includes(url));
 
-    // Delete photos that were removed
     await Promise.all(photosToDelete.map(async (url) => {
       try {
         const photoRef = ref(storage, url);
@@ -83,32 +80,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     let uploadedUrls = [];
     if (newPhotos.length > 0 && currentUser.role === 'shop-owner') {
-      uploadedUrls = await Promise.all(
-        newPhotos.map(async (photo) => {
-          const photoRef = ref(storage, `${profileCollection}/${currentUser.id}/${Date.now()}-${photo.file.name}`);
-          const dataUrl = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.onerror = reject;
-              reader.readAsDataURL(photo.file);
-          });
-          await uploadString(photoRef, dataUrl, 'data_url');
-          return getDownloadURL(photoRef);
-        })
-      );
+        uploadedUrls = await Promise.all(
+            newPhotos.map(async (photo) => {
+                const photoRef = ref(storage, `${profileCollection}/${currentUser.id}/${Date.now()}-${photo.name}`);
+                await uploadString(photoRef, photo.dataUrl, 'data_url');
+                return getDownloadURL(photoRef);
+            })
+        );
     }
     
-    // Combine kept photos with newly uploaded photos
     const finalPhotos = [...photosToKeep, ...uploadedUrls];
+    
+    const { photosToKeep: _, ...restOfProfileData } = updatedProfileData;
 
     const finalProfileData = {
-      ...updatedProfileData,
+      ...restOfProfileData,
       shopPhotos: finalPhotos,
     };
 
     await updateDoc(profileDocRef, finalProfileData);
     
-    // Also update the 'users' collection if the name has changed
     if (finalProfileData.name && finalProfileData.name !== currentUser.username) {
         await updateDoc(doc(db, 'users', currentUser.id), { username: finalProfileData.name });
     }
@@ -116,8 +107,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
        await updateDoc(doc(db, 'users', currentUser.id), { email: finalProfileData.email });
     }
 
-
-    // After updating, we need to refresh the currentUser state
      const updatedUserDocSnap = await getDoc(doc(db, 'users', currentUser.id));
      const updatedProfileDocSnap = await getDoc(profileDocRef);
 
@@ -156,17 +145,11 @@ export const useAuth = () => {
 // --- FIRESTORE DATA FUNCTIONS ---
 
 // Helper to upload photos and get URLs
-const uploadPhotos = async (collectionName: string, id: string, photos: { file: File }[]): Promise<string[]> => {
+const uploadPhotos = async (collectionName: string, id: string, photos: { dataUrl: string, name: string }[]): Promise<string[]> => {
     const urls = await Promise.all(
         photos.map(async (photo) => {
-            const photoRef = ref(storage, `${collectionName}/${id}/${Date.now()}-${photo.file.name}`);
-            const dataUrl = await new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(photo.file);
-            });
-            await uploadString(photoRef, dataUrl, 'data_url');
+            const photoRef = ref(storage, `${collectionName}/${id}/${Date.now()}-${photo.name}`);
+            await uploadString(photoRef, photo.dataUrl, 'data_url');
             return getDownloadURL(photoRef);
         })
     );
@@ -176,7 +159,7 @@ const uploadPhotos = async (collectionName: string, id: string, photos: { file: 
 
 // == REQUIREMENTS ==
 
-export const addRequirement = async (data, photos) => {
+export const addRequirement = async (data, photos: { dataUrl: string, name: string }[]) => {
     if (!auth.currentUser) throw new Error("User not authenticated");
     
     const userDocRef = doc(db, 'users', auth.currentUser.uid);
@@ -192,14 +175,13 @@ export const addRequirement = async (data, photos) => {
         photos: [], // Start with empty array
     });
 
-    // Now upload photos and update the doc
     const photoUrls = await uploadPhotos('requirements', requirementRef.id, photos);
     await updateDoc(requirementRef, { photos: photoUrls });
 
     return requirementRef.id;
 }
 
-export const updateRequirement = async (id, data, newPhotos, remainingExistingPhotos) => {
+export const updateRequirement = async (id, data, newPhotos: { dataUrl: string, name: string }[], remainingExistingPhotos) => {
     const requirementRef = doc(db, 'requirements', id);
     let photoUrls = [...remainingExistingPhotos];
 
@@ -342,8 +324,6 @@ export const addUpdate = async (data: { title: string, content: string }, photoD
     const userDocSnap = await getDoc(doc(db, 'users', auth.currentUser.uid));
     const userData = userDocSnap.data() as User;
 
-    let imageUrl: string | undefined = undefined;
-
     const updateRef = await addDoc(collection(db, 'updates'), {
         ...data,
         authorId: auth.currentUser.uid,
@@ -356,7 +336,7 @@ export const addUpdate = async (data: { title: string, content: string }, photoD
     if (photoDataUrl) {
         const photoRef = ref(storage, `updates/${updateRef.id}/image`);
         await uploadString(photoRef, photoDataUrl, 'data_url');
-        imageUrl = await getDownloadURL(photoRef);
+        const imageUrl = await getDownloadURL(photoRef);
         await updateDoc(updateRef, { imageUrl });
     }
 
@@ -369,26 +349,22 @@ export const updateUpdate = async (id: string, data: { title: string, content: s
     let updateData: any = { ...data };
 
     if (newImageData) {
-        // If there's an old image, delete it
         if (newImageData.oldImageUrl) {
             try {
                 const oldImageRef = ref(storage, newImageData.oldImageUrl);
                 await deleteObject(oldImageRef);
             } catch (error: any) {
-                // Ignore "object not found" errors, as it might have been deleted already
                 if (error.code !== 'storage/object-not-found') {
                     console.error("Failed to delete old image:", error);
                 }
             }
         }
         
-        // If there's new image data, upload it
         if (newImageData.dataUrl) {
             const photoRef = ref(storage, `updates/${id}/image`);
             await uploadString(photoRef, newImageData.dataUrl, 'data_url');
             updateData.imageUrl = await getDownloadURL(photoRef);
         } else {
-             // If dataUrl is empty, it means remove the image
             updateData.imageUrl = '';
         }
     }

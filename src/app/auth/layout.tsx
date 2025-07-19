@@ -23,9 +23,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   }, [currentUser, loading, router]);
 
 
-  // If the auth state is loading, or if a user is found and is being redirected,
-  // show a spinner to prevent the login form from flashing.
-  if (loading || currentUser) {
+  // ONLY show the full-page loader during the initial auth state check.
+  // This prevents the loader from reappearing and getting stuck after logout.
+  if (loading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -34,6 +34,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   }
 
   // If not loading and no user, show the login/register form.
+  // If a user exists, this will be briefly shown before the redirect effect runs.
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-secondary p-4">
       <div className="mb-6">
