@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useAuth, updateUserProfile } from '@/lib/store';
+import { useAuth } from '@/lib/store';
 import type { HomeownerProfile } from '@/lib/types';
 
 import { Button } from "@/components/ui/button";
@@ -61,7 +61,7 @@ function ProfileSkeleton() {
 
 
 export default function HomeownerProfilePage() {
-  const { currentUser, loading: authLoading } = useAuth();
+  const { currentUser, loading: authLoading, updateUserProfile } = useAuth();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
 
