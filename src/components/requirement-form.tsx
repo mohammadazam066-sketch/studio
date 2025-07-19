@@ -25,7 +25,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 const requirementFormSchema = z.object({
-  title: z.string().min(5, { message: "Title must be at least 5 characters." }),
+  title: z.string().min(1, { message: "Title is required." }),
   category: z.string({ required_error: "Please select a category." }),
   location: z.string().min(2, { message: "Location is required." }),
   description: z.string().min(20, { message: "Description must be at least 20 characters." }),
@@ -144,7 +144,7 @@ export function RequirementForm({ existingRequirement }: RequirementFormProps) {
                                 <FormItem className="md:col-span-2">
                                 <FormLabel>Requirement Title</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="e.g., TMT Steel Bars for Roof Slab" {...field} disabled={isSubmitting} />
+                                    <Input placeholder="e.g., 80 bags acc or 80 rod's 10mm" {...field} disabled={isSubmitting} />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>

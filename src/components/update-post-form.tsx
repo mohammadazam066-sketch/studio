@@ -21,7 +21,7 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 const updateFormSchema = z.object({
-  title: z.string().min(5, { message: "Title must be at least 5 characters." }),
+  title: z.string().min(1, { message: "Title is required." }),
   content: z.string().min(20, { message: "Content must be at least 20 characters." }),
 });
 
