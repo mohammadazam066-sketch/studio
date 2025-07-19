@@ -215,8 +215,12 @@ export const getRequirementsByHomeowner = async (homeownerId: string): Promise<R
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Requirement));
 }
 
-export const getAllRequirements = async (): Promise<Requirement[]> => {
-    const q = query(collection(db, "requirements"), orderBy("createdAt", "desc"));
+export const getOpenRequirements = async (): Promise<Requirement[]> => {
+    const q = query(
+        collection(db, "requirements"), 
+        where("status", "==", "Open"),
+        orderBy("createdAt", "desc")
+    );
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Requirement));
 }

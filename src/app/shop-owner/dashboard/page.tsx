@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 import { Eye, FileText, CheckCircle, Clock } from "lucide-react";
-import { useAuth, getAllRequirements, getQuotationsByShopOwner, getRequirementById } from "@/lib/store";
+import { useAuth, getOpenRequirements, getQuotationsByShopOwner, getRequirementById } from "@/lib/store";
 import { useEffect, useState, useCallback } from "react";
 import type { Requirement, Quotation } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
@@ -53,15 +53,17 @@ type QuotationWithRequirement = Quotation & {
 
 export default function ShopOwnerDashboard() {
     const { currentUser } = useAuth();
-    const [requirements, setRequirements] = useState<Requirement[]>([]);
+    const [openRequirements, setOpenRequirements] = useState<Requirement[]>([]);
     const [myQuotations, setMyQuotations] = useState<QuotationWithRequirement[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchData = useCallback(async () => {
         if (!currentUser?.id) return;
         setLoading(true);
-        const allRequirements = await getAllRequirements();
-        const userQuotations = await getQuotationsByShopOwner(currentUser.id);
+        const [openReqs, userQuotations] = await Promise.all([
+            getOpenRequirements(),
+            getQuotationsByShopOwner(currentUser.id)
+        ]);
         
         const quotationsWithRequirements = await Promise.all(
             userQuotations.map(async (quote) => {
@@ -70,7 +72,7 @@ export default function ShopOwnerDashboard() {
             })
         );
 
-        setRequirements(allRequirements);
+        setOpenRequirements(openReqs);
         setMyQuotations(quotationsWithRequirements);
         setLoading(false);
     }, [currentUser]);
@@ -83,9 +85,6 @@ export default function ShopOwnerDashboard() {
     // An accepted quote is one of yours where the associated requirement is 'Purchased'
     const acceptedQuotesCount = myQuotations.filter(q => q.requirement?.status === 'Purchased').length;
     const pendingReviewCount = submittedQuotesCount - acceptedQuotesCount;
-    
-    // Filter to only requirements with 'Open' status
-    const openRequirements = requirements.filter(r => r.status === 'Open');
     
     // Of the open requirements, filter out those the shop owner has already quoted on
     const quotedRequirementIds = new Set(myQuotations.map(q => q.requirementId));
