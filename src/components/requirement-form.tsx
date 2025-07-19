@@ -18,6 +18,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import type { Requirement } from '@/lib/types';
+import { Label } from '@/components/ui/label';
 
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB

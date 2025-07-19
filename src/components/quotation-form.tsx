@@ -48,7 +48,7 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
     const form = useForm<QuotationFormValues>({
         resolver: zodResolver(quotationFormSchema),
         defaultValues: {
-            amount: existingQuotation?.amount || undefined,
+            amount: existingQuotation?.amount || '',
             terms: existingQuotation?.terms || '',
             deliveryDate: defaultDeliveryDate,
         }
