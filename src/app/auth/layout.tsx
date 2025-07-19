@@ -26,8 +26,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     }
   }, [currentUser, loading, router, logout]);
 
-  // If the auth state is loading, show a spinner.
-  // This prevents content flash while we check if a user is logged in.
+  // Only show the full-page loading spinner when the auth state is actively loading.
+  // This prevents the spinner from showing incorrectly after logout.
   if (loading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
@@ -36,8 +36,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     );
   }
 
-  // If we are done loading but there's still a user, they are being redirected.
-  // Show a spinner to avoid flashing the login form during the redirect.
+  // If we are done loading but there's a user, they are being redirected.
+  // We can show a spinner, but the critical part is that when `loading` is false
+  // and `currentUser` is null (after logout), we proceed to render the children.
   if (!loading && currentUser) {
       return (
         <div className="flex h-screen w-screen items-center justify-center">
