@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { FirebaseError } from 'firebase/app';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -32,10 +33,17 @@ export default function LoginPage() {
       // Redirect handled by AuthProvider
     } catch (error: any) {
       console.error(error);
+      let description = 'Please check your credentials and try again.';
+      if (error instanceof FirebaseError && error.code === 'auth/invalid-credential') {
+          description = 'Invalid username or password. Please try again.';
+      } else if (error.message) {
+          description = error.message;
+      }
+      
       toast({
         variant: 'destructive',
         title: 'Login Failed',
-        description: error.message || 'Please check your credentials and try again.',
+        description: description,
       });
       setLoading(false);
     }
