@@ -28,7 +28,7 @@ const requirementFormSchema = z.object({
   title: z.string().min(1, { message: "Title is required." }),
   category: z.string({ required_error: "Please select a category." }),
   location: z.string().min(2, { message: "Location is required." }),
-  description: z.string().min(20, { message: "Description must be at least 20 characters." }),
+  description: z.string().optional(),
 });
 
 type RequirementFormValues = z.infer<typeof requirementFormSchema>;
@@ -195,7 +195,7 @@ export function RequirementForm({ existingRequirement }: RequirementFormProps) {
                             name="description"
                             render={({ field }) => (
                                 <FormItem className="md:col-span-2">
-                                <FormLabel>Detailed Description</FormLabel>
+                                <FormLabel>Detailed Description (Optional)</FormLabel>
                                 <FormControl>
                                     <Textarea placeholder="Describe your requirement in detail. Include brands, quantities, and any specific needs." {...field} disabled={isSubmitting} rows={6} />
                                 </FormControl>
