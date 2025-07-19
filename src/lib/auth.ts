@@ -20,14 +20,15 @@ const DUMMY_EMAIL_DOMAIN = 'tradeflow.app';
 
 // Register user with username and password
 export const registerUser = async (username: string, password: string, role: UserRole) => {
-  // Create a dummy email for Firebase Auth
-  const email = `${username.toLowerCase()}@${DUMMY_EMAIL_DOMAIN}`;
+  const lowercaseUsername = username.toLowerCase();
+  // Create a dummy email for Firebase Auth using lowercase username
+  const email = `${lowercaseUsername}@${DUMMY_EMAIL_DOMAIN}`;
   
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
 
   try {
-    // Create user document in 'users' collection
+    // Create user document in 'users' collection with the original cased username for display
     const userDocRef = doc(db, 'users', user.uid);
     await setDoc(userDocRef, {
       id: user.uid,
