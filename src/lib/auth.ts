@@ -32,7 +32,7 @@ export const registerUser = async (username: string, password: string, role: Use
     const userDocRef = doc(db, 'users', user.uid);
     await setDoc(userDocRef, {
       id: user.uid,
-      username,
+      username: lowercaseUsername,
       email: '', // Store an empty string for email, as it's not provided by user
       role: role,
       createdAt: serverTimestamp(),
@@ -47,7 +47,7 @@ export const registerUser = async (username: string, password: string, role: Use
     if (role === 'shop-owner') {
       // Add shop-owner specific fields with default empty values
       profileData = {
-          username: username,
+          username: lowercaseUsername,
           name: username, // Default name to username
           email: '',
           shopName: `${username}'s Shop`, // Default shop name
@@ -60,7 +60,7 @@ export const registerUser = async (username: string, password: string, role: Use
     } else {
       // Add homeowner-specific fields if any
       profileData = {
-          username: username,
+          username: lowercaseUsername,
           name: username, // Default name to username
           email: '',
           phoneNumber: '',
