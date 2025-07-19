@@ -88,8 +88,9 @@ export default function ShopOwnerDashboard() {
     const openRequirements = requirements.filter(r => r.status === 'Open');
     
     // Of the open requirements, filter out those the shop owner has already quoted on
+    const quotedRequirementIds = new Set(myQuotations.map(q => q.requirementId));
     const openRequirementsToQuote = openRequirements.filter(
-        req => !myQuotations.some(quote => quote.requirementId === req.id)
+        req => !quotedRequirementIds.has(req.id)
     );
 
     return (

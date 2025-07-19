@@ -49,12 +49,12 @@ export const registerUser = async (username: string, password: string, role: Use
           username: username,
           name: username, // Default name to username
           email: '',
-          createdAt: serverTimestamp(),
           shopName: `${username}'s Shop`, // Default shop name
           phoneNumber: '',
           address: '',
           location: '',
           shopPhotos: [],
+          createdAt: serverTimestamp(),
       };
     } else {
       // Add homeowner-specific fields if any
@@ -62,9 +62,9 @@ export const registerUser = async (username: string, password: string, role: Use
           username: username,
           name: username, // Default name to username
           email: '',
-          createdAt: serverTimestamp(),
           phoneNumber: '',
           address: '',
+          createdAt: serverTimestamp(),
       };
     }
 

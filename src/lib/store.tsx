@@ -79,7 +79,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // If we are updating a shop owner, we append to existing photos.
       if (currentUser.role === 'shop-owner') {
-          finalProfileData.shopPhotos = [...(updatedProfileData.shopPhotos || []), ...uploadedUrls];
+          // Correctly merge existing and new photos
+          finalProfileData.shopPhotos = [...(finalProfileData.shopPhotos || []), ...uploadedUrls];
       }
     }
 
