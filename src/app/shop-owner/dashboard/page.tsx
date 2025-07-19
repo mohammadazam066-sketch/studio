@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 import { Eye, FileText, CheckCircle, Clock } from "lucide-react";
-import { useAuth, getAllRequirements, getQuotationsByShopOwner } from "@/lib/store";
+import { useAuth, getAllRequirements, getQuotationsByShopOwner, getRequirementById } from "@/lib/store";
 import { useEffect, useState, useCallback } from "react";
 import type { Requirement, Quotation } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
@@ -47,21 +47,31 @@ function RequirementListSkeleton() {
     )
 }
 
+type QuotationWithRequirement = Quotation & {
+    requirement?: Requirement;
+}
 
 export default function ShopOwnerDashboard() {
     const { currentUser } = useAuth();
     const [requirements, setRequirements] = useState<Requirement[]>([]);
-    const [myQuotations, setMyQuotations] = useState<Quotation[]>([]);
+    const [myQuotations, setMyQuotations] = useState<QuotationWithRequirement[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchData = useCallback(async () => {
-        if (!currentUser?.id) return; // Guard against running before user is loaded
+        if (!currentUser?.id) return;
         setLoading(true);
         const allRequirements = await getAllRequirements();
         const userQuotations = await getQuotationsByShopOwner(currentUser.id);
+        
+        const quotationsWithRequirements = await Promise.all(
+            userQuotations.map(async (quote) => {
+                const requirement = await getRequirementById(quote.requirementId);
+                return { ...quote, requirement };
+            })
+        );
 
         setRequirements(allRequirements);
-        setMyQuotations(userQuotations);
+        setMyQuotations(quotationsWithRequirements);
         setLoading(false);
     }, [currentUser]);
 
@@ -70,8 +80,9 @@ export default function ShopOwnerDashboard() {
     }, [fetchData]);
     
     const submittedQuotesCount = myQuotations.length;
-    // This is a simplified calculation. A more complex app might check if the *winning* quote was this user's.
-    const acceptedQuotesCount = requirements.filter(r => r.status === 'Purchased' && myQuotations.some(q => q.requirementId === r.id)).length;
+    // An accepted quote is one of yours where the associated requirement is 'Purchased'
+    const acceptedQuotesCount = myQuotations.filter(q => q.requirement?.status === 'Purchased').length;
+    const pendingReviewCount = submittedQuotesCount - acceptedQuotesCount;
     
     // Filter to only requirements with 'Open' status
     const openRequirements = requirements.filter(r => r.status === 'Open');
@@ -125,7 +136,7 @@ export default function ShopOwnerDashboard() {
                         <Clock className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{submittedQuotesCount - acceptedQuotesCount}</div>
+                        <div className="text-2xl font-bold">{pendingReviewCount}</div>
                         <p className="text-xs text-muted-foreground">Quotes awaiting homeowner decision</p>
                     </CardContent>
                 </Card>
