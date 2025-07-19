@@ -26,8 +26,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     }
   }, [currentUser, loading, router, logout]);
 
-  // Show a loading spinner ONLY when auth state is loading.
-  // Do not block the page if a user is already logged in, as useEffect will redirect them.
+  // If the auth state is loading, show a spinner.
+  // This prevents content flash while we check if a user is logged in.
   if (loading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
@@ -36,16 +36,15 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     );
   }
 
-  // If we are done loading and there's still a user, they will be redirected.
-  // While redirecting, don't show the login form to avoid a flash of content.
-  if (currentUser) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+  // If we are done loading but there's still a user, they are being redirected.
+  // Show a spinner to avoid flashing the login form during the redirect.
+  if (!loading && currentUser) {
+      return (
+        <div className="flex h-screen w-screen items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>
+      );
   }
-
 
   // If not loading and no user, show the login/register form.
   return (
