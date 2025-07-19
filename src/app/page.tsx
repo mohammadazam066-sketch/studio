@@ -15,13 +15,16 @@ export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
+    // Only redirect if done loading and a user truly exists.
     if (!loading && currentUser) {
       const destination = currentUser.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
       router.replace(destination);
     }
   }, [currentUser, loading, router]);
 
-  if (loading || currentUser) {
+  // If we are still performing the initial auth check, show a loader.
+  // We no longer show a loader if a currentUser exists, to prevent flashes of it on redirect.
+  if (loading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -29,6 +32,13 @@ export default function HomePage() {
     );
   }
 
+  // If we are done loading and there's a user, we will be redirected by the useEffect.
+  // Returning null prevents the page content from flashing briefly before the redirect.
+  if (currentUser) {
+      return null;
+  }
+
+  // If not loading and no user, show the public welcome page.
   return (
     <div className="flex flex-col min-h-screen">
       <header className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
