@@ -2,18 +2,16 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Logo } from '@/components/logo';
 import { Loader2 } from 'lucide-react';
 
 export default function GoodbyePage() {
-  const router = useRouter();
 
   useEffect(() => {
     const timer = setTimeout(() => {
       // Use window.location.assign to force a full page reload
-      // This ensures all state from the previous session is cleared.
-      window.location.assign('/auth/login');
+      // to the welcome page. This clears all old session state.
+      window.location.assign('/');
     }, 2500); // Redirect after 2.5 seconds
 
     return () => clearTimeout(timer);
@@ -29,7 +27,7 @@ export default function GoodbyePage() {
             <p className="text-lg text-muted-foreground">Do come back soon!</p>
             <div className="flex items-center justify-center pt-4">
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                <p className="text-sm text-muted-foreground">Redirecting to login...</p>
+                <p className="text-sm text-muted-foreground">Redirecting to welcome page...</p>
             </div>
         </div>
     </div>
