@@ -16,7 +16,7 @@ import { Logo } from './logo';
 import { UserNav } from './user-nav';
 import type { User, UserRole } from '@/lib/types';
 import { usePathname } from 'next/navigation';
-import { Home, List, FileText, User as UserIcon, LogOut, Newspaper } from 'lucide-react';
+import { Home, List, FileText, User as UserIcon, LogOut, Newspaper, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/store';
 
@@ -31,9 +31,9 @@ type NavItem = {
 const navItems: NavItem[] = [
     { href: '/homeowner/dashboard', label: 'Dashboard', icon: Home, roles: ['homeowner'] },
     { href: '/shop-owner/dashboard', label: 'Dashboard', icon: Home, roles: ['shop-owner'] },
+    { href: '/shop-owner/requirements', label: 'Open Requirements', icon: Eye, roles: ['shop-owner'] },
     { href: '/shop-owner/my-quotations', label: 'My Quotations', icon: FileText, roles: ['shop-owner'] },
     { href: '/updates', label: 'Updates', icon: Newspaper, roles: ['homeowner', 'shop-owner'] },
-    // Profile links are handled in UserNav
 ];
 
 export function SidebarNav({ user }: { user: User }) {

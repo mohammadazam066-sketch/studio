@@ -12,7 +12,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     if (!loading && currentUser) {
-      // Graceful handling for inconsistent state. If user has no role, log them out.
       if (!currentUser.role) {
         console.error("User object is missing role. Logging out.");
         logout();
@@ -27,7 +26,9 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     }
   }, [currentUser, loading, router, logout]);
 
-  if (loading || currentUser) {
+  // Show a loading spinner ONLY when auth state is loading.
+  // Do not block the page if a user is already logged in, as useEffect will redirect them.
+  if (loading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -35,6 +36,18 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     );
   }
 
+  // If we are done loading and there's still a user, they will be redirected.
+  // While redirecting, don't show the login form to avoid a flash of content.
+  if (currentUser) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+
+  // If not loading and no user, show the login/register form.
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-secondary p-4">
       <div className="mb-6">
