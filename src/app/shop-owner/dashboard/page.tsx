@@ -55,7 +55,7 @@ export default function ShopOwnerDashboard() {
     const [loading, setLoading] = useState(true);
 
     const fetchData = useCallback(async () => {
-        if (!currentUser) return;
+        if (!currentUser?.id) return; // Guard against running before user is loaded
         setLoading(true);
         const allRequirements = await getAllRequirements();
         const userQuotations = await getQuotationsByShopOwner(currentUser.id);
