@@ -11,11 +11,13 @@ export default function GoodbyePage() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      router.replace('/auth/login');
+      // Use window.location.assign to force a full page reload
+      // This ensures all state from the previous session is cleared.
+      window.location.assign('/auth/login');
     }, 2500); // Redirect after 2.5 seconds
 
     return () => clearTimeout(timer);
-  }, [router]);
+  }, []);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-secondary p-4 text-center">
