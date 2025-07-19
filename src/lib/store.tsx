@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     let finalProfileData = { ...updatedProfileData };
 
-    if (newPhotos.length > 0) {
+    if (newPhotos.length > 0 && currentUser.role === 'shop-owner') {
       const uploadedUrls = await Promise.all(
         newPhotos.map(async (photo) => {
           const photoRef = ref(storage, `${profileCollection}/${currentUser.id}/${Date.now()}-${photo.file.name}`);
@@ -77,11 +77,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         })
       );
       
-      // If we are updating a shop owner, we append to existing photos.
-      if (currentUser.role === 'shop-owner') {
-          // Correctly merge existing and new photos
-          finalProfileData.shopPhotos = [...(finalProfileData.shopPhotos || []), ...uploadedUrls];
-      }
+      // Correctly merge existing and new photos
+      finalProfileData.shopPhotos = [...(finalProfileData.shopPhotos || []), ...uploadedUrls];
     }
 
     await updateDoc(profileDocRef, finalProfileData);
