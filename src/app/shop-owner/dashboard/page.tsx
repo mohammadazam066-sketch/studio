@@ -112,36 +112,42 @@ export default function ShopOwnerDashboard() {
                         </CardContent>
                     </Card>
                  </Link>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Quotes Submitted</CardTitle>
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{submittedQuotesCount}</div>
-                        <p className="text-xs text-muted-foreground">Quotations you have sent</p>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Accepted Quotes</CardTitle>
-                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{acceptedQuotesCount}</div>
-                         <p className="text-xs text-muted-foreground">Your quotes that were purchased</p>
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
-                        <Clock className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{pendingReviewCount}</div>
-                        <p className="text-xs text-muted-foreground">Quotes awaiting homeowner decision</p>
-                    </CardContent>
-                </Card>
+                <Link href="/shop-owner/my-quotations" className="block">
+                    <Card className="hover:bg-muted/50 transition-colors">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Quotes Submitted</CardTitle>
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{submittedQuotesCount}</div>
+                            <p className="text-xs text-muted-foreground">Quotations you have sent</p>
+                        </CardContent>
+                    </Card>
+                </Link>
+                <Link href="/shop-owner/my-quotations" className="block">
+                    <Card className="hover:bg-muted/50 transition-colors">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Accepted Quotes</CardTitle>
+                            <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{acceptedQuotesCount}</div>
+                             <p className="text-xs text-muted-foreground">Your quotes that were purchased</p>
+                        </CardContent>
+                    </Card>
+                </Link>
+                 <Link href="/shop-owner/my-quotations" className="block">
+                    <Card className="hover:bg-muted/50 transition-colors">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{pendingReviewCount}</div>
+                            <p className="text-xs text-muted-foreground">Quotes awaiting homeowner decision</p>
+                        </CardContent>
+                    </Card>
+                 </Link>
             </div>
             
             <div>
