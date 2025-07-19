@@ -19,7 +19,7 @@ interface AuthContextType {
   login: (username, password) => Promise<any>;
   register: (username, password, role) => Promise<any>;
   logout: () => Promise<void>;
-  updateUserProfile: (updatedProfile: Partial<HomeownerProfile | ShopOwnerProfile> & { photosToKeep?: string[] }, newPhotos?: { dataUrl: string, name: string }[]) => Promise<void>;
+  updateUserProfile: (updatedProfile: Partial<HomeownerProfile | ShopOwnerProfile> & { photosToKeep?: string[] }, newPhotos?: string[]) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setCurrentUserAndLog(null);
   };
   
- const updateUserProfile = async (updatedProfileData, newPhotos = []) => {
+ const updateUserProfile = async (updatedProfileData, newPhotosDataUrls = []) => {
     if (!currentUser?.id || !currentUser.role) throw new Error("Not authenticated");
 
     const profileCollection = currentUser.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
@@ -79,11 +79,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }));
 
     let uploadedUrls = [];
-    if (newPhotos.length > 0 && currentUser.role === 'shop-owner') {
+    if (newPhotosDataUrls.length > 0 && currentUser.role === 'shop-owner') {
         uploadedUrls = await Promise.all(
-            newPhotos.map(async (photo) => {
-                const photoRef = ref(storage, `${profileCollection}/${currentUser.id}/${Date.now()}-${photo.name}`);
-                await uploadString(photoRef, photo.dataUrl, 'data_url');
+            newPhotosDataUrls.map(async (dataUrl) => {
+                const photoRef = ref(storage, `${profileCollection}/${currentUser.id}/${Date.now()}`);
+                await uploadString(photoRef, dataUrl, 'data_url');
                 return getDownloadURL(photoRef);
             })
         );
@@ -145,11 +145,11 @@ export const useAuth = () => {
 // --- FIRESTORE DATA FUNCTIONS ---
 
 // Helper to upload photos and get URLs
-const uploadPhotos = async (collectionName: string, id: string, photos: { dataUrl: string, name: string }[]): Promise<string[]> => {
+const uploadPhotos = async (collectionName: string, id: string, photosDataUrls: string[]): Promise<string[]> => {
     const urls = await Promise.all(
-        photos.map(async (photo) => {
-            const photoRef = ref(storage, `${collectionName}/${id}/${Date.now()}-${photo.name}`);
-            await uploadString(photoRef, photo.dataUrl, 'data_url');
+        photosDataUrls.map(async (dataUrl) => {
+            const photoRef = ref(storage, `${collectionName}/${id}/${Date.now()}-${Math.random()}`);
+            await uploadString(photoRef, dataUrl, 'data_url');
             return getDownloadURL(photoRef);
         })
     );
@@ -159,7 +159,7 @@ const uploadPhotos = async (collectionName: string, id: string, photos: { dataUr
 
 // == REQUIREMENTS ==
 
-export const addRequirement = async (data, photos: { dataUrl: string, name: string }[]) => {
+export const addRequirement = async (data, photosDataUrls: string[]) => {
     if (!auth.currentUser) throw new Error("User not authenticated");
     
     const userDocRef = doc(db, 'users', auth.currentUser.uid);
@@ -175,18 +175,18 @@ export const addRequirement = async (data, photos: { dataUrl: string, name: stri
         photos: [], // Start with empty array
     });
 
-    const photoUrls = await uploadPhotos('requirements', requirementRef.id, photos);
+    const photoUrls = await uploadPhotos('requirements', requirementRef.id, photosDataUrls);
     await updateDoc(requirementRef, { photos: photoUrls });
 
     return requirementRef.id;
 }
 
-export const updateRequirement = async (id, data, newPhotos: { dataUrl: string, name: string }[], remainingExistingPhotos) => {
+export const updateRequirement = async (id, data, newPhotosDataUrls: string[], remainingExistingPhotos) => {
     const requirementRef = doc(db, 'requirements', id);
     let photoUrls = [...remainingExistingPhotos];
 
-    if (newPhotos.length > 0) {
-        const newPhotoUrls = await uploadPhotos('requirements', id, newPhotos);
+    if (newPhotosDataUrls.length > 0) {
+        const newPhotoUrls = await uploadPhotos('requirements', id, newPhotosDataUrls);
         photoUrls.push(...newPhotoUrls);
     }
     
@@ -403,3 +403,5 @@ export const getUpdateById = async (id: string): Promise<Update | undefined> => 
     }
     return undefined;
 }
+
+    

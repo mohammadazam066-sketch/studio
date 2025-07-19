@@ -156,9 +156,9 @@ export default function ShopOwnerProfilePage() {
     // Convert new photos to data URLs before sending to the store
     const newPhotosAsDataUrls = await Promise.all(
         photos.map(photo => {
-            return new Promise<{ dataUrl: string, name: string }>((resolve, reject) => {
+            return new Promise<string>((resolve, reject) => {
                 const reader = new FileReader();
-                reader.onloadend = () => resolve({ dataUrl: reader.result as string, name: photo.file.name });
+                reader.onloadend = () => resolve(reader.result as string);
                 reader.onerror = reject;
                 reader.readAsDataURL(photo.file);
             });
@@ -343,3 +343,5 @@ export default function ShopOwnerProfilePage() {
     </div>
   );
 }
+
+    

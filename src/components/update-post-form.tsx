@@ -77,9 +77,9 @@ export function UpdatePostForm({ onPostSuccess }: UpdatePostFormProps) {
       return;
     }
     
-    let photoData: string | undefined;
+    let photoDataUrl: string | undefined;
     if (photo) {
-        photoData = await new Promise((resolve, reject) => {
+        photoDataUrl = await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onloadend = () => resolve(reader.result as string);
             reader.onerror = reject;
@@ -88,7 +88,7 @@ export function UpdatePostForm({ onPostSuccess }: UpdatePostFormProps) {
     }
 
     try {
-        await addUpdate({ title: data.title, content: data.content }, photoData);
+        await addUpdate({ title: data.title, content: data.content }, photoDataUrl);
         toast({
             title: "Post Published!",
             description: "Your update is now live for the community to see.",
@@ -203,3 +203,5 @@ export function UpdatePostForm({ onPostSuccess }: UpdatePostFormProps) {
     </Form>
   );
 }
+
+    

@@ -96,9 +96,9 @@ export function RequirementForm({ existingRequirement }: RequirementFormProps) {
     
     const newPhotosAsDataUrls = await Promise.all(
         photos.map(photo => {
-            return new Promise<{ dataUrl: string, name: string }>((resolve, reject) => {
+            return new Promise<string>((resolve, reject) => {
                 const reader = new FileReader();
-                reader.onloadend = () => resolve({ dataUrl: reader.result as string, name: photo.file.name });
+                reader.onloadend = () => resolve(reader.result as string);
                 reader.onerror = reject;
                 reader.readAsDataURL(photo.file);
             });
@@ -273,3 +273,5 @@ export function RequirementForm({ existingRequirement }: RequirementFormProps) {
     </div>
   );
 }
+
+    
