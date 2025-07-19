@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import type { UserRole } from '@/lib/types';
+import { FirebaseError } from 'firebase/app';
 
 export default function RegisterPage() {
   const [password, setPassword] = useState('');
@@ -33,10 +34,17 @@ export default function RegisterPage() {
       // Redirect is handled by the AuthProvider
     } catch (error: any) {
       console.error(error);
+      let description = 'An unexpected error occurred. Please try again.';
+      if (error instanceof FirebaseError && error.code === 'auth/email-already-in-use') {
+        description = 'This username is already taken. Please choose another one.';
+      } else if (error.message) {
+        description = error.message;
+      }
+      
       toast({
         variant: 'destructive',
         title: 'Registration Failed',
-        description: error.message || 'An unexpected error occurred. Please try again.',
+        description: description,
       });
       setLoading(false);
     }
