@@ -72,9 +72,11 @@ export default function ShopOwnerDashboard() {
     const submittedQuotesCount = myQuotations.length;
     // This is a simplified calculation. A more complex app might check if the *winning* quote was this user's.
     const acceptedQuotesCount = requirements.filter(r => r.status === 'Purchased' && myQuotations.some(q => q.requirementId === r.id)).length;
+    
+    // Filter to only requirements with 'Open' status
     const openRequirements = requirements.filter(r => r.status === 'Open');
     
-    // Filter out requirements for which the shop owner has already submitted a quotation
+    // Of the open requirements, filter out those the shop owner has already quoted on
     const openRequirementsToQuote = openRequirements.filter(
         req => !myQuotations.some(quote => quote.requirementId === req.id)
     );
