@@ -60,10 +60,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const profileCollection = currentUser.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
     const profileDocRef = doc(db, profileCollection, currentUser.id);
 
-    let finalProfileData = { ...updatedProfileData };
+    // Get the current profile to check for photos to delete
+    const currentProfileSnap = await getDoc(profileDocRef);
+    const currentProfile = currentProfileSnap.data() as ShopOwnerProfile;
+    const currentPhotos = currentProfile?.shopPhotos || [];
 
+    // Determine which photos were removed by the user
+    const photosToKeep = updatedProfileData.shopPhotos || [];
+    const photosToDelete = currentPhotos.filter(url => !photosToKeep.includes(url));
+
+    // Delete photos that were removed
+    await Promise.all(photosToDelete.map(async (url) => {
+      try {
+        const photoRef = ref(storage, url);
+        await deleteObject(photoRef);
+      } catch (error: any) {
+        if (error.code !== 'storage/object-not-found') {
+          console.error("Failed to delete old photo:", error);
+        }
+      }
+    }));
+
+    let uploadedUrls = [];
     if (newPhotos.length > 0 && currentUser.role === 'shop-owner') {
-      const uploadedUrls = await Promise.all(
+      uploadedUrls = await Promise.all(
         newPhotos.map(async (photo) => {
           const photoRef = ref(storage, `${profileCollection}/${currentUser.id}/${Date.now()}-${photo.file.name}`);
           const dataUrl = await new Promise<string>((resolve, reject) => {
@@ -76,10 +96,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return getDownloadURL(photoRef);
         })
       );
-      
-      // Correctly merge existing and new photos
-      finalProfileData.shopPhotos = [...(finalProfileData.shopPhotos || []), ...uploadedUrls];
     }
+    
+    // Combine kept photos with newly uploaded photos
+    const finalPhotos = [...photosToKeep, ...uploadedUrls];
+
+    const finalProfileData = {
+      ...updatedProfileData,
+      shopPhotos: finalPhotos,
+    };
 
     await updateDoc(profileDocRef, finalProfileData);
     

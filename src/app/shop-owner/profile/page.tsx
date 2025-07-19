@@ -153,10 +153,10 @@ export default function ShopOwnerProfilePage() {
   async function onSubmit(data: ProfileFormValues) {
     setIsSaving(true);
     
-    // Construct the updated profile object, including only the *remaining* existing photos
+    // The data passed to the core updateUserProfile function now includes the list of photos to keep.
     const profileUpdateData = {
         ...data,
-        shopPhotos: existingPhotos,
+        shopPhotos: existingPhotos, // Pass the current state of existing photos
     };
 
     try {
@@ -165,8 +165,8 @@ export default function ShopOwnerProfilePage() {
             title: "Profile Updated",
             description: "Your shop information has been successfully saved.",
         });
-        // Optionally, refetch user data or update local state after successful upload
-        setPhotos([]); // Clear staged photos
+        // Clear staged photos after successful upload
+        setPhotos([]); 
     } catch (error) {
         console.error("Failed to update profile:", error);
         toast({
