@@ -22,7 +22,7 @@ import type { Requirement, Quotation } from '@/lib/types';
 
 const quotationFormSchema = z.object({
   amount: z.coerce.number().positive({ message: "Amount must be greater than 0." }),
-  terms: z.string().min(10, { message: "Please provide some terms and conditions (min. 10 characters)." }),
+  terms: z.string().optional(),
   deliveryDate: z.date({
     required_error: "An expected delivery date is required.",
   }),
@@ -166,7 +166,7 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
                             name="terms"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Terms & Notes</FormLabel>
+                                    <FormLabel>Terms & Notes (Optional)</FormLabel>
                                     <FormControl>
                                         <Textarea placeholder="e.g., 50% advance payment, delivery within 2 days of confirmation..." {...field} disabled={isSubmitting} rows={4} />
                                     </FormControl>
