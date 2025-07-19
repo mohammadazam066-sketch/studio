@@ -9,12 +9,12 @@ import { getStorage, FirebaseStorage } from "firebase/storage";
 import { getAuth, Auth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBrm6-aomerOz7DZlgSwmPFlU_FrhQj1m4",
-  authDomain: "tradeflow-tiu5k.firebaseapp.com",
-  projectId: "tradeflow-tiu5k",
-  storageBucket: "tradeflow-tiu5k.appspot.com",
-  messagingSenderId: "28930351057",
-  appId: "1:28930351057:web:6200a731ed264791da0af0"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
 let app: FirebaseApp;
@@ -54,3 +54,4 @@ db = getFirestore(app);
 })();
 
 export { app, auth, db, storage };
+
