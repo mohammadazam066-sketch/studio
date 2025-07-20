@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { auth } from '@/lib/firebase';
 import { RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
 import { useAuth } from '@/lib/store';
@@ -30,6 +30,24 @@ export function PhoneAuthForm() {
   const [showRoleSelector, setShowRoleSelector] = useState(false);
   const [role, setRole] = useState<UserRole>('homeowner');
   const { handleNewUser } = useAuth();
+  const [appVerifier, setAppVerifier] = useState<RecaptchaVerifier | null>(null);
+
+  useEffect(() => {
+    if (!showOtpInput && !showRoleSelector) {
+        const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            'size': 'normal',
+            'callback': (response: any) => {
+              // reCAPTCHA solved
+            },
+        });
+        setAppVerifier(verifier);
+        window.recaptchaVerifier = verifier;
+
+        return () => {
+            verifier.clear();
+        }
+    }
+  }, [showOtpInput, showRoleSelector]);
 
 
   const onSendOtp = async (e: React.FormEvent) => {
@@ -43,21 +61,15 @@ export function PhoneAuthForm() {
         return;
     }
     
-    // Clear any previous verifier
-    if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
+    if (!appVerifier) {
+        toast.error("reCAPTCHA not initialized. Please wait a moment and try again.");
+        setLoading(false);
+        return;
     }
     
     const formattedPhone = `+91${phoneNumber}`;
 
     try {
-      const appVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'normal', // Use 'normal' for the visible widget
-        'callback': (response: any) => {
-          // reCAPTCHA solved, allow signInWithPhoneNumber.
-        },
-      });
-
       const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
       window.confirmationResult = confirmationResult;
       setShowOtpInput(true);
@@ -68,7 +80,7 @@ export function PhoneAuthForm() {
       if (error.code === 'auth/invalid-phone-number') {
         errorMessage = 'The phone number format is invalid. Please check and try again.';
       } else if (error.code === 'auth/captcha-check-failed') {
-          errorMessage = "reCAPTCHA check failed. Please ensure you're not in an incognito window or using a VPN, and that your domain is authorized in the Firebase Console."
+          errorMessage = "reCAPTCHA check failed. Please ensure your domain is authorized in the Firebase Console."
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = "You've made too many requests. Please wait a while before trying again."
       }
