@@ -78,15 +78,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     }));
 
-    let uploadedUrls = [];
+    let uploadedUrls: string[] = [];
     if (newPhotosDataUrls.length > 0 && currentUser.role === 'shop-owner') {
-        uploadedUrls = await Promise.all(
-            newPhotosDataUrls.map(async (dataUrl) => {
-                const photoRef = ref(storage, `${profileCollection}/${currentUser.id}/${Date.now()}`);
-                await uploadString(photoRef, dataUrl, 'data_url');
-                return getDownloadURL(photoRef);
-            })
-        );
+        uploadedUrls = await uploadPhotos(profileCollection, currentUser.id, newPhotosDataUrls, currentUser.id);
     }
     
     const finalPhotos = [...photosToKeep, ...uploadedUrls];
@@ -100,11 +94,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     await updateDoc(profileDocRef, finalProfileData);
     
-    if (finalProfileData.name && finalProfileData.name !== currentUser.username) {
+    if (finalProfileData.name && finalProfileData.name !== currentUser.profile?.name) {
+        // The user's display name for things like "By John Doe" should be updated in the users collection.
         await updateDoc(doc(db, 'users', currentUser.id), { username: finalProfileData.name });
     }
     if (finalProfileData.email && finalProfileData.email !== currentUser.profile?.email) {
-       await updateDoc(doc(db, 'users', currentUser.id), { email: finalProfileData.email });
+       // This field is not currently on the user object, but this is good practice.
+       // await updateDoc(doc(db, 'users', currentUser.id), { email: finalProfileData.email });
     }
 
      const updatedUserDocSnap = await getDoc(doc(db, 'users', currentUser.id));
@@ -112,7 +108,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
      if(updatedUserDocSnap.exists() && updatedProfileDocSnap.exists()) {
         const updatedUser = {
-            ...updatedUserDocSnap.data(),
+            ...(updatedUserDocSnap.data() as Omit<User, 'id' | 'profile'>),
             id: currentUser.id,
             profile: updatedProfileDocSnap.data(),
         } as User;
@@ -145,10 +141,14 @@ export const useAuth = () => {
 // --- FIRESTORE DATA FUNCTIONS ---
 
 // Helper to upload photos and get URLs
-const uploadPhotos = async (collectionName: string, id: string, photosDataUrls: string[]): Promise<string[]> => {
+const uploadPhotos = async (collectionName: string, userId: string, photosDataUrls: string[], documentId?: string): Promise<string[]> => {
     const urls = await Promise.all(
         photosDataUrls.map(async (dataUrl) => {
-            const photoRef = ref(storage, `${collectionName}/${id}/${Date.now()}-${Math.random()}`);
+            // Path structure: {collection}/{userId}/{documentId (optional)}/{filename}
+            const path = documentId 
+              ? `${collectionName}/${userId}/${documentId}/${Date.now()}-${Math.random()}`
+              : `${collectionName}/${userId}/${Date.now()}-${Math.random()}`;
+            const photoRef = ref(storage, path);
             await uploadString(photoRef, dataUrl, 'data_url');
             return getDownloadURL(photoRef);
         })
@@ -169,24 +169,25 @@ export const addRequirement = async (data, photosDataUrls: string[]) => {
     const requirementRef = await addDoc(collection(db, 'requirements'), {
         ...data,
         homeownerId: auth.currentUser.uid,
-        homeownerName: userData?.username || 'Anonymous',
+        homeownerName: (userData as User)?.profile?.name || userData?.username || 'Anonymous',
         createdAt: serverTimestamp(),
         status: 'Open',
         photos: [], // Start with empty array
     });
 
-    const photoUrls = await uploadPhotos('requirements', requirementRef.id, photosDataUrls);
+    const photoUrls = await uploadPhotos('requirements', auth.currentUser.uid, photosDataUrls, requirementRef.id);
     await updateDoc(requirementRef, { photos: photoUrls });
 
     return requirementRef.id;
 }
 
-export const updateRequirement = async (id, data, newPhotosDataUrls: string[], remainingExistingPhotos) => {
+export const updateRequirement = async (id, data, newPhotosDataUrls: string[], remainingExistingPhotos: string[]) => {
+    if (!auth.currentUser) throw new Error("User not authenticated");
     const requirementRef = doc(db, 'requirements', id);
     let photoUrls = [...remainingExistingPhotos];
 
     if (newPhotosDataUrls.length > 0) {
-        const newPhotoUrls = await uploadPhotos('requirements', id, newPhotosDataUrls);
+        const newPhotoUrls = await uploadPhotos('requirements', auth.currentUser.uid, newPhotosDataUrls, id);
         photoUrls.push(...newPhotoUrls);
     }
     
@@ -327,17 +328,17 @@ export const addUpdate = async (data: { title: string, content: string }, photoD
     const updateRef = await addDoc(collection(db, 'updates'), {
         ...data,
         authorId: auth.currentUser.uid,
-        authorName: userData.username,
+        authorName: (userData as User)?.profile?.name || userData.username,
         authorRole: userData.role,
         createdAt: serverTimestamp(),
         imageUrl: '', // Initial empty value
     });
     
     if (photoDataUrl) {
-        const photoRef = ref(storage, `updates/${updateRef.id}/image`);
-        await uploadString(photoRef, photoDataUrl, 'data_url');
-        const imageUrl = await getDownloadURL(photoRef);
-        await updateDoc(updateRef, { imageUrl });
+        const [imageUrl] = await uploadPhotos('updates', auth.currentUser.uid, [photoDataUrl], updateRef.id);
+        if (imageUrl) {
+            await updateDoc(updateRef, { imageUrl });
+        }
     }
 
     return updateRef.id;
@@ -345,6 +346,7 @@ export const addUpdate = async (data: { title: string, content: string }, photoD
 
 
 export const updateUpdate = async (id: string, data: { title: string, content: string }, newImageData?: { dataUrl: string, oldImageUrl?: string }) => {
+    if (!auth.currentUser) throw new Error("User not authenticated");
     const updateRef = doc(db, 'updates', id);
     let updateData: any = { ...data };
 
@@ -361,9 +363,8 @@ export const updateUpdate = async (id: string, data: { title: string, content: s
         }
         
         if (newImageData.dataUrl) {
-            const photoRef = ref(storage, `updates/${id}/image`);
-            await uploadString(photoRef, newImageData.dataUrl, 'data_url');
-            updateData.imageUrl = await getDownloadURL(photoRef);
+            const [newImageUrl] = await uploadPhotos('updates', auth.currentUser.uid, [newImageData.dataUrl], id);
+            updateData.imageUrl = newImageUrl || '';
         } else {
             updateData.imageUrl = '';
         }
@@ -403,3 +404,5 @@ export const getUpdateById = async (id: string): Promise<Update | undefined> => 
     }
     return undefined;
 }
+
+    
