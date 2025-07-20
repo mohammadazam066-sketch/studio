@@ -1,65 +1,57 @@
 rules_version = '2';
-
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isSignedIn() {
-      return request.auth != null;
+    // Helper function to check ownership
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
     }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    // Users can only read their own user document.
+    // Creating a user doc is handled by the backend during registration.
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create, update, delete: if false; // Disallow client-side modification
+    }
+
+    // Profiles can be read by anyone.
+    // Users can only create/update their own profile.
+    match /homeownerProfiles/{userId} {
+      allow read: if true;
+      allow create, update: if isOwner(userId);
+      allow delete: if false;
+    }
+
+    match /shopOwnerProfiles/{userId} {
+      allow read: if true;
+      allow create, update: if isOwner(userId);
+      allow delete: if false;
     }
     
-    // Helper function for create operations.
-    // Verifies the incoming document's ID field matches the user's auth UID.
-    function isCreatingOwner() {
-      return isSignedIn() && request.auth.uid == request.resource.data.id;
-    }
-
-    // USERS
-    match /users/{userId} {
-      allow create: if isCreatingOwner();
-      allow read: if isSignedIn();
-      allow update: if isOwner(userId);
-    }
-
-    // SHOP OWNER PROFILES
-    match /shopOwnerProfiles/{userId} {
-      allow create: if isCreatingOwner();
-      allow read: if isSignedIn();
-      allow update: if isOwner(userId);
-    }
-
-    // HOMEOWNER PROFILES
-    match /homeownerProfiles/{userId} {
-      allow create: if isCreatingOwner();
-      allow read: if isSignedIn();
-      allow update: if isOwner(userId);
-    }
-
-    // REQUIREMENTS
+    // Requirements can be read by anyone.
+    // Homeowners can create/update/delete their own requirements.
     match /requirements/{requirementId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.homeownerId;
-      allow update, delete: if isSignedIn() && request.auth.uid == resource.data.homeownerId;
+      allow read: if true;
+      allow create: if request.auth != null && request.resource.data.homeownerId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.homeownerId == request.auth.uid;
     }
 
-    // QUOTATIONS
+    // Quotations can be read by the homeowner who owns the requirement or the shop owner who made the quote.
+    // Shop owners can create/update their own quotations.
     match /quotations/{quotationId} {
-      allow create, update: if isSignedIn() && request.auth.uid == request.resource.data.shopOwnerId;
-
-      allow read: if isSignedIn() && (
-        request.auth.uid == resource.data.shopOwnerId ||
-        request.auth.uid == get(/databases/$(database)/documents/requirements/$(resource.data.requirementId)).data.homeownerId
-      );
+      allow read: if request.auth != null && 
+                   (isOwner(resource.data.shopOwnerId) || get(/databases/$(database)/documents/requirements/$(resource.data.requirementId)).data.homeownerId == request.auth.uid);
+      allow create: if request.auth != null && request.resource.data.shopOwnerId == request.auth.uid;
+      allow update: if isOwner(resource.data.shopOwnerId);
+      allow delete: if false; // Quotations cannot be deleted
     }
 
-    // UPDATES
+    // Updates can be read by anyone.
+    // Users can create, update and delete their own updates.
     match /updates/{updateId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.auth.uid == request.resource.data.authorId;
-      allow update, delete: if isSignedIn() && request.auth.uid == resource.data.authorId;
+      allow read: if true;
+      allow create: if request.auth != null && request.resource.data.authorId == request.auth.uid;
+      allow update, delete: if request.auth != null && resource.data.authorId == request.auth.uid;
     }
   }
 }
