@@ -36,12 +36,17 @@ export function PhoneAuthForm() {
     e.preventDefault();
     setLoading(true);
     
+    // Clear any previous verifier
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+    }
+    
     const formattedPhone = `+91${phone.trim()}`;
 
     try {
-      // Create a new verifier instance each time to avoid lifecycle issues
       const appVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible',
+        'size': 'normal', // Use 'normal' for the visible widget
+        'sitekey': process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!,
         'callback': (response: any) => {
           // reCAPTCHA solved, allow signInWithPhoneNumber.
         },
@@ -57,7 +62,7 @@ export function PhoneAuthForm() {
       if (error.code === 'auth/invalid-phone-number') {
         errorMessage = 'Invalid phone number format. Please ensure you enter a valid 10-digit number.';
       } else if (error.code === 'auth/captcha-check-failed') {
-          errorMessage = "reCAPTCHA check failed. Please ensure you're not in an incognito window or using a VPN."
+          errorMessage = "reCAPTCHA check failed. Please ensure you're not in an incognito window or using a VPN, and that your domain is authorized in the Firebase Console."
       }
       toast.error(errorMessage);
     } finally {
@@ -119,7 +124,6 @@ export function PhoneAuthForm() {
 
   return (
     <>
-      <div id="recaptcha-container"></div>
       <Toaster toastOptions={{
           className: 'bg-background text-foreground border rounded-md',
       }}/>
@@ -144,6 +148,8 @@ export function PhoneAuthForm() {
               />
             </div>
           </div>
+          {/* This container is where the reCAPTCHA widget will render */}
+          <div id="recaptcha-container" className="flex justify-center"></div>
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? <Loader2 className="animate-spin" /> : 'Send OTP'}
             <ArrowRight className="ml-2" />
