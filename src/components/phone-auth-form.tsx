@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { auth } from '@/lib/firebase';
 import { RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
 import { useAuth } from '@/lib/store';
@@ -35,13 +35,20 @@ export function PhoneAuthForm() {
   const onSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    const phoneNumber = phone.trim();
+    if (!/^\d{10}$/.test(phoneNumber)) {
+        toast.error("Please enter a valid 10-digit phone number.");
+        setLoading(false);
+        return;
+    }
     
     // Clear any previous verifier
     if (window.recaptchaVerifier) {
       window.recaptchaVerifier.clear();
     }
     
-    const formattedPhone = `+91${phone.trim()}`;
+    const formattedPhone = `+91${phoneNumber}`;
 
     try {
       const appVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
@@ -57,9 +64,9 @@ export function PhoneAuthForm() {
       toast.success('OTP sent successfully!');
     } catch (error: any) {
       console.error('Error sending OTP:', error);
-      let errorMessage = 'Failed to send OTP. Please check the number and try again.';
+      let errorMessage = 'Failed to send OTP. Please try again.';
       if (error.code === 'auth/invalid-phone-number') {
-        errorMessage = 'Invalid phone number format. Please ensure you enter a valid 10-digit number.';
+        errorMessage = 'The phone number format is invalid. Please check and try again.';
       } else if (error.code === 'auth/captcha-check-failed') {
           errorMessage = "reCAPTCHA check failed. Please ensure you're not in an incognito window or using a VPN, and that your domain is authorized in the Firebase Console."
       }
