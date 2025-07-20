@@ -145,7 +145,7 @@ export function PhoneAuthForm() {
             <Input
               id="phone"
               type="tel"
-              placeholder="+1 650-555-3434 (test number)"
+              placeholder="+91 98765 43210"
               required
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
