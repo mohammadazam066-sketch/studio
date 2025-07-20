@@ -46,7 +46,6 @@ export function PhoneAuthForm() {
     try {
       const appVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         'size': 'normal', // Use 'normal' for the visible widget
-        'sitekey': process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY!,
         'callback': (response: any) => {
           // reCAPTCHA solved, allow signInWithPhoneNumber.
         },
