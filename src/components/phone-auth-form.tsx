@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { auth } from '@/lib/firebase';
 import { RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
 import { useAuth } from '@/lib/store';
@@ -31,9 +31,8 @@ export function PhoneAuthForm() {
   const [role, setRole] = useState<UserRole>('homeowner');
   const { handleNewUser } = useAuth();
 
-
-  const setupRecaptcha = () => {
-    // Check if window.recaptchaVerifier is already initialized
+  useEffect(() => {
+    // Setup reCAPTCHA on mount
     if (!window.recaptchaVerifier) {
       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         'size': 'invisible',
@@ -41,7 +40,6 @@ export function PhoneAuthForm() {
           // reCAPTCHA solved, allow signInWithPhoneNumber.
         },
         'expired-callback': () => {
-          // Response expired. Ask user to solve reCAPTCHA again.
           toast.error("reCAPTCHA expired. Please try again.");
           if (window.recaptchaVerifier) {
             window.recaptchaVerifier.render().then((widgetId) => {
@@ -51,31 +49,28 @@ export function PhoneAuthForm() {
         }
       });
     }
-  };
+  }, []);
+
 
   const onSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setupRecaptcha();
     
-    // Sanitize phone number to ensure E.164 format
-    let formattedPhone = phone.replace(/\s/g, ''); // Remove spaces
-    if (!formattedPhone.startsWith('+')) {
-        formattedPhone = `+${formattedPhone}`;
-    }
+    let formattedPhone = phone.trim();
 
-    // For testing, Firebase allows using a test number that bypasses app verification.
-    const isTestNumber = formattedPhone.includes('+1650555');
-    const appVerifier = isTestNumber ? null : window.recaptchaVerifier!;
-    
     try {
-      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, appVerifier as any);
+      const appVerifier = window.recaptchaVerifier!;
+      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
       window.confirmationResult = confirmationResult;
       setShowOtpInput(true);
       toast.success('OTP sent successfully!');
     } catch (error: any) {
       console.error('Error sending OTP:', error);
-      toast.error(`Failed to send OTP. ${error.message}`);
+      let errorMessage = 'Failed to send OTP. Please check the number and try again.';
+      if (error.code === 'auth/invalid-phone-number') {
+        errorMessage = 'Invalid phone number format. Please include the country code (e.g., +91).';
+      }
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -94,17 +89,14 @@ export function PhoneAuthForm() {
       const result = await window.confirmationResult.confirm(otp);
       const user = result.user;
       
-      // Check if user exists in Firestore
       const userDocRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userDocRef);
 
       if (userDoc.exists()) {
         toast.success('Login Successful!');
-        // User exists, redirect is handled by AuthLayout
       } else {
-        // New user, show role selector
         setShowRoleSelector(true);
-        setShowOtpInput(false); // Hide OTP input
+        setShowOtpInput(false);
         toast("Welcome! Please select your role.");
       }
     } catch (error) {
@@ -128,7 +120,6 @@ export function PhoneAuthForm() {
     try {
         await handleNewUser(user, role);
         toast.success("Registration complete! Welcome to TradeFlow.");
-        // Redirect will be handled by AuthLayout
     } catch (error) {
         console.error("Failed to create user profile:", error);
         toast.error("An error occurred during registration. Please try again.");
@@ -151,7 +142,7 @@ export function PhoneAuthForm() {
             <Input
               id="phone"
               type="tel"
-              placeholder="+91 98765 43210"
+              placeholder="+919876543210"
               required
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
