@@ -58,12 +58,18 @@ export function PhoneAuthForm() {
     setLoading(true);
     setupRecaptcha();
     
+    // Sanitize phone number to ensure E.164 format
+    let formattedPhone = phone.replace(/\s/g, ''); // Remove spaces
+    if (!formattedPhone.startsWith('+')) {
+        formattedPhone = `+${formattedPhone}`;
+    }
+
     // For testing, Firebase allows using a test number that bypasses app verification.
-    // We can skip the verifier if we detect a test number.
-    const appVerifier = phone.includes('555') ? null : window.recaptchaVerifier!;
+    const isTestNumber = formattedPhone.includes('+1650555');
+    const appVerifier = isTestNumber ? null : window.recaptchaVerifier!;
     
     try {
-      const confirmationResult = await signInWithPhoneNumber(auth, phone, appVerifier as any);
+      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, appVerifier as any);
       window.confirmationResult = confirmationResult;
       setShowOtpInput(true);
       toast.success('OTP sent successfully!');
