@@ -36,8 +36,10 @@ export function UserNav({ user }: { user: User }) {
 
   const handleLogout = async () => {
     await logout();
-    // Redirect to the welcome page after logout is complete
+    // Redirect to the welcome page and force a full refresh
+    // to clear any stale application state.
     router.push('/');
+    window.location.reload();
   }
 
   return (
