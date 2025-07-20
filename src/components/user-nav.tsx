@@ -36,7 +36,8 @@ export function UserNav({ user }: { user: User }) {
 
   const handleLogout = async () => {
     await logout();
-    router.push('/goodbye');
+    // Redirect to the welcome page after logout is complete
+    router.push('/');
   }
 
   return (

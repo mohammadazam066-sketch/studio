@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useAuth } from '@/lib/store';
@@ -11,8 +12,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   const router = useRouter();
 
   useEffect(() => {
-    // If the initial auth check is done and we find a user,
-    // they don't belong on the login/register page, so redirect them.
+    // If done loading and we find a user, they don't belong on the login/register page.
+    // Redirect them to their respective dashboard.
     if (!loading && currentUser) {
       if (currentUser.role === 'homeowner') {
         router.replace('/homeowner/dashboard');
@@ -23,8 +24,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   }, [currentUser, loading, router]);
 
 
-  // ONLY show the full-page loader during the initial auth state check.
-  // This prevents the loader from reappearing and getting stuck after logout.
+  // Show a loading spinner ONLY during the initial auth check.
+  // This prevents the loader from reappearing after logout or on normal navigation.
   if (loading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
@@ -34,7 +35,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   }
 
   // If not loading and no user, show the login/register form.
-  // If a user exists, this will be briefly shown before the redirect effect runs.
+  // If a user *does* exist, this will be shown briefly before the redirect effect runs,
+  // which is fine and avoids a "stuck" loader.
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-secondary p-4">
       <div className="mb-6">

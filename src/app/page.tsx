@@ -22,8 +22,7 @@ export default function HomePage() {
     }
   }, [currentUser, loading, router]);
 
-  // If we are still performing the initial auth check, show a loader.
-  // We no longer show a loader if a currentUser exists, to prevent flashes of it on redirect.
+  // If we are performing the initial auth state check, show a loader.
   if (loading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center">
@@ -32,8 +31,8 @@ export default function HomePage() {
     );
   }
 
-  // If we are done loading and there's a user, we will be redirected by the useEffect.
-  // Returning null prevents the page content from flashing briefly before the redirect.
+  // If a user exists, we will be redirected by the useEffect.
+  // Returning null prevents the page content from flashing briefly.
   if (currentUser) {
       return null;
   }
