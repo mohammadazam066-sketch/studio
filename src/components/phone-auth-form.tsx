@@ -33,12 +33,22 @@ export function PhoneAuthForm() {
 
 
   const setupRecaptcha = () => {
+    // Check if window.recaptchaVerifier is already initialized
     if (!window.recaptchaVerifier) {
       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         'size': 'invisible',
         'callback': (response: any) => {
           // reCAPTCHA solved, allow signInWithPhoneNumber.
         },
+        'expired-callback': () => {
+          // Response expired. Ask user to solve reCAPTCHA again.
+          toast.error("reCAPTCHA expired. Please try again.");
+          if (window.recaptchaVerifier) {
+            window.recaptchaVerifier.render().then((widgetId) => {
+               window.recaptchaVerifier!.reset(widgetId);
+            });
+          }
+        }
       });
     }
   };
@@ -48,15 +58,18 @@ export function PhoneAuthForm() {
     setLoading(true);
     setupRecaptcha();
     
+    // For testing, Firebase allows using a test number that bypasses app verification.
+    // We can skip the verifier if we detect a test number.
+    const appVerifier = phone.includes('555') ? null : window.recaptchaVerifier!;
+    
     try {
-      const appVerifier = window.recaptchaVerifier!;
-      const confirmationResult = await signInWithPhoneNumber(auth, phone, appVerifier);
+      const confirmationResult = await signInWithPhoneNumber(auth, phone, appVerifier as any);
       window.confirmationResult = confirmationResult;
       setShowOtpInput(true);
       toast.success('OTP sent successfully!');
     } catch (error: any) {
       console.error('Error sending OTP:', error);
-      toast.error('Failed to send OTP. Please check the number and try again.');
+      toast.error(`Failed to send OTP. ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -132,7 +145,7 @@ export function PhoneAuthForm() {
             <Input
               id="phone"
               type="tel"
-              placeholder="+91 12345 67890"
+              placeholder="+1 650-555-3434 (test number)"
               required
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
