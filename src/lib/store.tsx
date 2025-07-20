@@ -9,17 +9,16 @@ import {
     collection, query, where, getDocs, serverTimestamp, orderBy 
 } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
-import { onAuthChanged, loginUser, registerUser, logoutUser } from './auth';
+import { onAuthChanged, logoutUser, createNewUserProfile } from './auth';
 
 // --- AUTH CONTEXT & PROVIDER ---
 
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
-  login: (username, password) => Promise<any>;
-  register: (username, password, role) => Promise<any>;
   logout: () => Promise<void>;
   updateUserProfile: (updatedProfile: Partial<HomeownerProfile | ShopOwnerProfile> & { photosToKeep?: string[] }, newPhotos?: string[]) => Promise<void>;
+  handleNewUser: (user: import('firebase/auth').User, role: UserRole) => Promise<void>;
 }
 
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
@@ -41,13 +40,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => unsubscribe();
   }, [setCurrentUserAndLog]);
 
-  const login = async (username, password) => {
-    return loginUser(username, password);
-  };
-
-  const register = async (username, password, role) => {
-    return registerUser(username, password, role);
-  };
 
   const logout = async () => {
     await logoutUser();
@@ -80,7 +72,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     let uploadedUrls: string[] = [];
     if (newPhotosDataUrls.length > 0 && currentUser.role === 'shop-owner') {
-        uploadedUrls = await uploadPhotos(profileCollection, currentUser.id, newPhotosDataUrls, currentUser.id);
+        uploadedUrls = await uploadPhotos('shopOwnerProfiles', currentUser.id, newPhotosDataUrls);
     }
     
     const finalPhotos = [...photosToKeep, ...uploadedUrls];
@@ -95,12 +87,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await updateDoc(profileDocRef, finalProfileData);
     
     if (finalProfileData.name && finalProfileData.name !== currentUser.profile?.name) {
-        // The user's display name for things like "By John Doe" should be updated in the users collection.
-        await updateDoc(doc(db, 'users', currentUser.id), { username: finalProfileData.name });
-    }
-    if (finalProfileData.email && finalProfileData.email !== currentUser.profile?.email) {
-       // This field is not currently on the user object, but this is good practice.
-       // await updateDoc(doc(db, 'users', currentUser.id), { email: finalProfileData.email });
+        const userDocRef = doc(db, 'users', currentUser.id);
+        const userDoc = await getDoc(userDocRef);
+        if(userDoc.exists()) {
+             // To keep things simple, we won't update other collections with the new name.
+             // This can be a future improvement with cloud functions.
+        }
     }
 
      const updatedUserDocSnap = await getDoc(doc(db, 'users', currentUser.id));
@@ -116,14 +108,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
      }
   };
 
+  const handleNewUser = async (user: import('firebase/auth').User, role: UserRole) => {
+      await createNewUserProfile(user, role);
+      // Force a re-check of the auth state to load the new user data
+      onAuthChanged(setCurrentUserAndLog);
+  }
+
 
   const value = {
     currentUser,
     loading,
-    login,
-    register,
     logout,
     updateUserProfile,
+    handleNewUser,
   };
 
   return React.createElement(AuthContext.Provider, { value }, children);
@@ -144,10 +141,7 @@ export const useAuth = () => {
 const uploadPhotos = async (collectionName: string, userId: string, photosDataUrls: string[], documentId?: string): Promise<string[]> => {
     const urls = await Promise.all(
         photosDataUrls.map(async (dataUrl) => {
-            // Path structure: {collection}/{userId}/{documentId (optional)}/{filename}
-            const path = documentId 
-              ? `${collectionName}/${userId}/${documentId}/${Date.now()}-${Math.random()}`
-              : `${collectionName}/${userId}/${Date.now()}-${Math.random()}`;
+            const path = `${collectionName}/${userId}/${documentId ? `${documentId}/` : ''}${Date.now()}-${Math.random()}`;
             const photoRef = ref(storage, path);
             await uploadString(photoRef, dataUrl, 'data_url');
             return getDownloadURL(photoRef);
@@ -169,7 +163,7 @@ export const addRequirement = async (data, photosDataUrls: string[]) => {
     const requirementRef = await addDoc(collection(db, 'requirements'), {
         ...data,
         homeownerId: auth.currentUser.uid,
-        homeownerName: (userData as User)?.profile?.name || userData?.username || 'Anonymous',
+        homeownerName: (userData as User)?.profile?.name || (userData as User)?.phoneNumber || 'Anonymous',
         createdAt: serverTimestamp(),
         status: 'Open',
         photos: [], // Start with empty array
@@ -328,7 +322,7 @@ export const addUpdate = async (data: { title: string, content: string }, photoD
     const updateRef = await addDoc(collection(db, 'updates'), {
         ...data,
         authorId: auth.currentUser.uid,
-        authorName: (userData as User)?.profile?.name || userData.username,
+        authorName: (userData as User)?.profile?.name || userData.phoneNumber,
         authorRole: userData.role,
         createdAt: serverTimestamp(),
         imageUrl: '', // Initial empty value
@@ -404,5 +398,3 @@ export const getUpdateById = async (id: string): Promise<Update | undefined> => 
     }
     return undefined;
 }
-
-    

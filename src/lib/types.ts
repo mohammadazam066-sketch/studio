@@ -5,20 +5,16 @@ export type UserRole = 'homeowner' | 'shop-owner';
 
 export type User = {
   id: string;
-  username: string;
-  email: string; // This will now be the "dummy" email for Firebase Auth
-  password?: string; 
+  phoneNumber: string;
   role: UserRole;
   profile?: HomeownerProfile | ShopOwnerProfile;
   createdAt: Timestamp | Date | string;
 };
 export type ShopOwnerProfile = {
   id: string; // Corresponds to user.uid
-  username: string;
   name: string;
-  email?: string; // Optional real contact email
-  shopName: string;
   phoneNumber: string;
+  shopName: string;
   address: string;
   location: string;
   shopPhotos: string[];
@@ -26,10 +22,8 @@ export type ShopOwnerProfile = {
 };
 export type HomeownerProfile = {
     id: string;
-    username: string;
     name: string;
-    email?: string; // Optional real contact email
-    phoneNumber?: string;
+    phoneNumber: string;
     address?: string;
     createdAt?: Timestamp | Date | string;
 }

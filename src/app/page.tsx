@@ -8,13 +8,13 @@ import { Home, Store, UserPlus } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { useAuth } from '@/lib/store';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import React from 'react';
 
 export default function HomePage() {
    const { currentUser, loading } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
+  React.useEffect(() => {
     // Only redirect if done loading and a user truly exists.
     if (!loading && currentUser) {
       const destination = currentUser.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
@@ -61,7 +61,7 @@ export default function HomePage() {
 
             <div className="mt-8 flex justify-center">
               <Button asChild size="lg">
-                <Link href="/auth/register">
+                <Link href="/auth/login">
                   <UserPlus className="mr-2" />
                   Get Started for Free
                 </Link>

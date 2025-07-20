@@ -18,9 +18,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  email: z.string().email({ message: "Please enter a valid email." }).optional().or(z.literal('')),
-  phoneNumber: z.string().optional().or(z.literal('')),
-  address: z.string().optional().or(z.literal('')),
+  phoneNumber: z.string().optional(),
+  address: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
@@ -68,7 +67,6 @@ export default function HomeownerProfilePage() {
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
       name: '',
-      email: '',
       phoneNumber: '',
       address: '',
     },
@@ -79,8 +77,7 @@ export default function HomeownerProfilePage() {
       const profile = currentUser.profile as HomeownerProfile;
       form.reset({
         name: profile.name || '',
-        email: profile.email || '',
-        phoneNumber: profile.phoneNumber || '',
+        phoneNumber: currentUser.phoneNumber || '',
         address: profile.address || '',
       });
     }
@@ -139,25 +136,12 @@ export default function HomeownerProfilePage() {
                         />
                          <FormField
                             control={form.control}
-                            name="email"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Email Address (Optional)</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="you@example.com" {...field} disabled={isSaving} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
                             name="phoneNumber"
                             render={({ field }) => (
                                 <FormItem>
                                 <FormLabel>Phone Number</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="e.g., +1 234 567 890" {...field} disabled={isSaving} />
+                                    <Input placeholder="e.g., +1 234 567 890" {...field} disabled />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>

@@ -24,7 +24,6 @@ const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
-  email: z.string().email({ message: "Please enter a valid email." }).optional().or(z.literal('')),
   shopName: z.string().min(3, { message: "Shop name must be at least 3 characters." }),
   phoneNumber: z.string().optional(),
   address: z.string().optional(),
@@ -98,7 +97,6 @@ export default function ShopOwnerProfilePage() {
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
       name: '',
-      email: '',
       shopName: '',
       phoneNumber: '',
       address: '',
@@ -111,9 +109,8 @@ export default function ShopOwnerProfilePage() {
       const profile = currentUser.profile as ShopOwnerProfile;
       form.reset({
         name: profile.name || '',
-        email: profile.email || '',
         shopName: profile.shopName || '',
-        phoneNumber: profile.phoneNumber || '',
+        phoneNumber: currentUser.phoneNumber || '',
         address: profile.address || '',
         location: profile.location || '',
       });
@@ -222,13 +219,14 @@ export default function ShopOwnerProfilePage() {
                         />
                          <FormField
                             control={form.control}
-                            name="email"
+                            name="phoneNumber"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Email Address (Optional)</FormLabel>
+                                <FormLabel>Contact Phone Number</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="you@example.com" {...field} disabled={isSaving} />
+                                    <Input placeholder="e.g., +91 98765 43210" {...field} disabled />
                                 </FormControl>
+                                <FormMessage />
                                 </FormItem>
                             )}
                         />
@@ -260,22 +258,9 @@ export default function ShopOwnerProfilePage() {
                         />
                          <FormField
                             control={form.control}
-                            name="phoneNumber"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Shop Phone Number</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="e.g., +91 98765 43210" {...field} disabled={isSaving} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
                             name="address"
                             render={({ field }) => (
-                                <FormItem className="md:col-span-2">
+                                <FormItem  className="md:col-span-2">
                                 <FormLabel>Full Shop Address</FormLabel>
                                 <FormControl>
                                     <Input placeholder="123 Main St, Jayanagar, Bangalore" {...field} disabled={isSaving} />
@@ -343,5 +328,3 @@ export default function ShopOwnerProfilePage() {
     </div>
   );
 }
-
-    

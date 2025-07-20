@@ -2,6 +2,7 @@ import type {Metadata} from 'next';
 import { Toaster } from "@/components/ui/toaster"
 import './globals.css';
 import { AuthProvider } from '@/lib/store';
+import React from 'react';
 
 export const metadata: Metadata = {
   title: 'TradeFlow',

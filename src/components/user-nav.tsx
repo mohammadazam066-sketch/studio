@@ -27,12 +27,18 @@ export function UserNav({ user }: { user: User }) {
   const { logout } = useAuth();
   const router = useRouter();
   
-  const getInitials = (name: string) => {
-    if (!name) return 'U';
-    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  const getInitials = (name?: string, phone?: string) => {
+    if (name) {
+        return name.split(' ').map(n => n[0]).join('').toUpperCase();
+    }
+    if (phone) {
+        return phone.slice(-2);
+    }
+    return 'U';
   }
 
   const profileLink = user.role === 'homeowner' ? '/homeowner/profile' : '/shop-owner/profile';
+  const displayName = user.profile?.name || user.phoneNumber;
 
   const handleLogout = async () => {
     await logout();
@@ -48,10 +54,10 @@ export function UserNav({ user }: { user: User }) {
         <Button variant="ghost" className="relative h-10 w-full justify-start gap-2 px-2">
           <Avatar className="h-8 w-8">
             {/* Add avatar image if available */}
-            <AvatarFallback>{getInitials(user.profile?.name || user.username)}</AvatarFallback>
+            <AvatarFallback>{getInitials(user.profile?.name, user.phoneNumber)}</AvatarFallback>
           </Avatar>
            <div className="text-left truncate">
-              <p className="text-sm font-medium leading-none group-data-[collapsible=icon]:hidden truncate">{user.profile?.name || user.username}</p>
+              <p className="text-sm font-medium leading-none group-data-[collapsible=icon]:hidden truncate">{displayName}</p>
               <p className="text-xs leading-none text-muted-foreground group-data-[collapsible=icon]:hidden">
                 {user.role === 'homeowner' ? 'Homeowner' : 'Shop Owner'}
               </p>
@@ -61,9 +67,9 @@ export function UserNav({ user }: { user: User }) {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{user.profile?.name || user.username}</p>
+            <p className="text-sm font-medium leading-none">{displayName}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {user.profile?.email || ''}
+              {user.phoneNumber}
             </p>
           </div>
         </DropdownMenuLabel>
