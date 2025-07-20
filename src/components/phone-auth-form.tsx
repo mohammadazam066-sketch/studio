@@ -36,10 +36,7 @@ export function PhoneAuthForm() {
     e.preventDefault();
     setLoading(true);
     
-    let formattedPhone = phone.trim();
-    if (!formattedPhone.startsWith('+')) {
-      formattedPhone = `+${formattedPhone}`;
-    }
+    const formattedPhone = `+91${phone.trim()}`;
 
     try {
       // Create a new verifier instance each time to avoid lifecycle issues
@@ -58,7 +55,7 @@ export function PhoneAuthForm() {
       console.error('Error sending OTP:', error);
       let errorMessage = 'Failed to send OTP. Please check the number and try again.';
       if (error.code === 'auth/invalid-phone-number') {
-        errorMessage = 'Invalid phone number format. Please include the country code (e.g., +91).';
+        errorMessage = 'Invalid phone number format. Please ensure you enter a valid 10-digit number.';
       } else if (error.code === 'auth/captcha-check-failed') {
           errorMessage = "reCAPTCHA check failed. Please ensure you're not in an incognito window or using a VPN."
       }
@@ -131,15 +128,21 @@ export function PhoneAuthForm() {
         <form onSubmit={onSendOtp} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="phone">Phone Number</Label>
-            <Input
-              id="phone"
-              type="tel"
-              placeholder="+919876543210"
-              required
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              disabled={loading}
-            />
+            <div className="flex items-center">
+              <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-secondary text-sm text-muted-foreground h-10">
+                +91
+              </span>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="9876543210"
+                required
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                disabled={loading}
+                className="rounded-l-none"
+              />
+            </div>
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? <Loader2 className="animate-spin" /> : 'Send OTP'}
