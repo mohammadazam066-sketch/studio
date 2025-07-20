@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import type { User, UserRole, HomeownerProfile, ShopOwnerProfile, Requirement, Quotation, Update } from './types';
 import { db, storage, auth } from './firebase';
 import { 
@@ -22,18 +22,18 @@ interface AuthContextType {
   updateUserProfile: (updatedProfile: Partial<HomeownerProfile | ShopOwnerProfile> & { photosToKeep?: string[] }, newPhotos?: string[]) => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = React.useState<User | null>(null);
+  const [loading, setLoading] = React.useState(true);
   
   // Wrap setCurrentUser to log changes
-  const setCurrentUserAndLog = useCallback((user) => {
+  const setCurrentUserAndLog = React.useCallback((user) => {
     setCurrentUser(user);
   }, []);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const unsubscribe = onAuthChanged((user) => {
       setCurrentUserAndLog(user);
       setLoading(false);
@@ -130,11 +130,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     updateUserProfile,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return React.createElement(AuthContext.Provider, { value }, children);
 };
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
+  const context = React.useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
@@ -403,5 +403,3 @@ export const getUpdateById = async (id: string): Promise<Update | undefined> => 
     }
     return undefined;
 }
-
-    
