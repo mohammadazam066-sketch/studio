@@ -31,26 +31,6 @@ export function PhoneAuthForm() {
   const [role, setRole] = useState<UserRole>('homeowner');
   const { handleNewUser } = useAuth();
 
-  useEffect(() => {
-    // Setup reCAPTCHA on mount
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible',
-        'callback': (response: any) => {
-          // reCAPTCHA solved, allow signInWithPhoneNumber.
-        },
-        'expired-callback': () => {
-          toast.error("reCAPTCHA expired. Please try again.");
-          if (window.recaptchaVerifier) {
-            window.recaptchaVerifier.render().then((widgetId) => {
-               window.recaptchaVerifier!.reset(widgetId);
-            });
-          }
-        }
-      });
-    }
-  }, []);
-
 
   const onSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,7 +39,14 @@ export function PhoneAuthForm() {
     let formattedPhone = phone.trim();
 
     try {
-      const appVerifier = window.recaptchaVerifier!;
+      // Create a new verifier instance each time to avoid lifecycle issues
+      const appVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible',
+        'callback': (response: any) => {
+          // reCAPTCHA solved, allow signInWithPhoneNumber.
+        },
+      });
+
       const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
       window.confirmationResult = confirmationResult;
       setShowOtpInput(true);
@@ -69,6 +56,8 @@ export function PhoneAuthForm() {
       let errorMessage = 'Failed to send OTP. Please check the number and try again.';
       if (error.code === 'auth/invalid-phone-number') {
         errorMessage = 'Invalid phone number format. Please include the country code (e.g., +91).';
+      } else if (error.code === 'auth/captcha-check-failed') {
+          errorMessage = "reCAPTCHA check failed. Please ensure you're not in an incognito window or using a VPN."
       }
       toast.error(errorMessage);
     } finally {
