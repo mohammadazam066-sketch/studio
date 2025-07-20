@@ -37,6 +37,9 @@ export function PhoneAuthForm() {
     setLoading(true);
     
     let formattedPhone = phone.trim();
+    if (!formattedPhone.startsWith('+')) {
+      formattedPhone = `+${formattedPhone}`;
+    }
 
     try {
       // Create a new verifier instance each time to avoid lifecycle issues
