@@ -69,6 +69,8 @@ export function PhoneAuthForm() {
         errorMessage = 'The phone number format is invalid. Please check and try again.';
       } else if (error.code === 'auth/captcha-check-failed') {
           errorMessage = "reCAPTCHA check failed. Please ensure you're not in an incognito window or using a VPN, and that your domain is authorized in the Firebase Console."
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = "You've made too many requests. Please wait a while before trying again."
       }
       toast.error(errorMessage);
     } finally {
