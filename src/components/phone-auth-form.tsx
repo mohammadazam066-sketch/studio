@@ -23,7 +23,6 @@ declare global {
 }
 
 // Firebase provides test numbers to avoid rate limits during development
-const FIREBASE_TEST_PHONE_NUMBER = '+16505553434';
 const FIREBASE_TEST_PHONE_NUMBER_SHORT = '6505553434';
 
 export function PhoneAuthForm() {
@@ -59,7 +58,7 @@ export function PhoneAuthForm() {
     return () => {
       window.recaptchaVerifier?.clear();
     };
-  }, [auth, toast]);
+  }, [toast]);
 
 
   const onSendOtp = async (e: React.FormEvent) => {
