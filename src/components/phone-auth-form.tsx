@@ -24,6 +24,7 @@ declare global {
 
 // Firebase provides test numbers to avoid rate limits during development
 const FIREBASE_TEST_PHONE_NUMBER = '+16505553434';
+const FIREBASE_TEST_PHONE_NUMBER_SHORT = '6505553434';
 
 export function PhoneAuthForm() {
   const [phone, setPhone] = useState('');
@@ -75,7 +76,8 @@ export function PhoneAuthForm() {
       return;
     }
     
-    if (!window.recaptchaVerifier) {
+    const appVerifier = window.recaptchaVerifier;
+    if (!appVerifier) {
          toast({
             variant: "destructive",
             title: "reCAPTCHA Error",
@@ -86,11 +88,9 @@ export function PhoneAuthForm() {
     }
 
     const formattedPhone = `+91${phone}`;
-    const appVerifier = window.recaptchaVerifier;
     
     // For test numbers, Firebase recommends not using the app verifier.
-    const verifierForSignIn = formattedPhone === FIREBASE_TEST_PHONE_NUMBER ? null : appVerifier;
-
+    const verifierForSignIn = phone === FIREBASE_TEST_PHONE_NUMBER_SHORT ? null : appVerifier;
 
     try {
       // @ts-ignore - The 'null' verifier is valid for test numbers, but TS doesn't know that.
