@@ -6,66 +6,15 @@ import {
 } from 'firebase/auth';
 import {
   doc,
-  setDoc,
   getDoc,
-  serverTimestamp,
 } from 'firebase/firestore';
 import { auth, db } from './firebase'; 
-import type { User, UserRole, HomeownerProfile, ShopOwnerProfile } from './types';
+import type { User } from './types';
 
 
-// This function is called when a user signs in for the first time.
-export const createNewUserProfile = async (user: import('firebase/auth').User, role: UserRole) => {
-  if (!user.phoneNumber) throw new Error("User phone number is not available.");
-
-  try {
-    // Create user document in 'users' collection
-    const userDocRef = doc(db, 'users', user.uid);
-    await setDoc(userDocRef, {
-      id: user.uid,
-      phoneNumber: user.phoneNumber,
-      role: role,
-      createdAt: serverTimestamp(),
-    });
-
-    // Create corresponding profile document
-    const profileCollection = role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
-    const profileDocRef = doc(db, profileCollection, user.uid);
-    
-    // Generic name based on phone number for starters
-    const defaultName = `User ${user.phoneNumber.slice(-4)}`;
-
-    if (role === 'shop-owner') {
-      const profileData: Omit<ShopOwnerProfile, 'id'> = {
-          name: defaultName,
-          phoneNumber: user.phoneNumber,
-          shopName: `${defaultName}'s Shop`,
-          phoneNumber: user.phoneNumber,
-          address: '',
-          location: '',
-          shopPhotos: [],
-          createdAt: serverTimestamp(),
-      };
-      await setDoc(profileDocRef, profileData);
-    } else {
-      const profileData: Omit<HomeownerProfile, 'id'> = {
-          name: defaultName,
-          phoneNumber: user.phoneNumber,
-          address: '',
-          createdAt: serverTimestamp(),
-      };
-       await setDoc(profileDocRef, profileData);
-    }
-
-    return user;
-  } catch (error) {
-    // If creating the Firestore documents fails, delete the Firebase Auth user
-    // to prevent inconsistent states.
-    await deleteUser(user);
-    // Rethrow the error to be caught by the UI
-    throw error;
-  }
-};
+// This function is now handled in store.tsx to ensure auth is complete first.
+// export const createNewUserProfile = async (user: import('firebase/auth').User, role: UserRole) => {
+// };
 
 
 // Logout user
@@ -82,12 +31,14 @@ export const onAuthChanged = (callback: (user: User | null) => void) => {
       let userDocSnap = await getDoc(userDocRef);
 
       if (!userDocSnap.exists()) {
-        // This is a rare case, but if the user exists in Auth but not Firestore,
-        // we can't determine their role to create a profile.
-        // For this app, we will log them out to force re-selection of role.
-        console.warn(`User document not found for UID ${user.uid}. Logging out to re-initiate flow.`);
-        await logoutUser();
-        callback(null);
+        // This can happen for a brand new user who just finished OTP, but hasn't selected a role yet.
+        // The UI will handle role selection, and then create the document.
+        // For our state, we'll return a minimal user object.
+        callback({
+          id: user.uid,
+          phoneNumber: user.phoneNumber,
+          // Role and profile will be missing until they complete registration.
+        } as User);
         return;
       }
       
@@ -98,7 +49,7 @@ export const onAuthChanged = (callback: (user: User | null) => void) => {
       const profileDocRef = doc(db, profileCollection, user.uid);
       let profileDocSnap = await getDoc(profileDocRef);
       
-      const userProfile = profileDocSnap.exists() ? profileDocSnap.data() : null;
+      const userProfile = profileDocSnap.exists() ? { id: profileDocSnap.id, ...profileDocSnap.data() } : undefined;
 
       callback({
         ...userData,

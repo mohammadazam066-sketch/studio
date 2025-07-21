@@ -9,7 +9,7 @@ import {
     collection, query, where, getDocs, serverTimestamp, orderBy 
 } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
-import { onAuthChanged, logoutUser, createNewUserProfile } from './auth';
+import { onAuthChanged, logoutUser } from './auth';
 
 // --- AUTH CONTEXT & PROVIDER ---
 
@@ -81,8 +81,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const finalProfileData = {
       ...restOfProfileData,
-      shopPhotos: finalPhotos,
     };
+    
+    if(currentUser.role === 'shop-owner') {
+        finalProfileData.shopPhotos = finalPhotos;
+    }
+
 
     await updateDoc(profileDocRef, finalProfileData);
     
@@ -109,9 +113,60 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const handleNewUser = async (user: import('firebase/auth').User, role: UserRole) => {
-      await createNewUserProfile(user, role);
+      if (!user.phoneNumber) throw new Error("User phone number is not available.");
+
+      const userDocRef = doc(db, "users", user.uid);
+      const userDoc = await getDoc(userDocRef);
+
+      if (userDoc.exists()) {
+        console.warn("User profile already exists for uid:", user.uid);
+        return; 
+      }
+      
+      // Create user document in 'users' collection
+      await setDoc(userDocRef, {
+        id: user.uid,
+        phoneNumber: user.phoneNumber,
+        role: role,
+        createdAt: serverTimestamp(),
+      });
+  
+      // Create corresponding profile document
+      const profileCollection = role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
+      const profileDocRef = doc(db, profileCollection, user.uid);
+      
+      const defaultName = `User ${user.phoneNumber.slice(-4)}`;
+  
+      if (role === 'shop-owner') {
+        const profileData: ShopOwnerProfile = {
+            id: user.uid,
+            name: defaultName,
+            phoneNumber: user.phoneNumber,
+            shopName: `${defaultName}'s Shop`,
+            address: '',
+            location: '',
+            shopPhotos: [],
+            createdAt: serverTimestamp(),
+        };
+        await setDoc(profileDocRef, profileData);
+      } else {
+        const profileData: HomeownerProfile = {
+            id: user.uid,
+            name: defaultName,
+            phoneNumber: user.phoneNumber,
+            address: '',
+            createdAt: serverTimestamp(),
+        };
+         await setDoc(profileDocRef, profileData);
+      }
+  
       // Force a re-check of the auth state to load the new user data
-      onAuthChanged(setCurrentUserAndLog);
+      const updatedUser = await onAuthChanged(user => {
+        if(user) {
+            setCurrentUserAndLog(user)
+        }
+      });
+      // The onAuthChanged listener will handle the state update.
   }
 
 
@@ -158,12 +213,17 @@ export const addRequirement = async (data, photosDataUrls: string[]) => {
     
     const userDocRef = doc(db, 'users', auth.currentUser.uid);
     const userDocSnap = await getDoc(userDocRef);
-    const userData = userDocSnap.data();
+    const userData = userDocSnap.data() as User;
+
+    const profileDocRef = doc(db, 'homeownerProfiles', auth.currentUser.uid);
+    const profileDocSnap = await getDoc(profileDocRef);
+    const profileData = profileDocSnap.data() as HomeownerProfile;
+
 
     const requirementRef = await addDoc(collection(db, 'requirements'), {
         ...data,
         homeownerId: auth.currentUser.uid,
-        homeownerName: (userData as User)?.profile?.name || (userData as User)?.phoneNumber || 'Anonymous',
+        homeownerName: profileData?.name || userData?.phoneNumber || 'Anonymous',
         createdAt: serverTimestamp(),
         status: 'Open',
         photos: [], // Start with empty array
@@ -178,6 +238,23 @@ export const addRequirement = async (data, photosDataUrls: string[]) => {
 export const updateRequirement = async (id, data, newPhotosDataUrls: string[], remainingExistingPhotos: string[]) => {
     if (!auth.currentUser) throw new Error("User not authenticated");
     const requirementRef = doc(db, 'requirements', id);
+    
+    const requirementSnap = await getDoc(requirementRef);
+    const requirementData = requirementSnap.data();
+    const photosToDelete = (requirementData?.photos || []).filter(url => !remainingExistingPhotos.includes(url));
+
+    await Promise.all(photosToDelete.map(async (url) => {
+        try {
+            const photoRef = ref(storage, url);
+            await deleteObject(photoRef);
+        } catch (error: any) {
+            if (error.code !== 'storage/object-not-found') {
+                console.error("Failed to delete old photo:", error);
+            }
+        }
+    }));
+
+
     let photoUrls = [...remainingExistingPhotos];
 
     if (newPhotosDataUrls.length > 0) {
@@ -265,7 +342,7 @@ export const getQuotationById = async (id: string): Promise<Quotation | undefine
 
 
 export const getQuotationsForRequirement = async (requirementId: string): Promise<Quotation[]> => {
-    const q = query(collection(db, "quotations"), where("requirementId", "==", requirementId));
+    const q = query(collection(db, "quotations"), where("requirementId", "==", requirementId), orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Quotation));
 }
@@ -317,12 +394,16 @@ export const addUpdate = async (data: { title: string, content: string }, photoD
     if (!auth.currentUser) throw new Error("User not authenticated");
     
     const userDocSnap = await getDoc(doc(db, 'users', auth.currentUser.uid));
+    if(!userDocSnap.exists()) throw new Error("User not found");
     const userData = userDocSnap.data() as User;
+    const profileCollection = userData.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
+    const profileDocSnap = await getDoc(doc(db, profileCollection, auth.currentUser.uid));
+    const profileData = profileDocSnap.data();
 
     const updateRef = await addDoc(collection(db, 'updates'), {
         ...data,
         authorId: auth.currentUser.uid,
-        authorName: (userData as User)?.profile?.name || userData.phoneNumber,
+        authorName: profileData?.name || userData.phoneNumber,
         authorRole: userData.role,
         createdAt: serverTimestamp(),
         imageUrl: '', // Initial empty value
