@@ -36,6 +36,9 @@ export function PhoneAuthForm() {
     // This effect runs only when we need to show the phone number input.
     // It sets up the reCAPTCHA verifier.
     if (!showOtpInput && !showRoleSelector) {
+        // Cleanup previous instance if it exists
+        window.recaptchaVerifier?.clear();
+        
         const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
             'size': 'normal',
             'callback': (response: any) => {
