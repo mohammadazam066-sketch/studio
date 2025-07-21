@@ -386,6 +386,15 @@ export const getProfile = async (userId: string): Promise<ShopOwnerProfile | und
     return undefined;
 }
 
+export const getHomeownerProfileById = async (userId: string): Promise<HomeownerProfile | undefined> => {
+    const docRef = doc(db, "homeownerProfiles", userId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() } as HomeownerProfile;
+    }
+    return undefined;
+}
+
 export const getUser = async (userId: string): Promise<User | undefined> => {
     const docRef = doc(db, "users", userId);
     const docSnap = await getDoc(docRef);

@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import type { Timestamp } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Edit, FileText } from "lucide-react";
+import { Edit, FileText, User } from "lucide-react";
 import Image from 'next/image';
 
 function formatDate(date: Date | string | Timestamp) {
@@ -90,7 +90,9 @@ export default function MyQuotationsPage() {
                     <QuotationListSkeleton />
                  ) : quotations.length > 0 ? (
                     <div className="space-y-4">
-                        {quotations.map(quote => (
+                        {quotations.map(quote => {
+                            const isPurchased = quote.requirement?.status === 'Purchased';
+                            return (
                             <Card key={quote.id}>
                                 <CardHeader>
                                     <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
@@ -100,7 +102,7 @@ export default function MyQuotationsPage() {
                                                 For {quote.requirement?.homeownerName} &bull; Submitted on {formatDate(quote.createdAt)}
                                             </CardDescription>
                                         </div>
-                                        <Badge variant={quote.requirement?.status === 'Purchased' ? 'default' : 'secondary'} className={quote.requirement?.status === 'Purchased' ? 'bg-accent text-accent-foreground' : ''}>
+                                        <Badge variant={isPurchased ? 'default' : 'secondary'} className={isPurchased ? 'bg-accent text-accent-foreground' : ''}>
                                             {quote.requirement?.status || 'Status Unknown'}
                                         </Badge>
                                     </div>
@@ -114,9 +116,19 @@ export default function MyQuotationsPage() {
                                         <FileText className="w-4 h-4 mt-1 text-muted-foreground flex-shrink-0" />
                                         <p className="text-muted-foreground">{quote.terms}</p>
                                     </div>
+                                    {isPurchased && quote.requirement?.homeownerId && (
+                                        <div className="pt-2">
+                                            <Button asChild variant="link" className="p-0 h-auto">
+                                                <Link href={`/shop-owner/homeowner-profile/${quote.requirement.homeownerId}`}>
+                                                    <User className="mr-2 h-4 w-4" />
+                                                    View {quote.requirement.homeownerName}'s Profile
+                                                </Link>
+                                            </Button>
+                                        </div>
+                                    )}
                                 </CardContent>
                                 <CardFooter>
-                                    {quote.requirement?.status !== 'Purchased' && (
+                                    {!isPurchased && (
                                          <Button asChild variant="outline" size="sm">
                                             <Link href={`/shop-owner/my-quotations/edit/${quote.id}`}>
                                                 <Edit className="mr-2 h-4 w-4" /> Edit Quote
@@ -125,7 +137,7 @@ export default function MyQuotationsPage() {
                                     )}
                                 </CardFooter>
                             </Card>
-                        ))}
+                        )})}
                     </div>
                 ) : (
                      <div className="text-center py-10 border-2 border-dashed rounded-lg">
