@@ -22,6 +22,9 @@ declare global {
   }
 }
 
+// Firebase provides test numbers to avoid rate limits during development
+const FIREBASE_TEST_PHONE_NUMBER = '+16505553434';
+
 export function PhoneAuthForm() {
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
@@ -82,11 +85,16 @@ export function PhoneAuthForm() {
         return;
     }
 
-    const appVerifier = window.recaptchaVerifier;
     const formattedPhone = `+91${phone}`;
+    const appVerifier = window.recaptchaVerifier;
+    
+    // For test numbers, Firebase recommends not using the app verifier.
+    const verifierForSignIn = formattedPhone === FIREBASE_TEST_PHONE_NUMBER ? null : appVerifier;
+
 
     try {
-      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
+      // @ts-ignore - The 'null' verifier is valid for test numbers, but TS doesn't know that.
+      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, verifierForSignIn);
       window.confirmationResult = confirmationResult;
       setShowOtpInput(true);
       toast({
@@ -204,6 +212,11 @@ export function PhoneAuthForm() {
                 className="rounded-l-none"
               />
             </div>
+             {process.env.NODE_ENV === 'development' && (
+              <p className="text-xs text-muted-foreground pt-1">
+                Hint: Use test number `6505553434` with OTP `123456` to avoid SMS limits.
+              </p>
+            )}
           </div>
           <div id="recaptcha-container" className="flex justify-center"></div>
           <Button type="submit" className="w-full" disabled={loading}>
