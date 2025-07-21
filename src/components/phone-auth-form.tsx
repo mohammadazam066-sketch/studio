@@ -33,16 +33,24 @@ export function PhoneAuthForm() {
   const [appVerifier, setAppVerifier] = useState<RecaptchaVerifier | null>(null);
 
   useEffect(() => {
+    // This effect runs only when we need to show the phone number input.
+    // It sets up the reCAPTCHA verifier.
     if (!showOtpInput && !showRoleSelector) {
         const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
             'size': 'normal',
             'callback': (response: any) => {
-              // reCAPTCHA solved
+              // reCAPTCHA solved, allow user to proceed
             },
+            'expired-callback': () => {
+              // Response expired. Ask user to solve reCAPTCHA again.
+              toast.error("reCAPTCHA expired. Please solve it again.");
+            }
         });
         setAppVerifier(verifier);
         window.recaptchaVerifier = verifier;
 
+        // Cleanup function to clear the verifier when the component unmounts
+        // or when we move to the OTP/Role stage.
         return () => {
             verifier.clear();
         }
@@ -80,7 +88,7 @@ export function PhoneAuthForm() {
       if (error.code === 'auth/invalid-phone-number') {
         errorMessage = 'The phone number format is invalid. Please check and try again.';
       } else if (error.code === 'auth/captcha-check-failed') {
-          errorMessage = "reCAPTCHA check failed. Please ensure your domain is authorized in the Firebase Console."
+          errorMessage = "reCAPTCHA check failed. Ensure your domain (e.g., localhost) is authorized in the Firebase Console."
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = "You've made too many requests. Please wait a while before trying again."
       }
@@ -168,7 +176,6 @@ export function PhoneAuthForm() {
               />
             </div>
           </div>
-          {/* This container is where the reCAPTCHA widget will render */}
           <div id="recaptcha-container" className="flex justify-center"></div>
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? <Loader2 className="animate-spin" /> : 'Send OTP'}
