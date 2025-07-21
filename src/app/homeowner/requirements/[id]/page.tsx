@@ -262,10 +262,10 @@ export default function RequirementDetailPage() {
               <Card key={quote.id} className="transition-shadow hover:shadow-md">
                 <CardHeader>
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                    <div>
-                      <CardTitle className="text-lg">{quote.shopName}</CardTitle>
-                      <CardDescription>{quote.shopOwnerName}</CardDescription>
-                    </div>
+                    <Link href={`/homeowner/profile/${quote.shopOwnerId}`} className="hover:underline group">
+                        <CardTitle className="text-lg group-hover:text-primary">{quote.shopName}</CardTitle>
+                        <CardDescription>{quote.shopOwnerName}</CardDescription>
+                    </Link>
                     <div className="flex items-center text-lg font-semibold text-primary">
                         <span className="font-sans mr-1">Rs</span>
                         {quote.amount.toFixed(2)}
