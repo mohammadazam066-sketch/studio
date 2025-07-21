@@ -161,7 +161,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
   
       // Force a re-check of the auth state to load the new user data
-      const updatedUser = await onAuthChanged(user => {
+      const updatedUser = onAuthChanged(user => {
         if(user) {
             setCurrentUserAndLog(user)
         }
@@ -342,9 +342,16 @@ export const getQuotationById = async (id: string): Promise<Quotation | undefine
 
 
 export const getQuotationsForRequirement = async (requirementId: string): Promise<Quotation[]> => {
-    const q = query(collection(db, "quotations"), where("requirementId", "==", requirementId), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "quotations"), where("requirementId", "==", requirementId));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Quotation));
+    const quotations = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Quotation));
+    
+    // Sort manually on the client-side
+    return quotations.sort((a, b) => {
+        const dateA = (a.createdAt as any)?.toDate ? (a.createdAt as any).toDate() : new Date(a.createdAt as string);
+        const dateB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate() : new Date(b.createdAt as string);
+        return dateB.getTime() - dateA.getTime();
+    });
 }
 
 export const getQuotationForRequirementByShop = async (requirementId: string, shopOwnerId: string): Promise<Quotation | undefined> => {
