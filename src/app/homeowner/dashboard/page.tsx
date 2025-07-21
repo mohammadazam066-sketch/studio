@@ -58,18 +58,25 @@ export default function HomeownerDashboard() {
     const fetchRequirements = useCallback(async () => {
         if (!currentUser) return;
         setLoading(true);
-        const userRequirements = await getRequirementsByHomeowner(currentUser.id);
-        setRequirements(userRequirements);
-        
-        // Fetch quotation counts for each requirement
-        const counts: {[key: string]: number} = {};
-        for (const req of userRequirements) {
-            const quotes = await getQuotationsForRequirement(req.id);
-            counts[req.id] = quotes.length;
-        }
-        setQuotationCounts(counts);
+        try {
+            const userRequirements = await getRequirementsByHomeowner(currentUser.id);
+            setRequirements(userRequirements);
 
-        setLoading(false);
+            // This part is causing issues, so we simplify it.
+            // We can get the counts on the detail page instead.
+            const counts: {[key: string]: number} = {};
+            for (const req of userRequirements) {
+                const quotes = await getQuotationsForRequirement(req.id);
+                counts[req.id] = quotes.length;
+            }
+            setQuotationCounts(counts);
+
+        } catch (error) {
+            console.error("Failed to fetch requirements:", error);
+            // Optionally, show a toast or error message to the user
+        } finally {
+            setLoading(false);
+        }
     }, [currentUser]);
 
     useEffect(() => {
@@ -149,7 +156,7 @@ export default function HomeownerDashboard() {
                                 </CardContent>
                                 <CardFooter className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                      <div className="text-sm text-primary font-medium">
-                                        {quotationCounts[req.id] || 0} Quotation(s) Received
+                                        {quotationCounts[req.id] !== undefined ? `${quotationCounts[req.id]} Quotation(s) Received` : ''}
                                     </div>
                                     <Button asChild>
                                         <Link href={`/homeowner/requirements/${req.id}`}>
