@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import type { UserRole } from '@/lib/types';
-import toast, { Toaster } from 'react-hot-toast';
+import { useToast } from '@/hooks/use-toast';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
@@ -30,7 +30,7 @@ export function PhoneAuthForm() {
   const [showRoleSelector, setShowRoleSelector] = useState(false);
   const [role, setRole] = useState<UserRole>('homeowner');
   const { handleNewUser } = useAuth();
-  const [appVerifier, setAppVerifier] = useState<RecaptchaVerifier | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     // This effect runs only when we need to show the phone number input.
@@ -43,10 +43,13 @@ export function PhoneAuthForm() {
             },
             'expired-callback': () => {
               // Response expired. Ask user to solve reCAPTCHA again.
-              toast.error("reCAPTCHA expired. Please solve it again.");
+              toast({
+                  variant: "destructive",
+                  title: "reCAPTCHA Expired",
+                  description: "Please solve the reCAPTCHA again.",
+              });
             }
         });
-        setAppVerifier(verifier);
         window.recaptchaVerifier = verifier;
 
         // Cleanup function to clear the verifier when the component unmounts
@@ -55,7 +58,7 @@ export function PhoneAuthForm() {
             verifier.clear();
         }
     }
-  }, [showOtpInput, showRoleSelector]);
+  }, [showOtpInput, showRoleSelector, toast]);
 
 
   const onSendOtp = async (e: React.FormEvent) => {
@@ -64,35 +67,51 @@ export function PhoneAuthForm() {
 
     const phoneNumber = phone.trim();
     if (!/^\d{10}$/.test(phoneNumber)) {
-        toast.error("Please enter a valid 10-digit phone number.");
+        toast({
+            variant: "destructive",
+            title: "Invalid Phone Number",
+            description: "Please enter a valid 10-digit phone number.",
+        });
         setLoading(false);
         return;
     }
     
-    if (!appVerifier) {
-        toast.error("reCAPTCHA not initialized. Please wait a moment and try again.");
+    if (!window.recaptchaVerifier) {
+        toast({
+            variant: "destructive",
+            title: "reCAPTCHA Error",
+            description: "reCAPTCHA not initialized. Please wait a moment and try again.",
+        });
         setLoading(false);
         return;
     }
     
     const formattedPhone = `+91${phoneNumber}`;
+    const appVerifier = window.recaptchaVerifier;
 
     try {
       const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
       window.confirmationResult = confirmationResult;
       setShowOtpInput(true);
-      toast.success('OTP sent successfully!');
+      toast({
+          title: 'OTP Sent!',
+          description: 'Please check your phone for the verification code.',
+      });
     } catch (error: any) {
       console.error('Error sending OTP:', error);
       let errorMessage = 'Failed to send OTP. Please try again.';
       if (error.code === 'auth/invalid-phone-number') {
         errorMessage = 'The phone number format is invalid. Please check and try again.';
       } else if (error.code === 'auth/captcha-check-failed') {
-          errorMessage = "reCAPTCHA check failed. Ensure your domain (e.g., localhost) is authorized in the Firebase Console."
+          errorMessage = "reCAPTCHA check failed. Please ensure your domain (e.g., localhost) is authorized in the Firebase Console under Authentication > Settings > Authorized domains."
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = "You've made too many requests. Please wait a while before trying again."
       }
-      toast.error(errorMessage);
+      toast({
+          variant: 'destructive',
+          title: 'OTP Send Error',
+          description: errorMessage,
+      });
     } finally {
       setLoading(false);
     }
@@ -102,7 +121,11 @@ export function PhoneAuthForm() {
     e.preventDefault();
     setLoading(true);
     if (!window.confirmationResult) {
-      toast.error("Confirmation result not found. Please try again.");
+      toast({
+        variant: "destructive",
+        title: "Verification Error",
+        description: "Confirmation result not found. Please try sending the OTP again.",
+      });
       setLoading(false);
       return;
     }
@@ -115,15 +138,19 @@ export function PhoneAuthForm() {
       const userDoc = await getDoc(userDocRef);
 
       if (userDoc.exists()) {
-        toast.success('Login Successful!');
+        toast({ title: 'Login Successful!' });
       } else {
         setShowRoleSelector(true);
         setShowOtpInput(false);
-        toast("Welcome! Please select your role.");
+        toast({ title: "Welcome!", description: "Please select your role to complete registration."});
       }
     } catch (error) {
       console.error('Error verifying OTP:', error);
-      toast.error('Invalid OTP. Please try again.');
+      toast({
+          variant: "destructive",
+          title: "Invalid OTP",
+          description: "The OTP you entered is incorrect. Please try again."
+      });
     } finally {
       setLoading(false);
     }
@@ -134,17 +161,25 @@ export function PhoneAuthForm() {
     setLoading(true);
     const user = auth.currentUser;
     if (!user) {
-        toast.error("No authenticated user found. Please restart the login process.");
+        toast({
+            variant: "destructive",
+            title: "Authentication Error",
+            description: "No authenticated user found. Please restart the login process.",
+        });
         setLoading(false);
         return;
     }
     
     try {
         await handleNewUser(user, role);
-        toast.success("Registration complete! Welcome to TradeFlow.");
+        toast({ title: "Registration complete! Welcome to TradeFlow." });
     } catch (error) {
         console.error("Failed to create user profile:", error);
-        toast.error("An error occurred during registration. Please try again.");
+        toast({
+            variant: "destructive",
+            title: "Registration Failed",
+            description: "An error occurred during registration. Please try again.",
+        });
     } finally {
         setLoading(false);
     }
@@ -152,10 +187,6 @@ export function PhoneAuthForm() {
 
   return (
     <>
-      <Toaster toastOptions={{
-          className: 'bg-background text-foreground border rounded-md',
-      }}/>
-
       {!showOtpInput && !showRoleSelector && (
         <form onSubmit={onSendOtp} className="space-y-4">
           <div className="space-y-2">
