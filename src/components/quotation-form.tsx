@@ -115,7 +115,13 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
                                 <FormItem>
                                     <FormLabel>Quotation Amount (Rs)</FormLabel>
                                     <FormControl>
-                                        <Input type="number" placeholder="e.g., 50000" {...field} disabled={isSubmitting} />
+                                        <Input
+                                            type="number"
+                                            placeholder="e.g., 50000"
+                                            {...field}
+                                            value={field.value ?? ''}
+                                            disabled={isSubmitting}
+                                        />
                                     </FormControl>
                                     <FormMessage />
                                 </FormItem>
