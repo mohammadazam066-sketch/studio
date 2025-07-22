@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Calendar, Wrench, FileText, CheckCircle, Edit, Trash2, Droplets } from 'lucide-react';
+import { MapPin, Calendar, Wrench, FileText, CheckCircle, Edit, Trash2, Droplets, Tally5 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEffect, useState, useCallback } from 'react';
 import type { Requirement, Quotation } from '@/lib/types';
@@ -251,6 +251,23 @@ export default function RequirementDetailPage() {
                  <Separator className="my-4" />
             </div>
           )}
+          
+          {requirement.steelDetails && requirement.steelDetails.length > 0 && (
+            <div className="mb-6">
+                <Separator className="my-4" />
+                <h4 className="text-base font-semibold mb-3">Steel (TMT Bar) Details</h4>
+                <div className="space-y-2">
+                    {requirement.steelDetails.map(detail => (
+                        <div key={detail.size} className="flex items-center justify-between text-sm p-2 bg-muted/50 rounded-md">
+                            <span className="text-muted-foreground">{detail.size}mm</span>
+                            <span className="font-medium">{detail.quantity} units</span>
+                        </div>
+                    ))}
+                </div>
+                <Separator className="my-4" />
+            </div>
+          )}
+
 
           {requirement.photos.length > 0 && (
              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">

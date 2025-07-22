@@ -1,12 +1,12 @@
 
 'use client';
 
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { addRequirement, updateRequirement, useAuth } from '@/lib/store';
 import { useRouter } from 'next/navigation';
-import { Loader2, Upload, X } from 'lucide-react';
+import { Loader2, Upload, X, PlusCircle, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
 import Image from 'next/image';
 
@@ -32,6 +32,12 @@ const brandSchema = z.object({
   quantity: z.coerce.number().optional(),
 });
 
+const steelDetailSchema = z.object({
+    size: z.string().min(1, "Size is required."),
+    quantity: z.coerce.number().min(1, "Quantity must be at least 1."),
+});
+
+
 const requirementFormSchema = z.object({
   title: z.string().min(1, { message: "Title is required." }),
   category: z.string({ required_error: "Please select a category." }).min(1, "Please select a category."),
@@ -39,6 +45,7 @@ const requirementFormSchema = z.object({
   description: z.string().optional(),
   brands: z.array(brandSchema).optional(),
   flexibleBrand: z.boolean().optional(),
+  steelDetails: z.array(steelDetailSchema).optional(),
 });
 
 type RequirementFormValues = z.infer<typeof requirementFormSchema>;
@@ -78,12 +85,19 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
       description: existingRequirement?.description || '',
       brands: existingRequirement?.brands || [],
       flexibleBrand: existingRequirement?.flexibleBrand || false,
+      steelDetails: existingRequirement?.steelDetails || [{ size: '', quantity: 0 }],
     },
   });
 
-  const { formState: { isSubmitting }, watch, setValue, getValues } = form;
+  const { formState: { isSubmitting }, watch, setValue, getValues, control } = form;
 
   const watchedCategory = watch("category");
+  
+  const { fields: steelFields, append: appendSteel, remove: removeSteel } = useFieldArray({
+    control,
+    name: "steelDetails",
+  });
+
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -320,6 +334,56 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                                 />
                                 <Separator />
                            </div>
+                        )}
+
+                        {watchedCategory === 'Steel' && (
+                            <div className="md:col-span-2 space-y-6 border rounded-lg p-4">
+                                <Separator />
+                                <div>
+                                    <h3 className="text-lg font-semibold">Steel (TMT Bar) Details</h3>
+                                    <p className="text-sm text-muted-foreground">Specify the sizes and quantities you need.</p>
+                                </div>
+                                <div className="space-y-4">
+                                    {steelFields.map((field, index) => (
+                                        <div key={field.id} className="flex items-end gap-3 p-2 border-b">
+                                            <FormField
+                                                control={control}
+                                                name={`steelDetails.${index}.size`}
+                                                render={({ field }) => (
+                                                    <FormItem className="flex-1">
+                                                        <FormLabel>Size (mm)</FormLabel>
+                                                        <FormControl>
+                                                            <Input {...field} placeholder="e.g., 8" />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={control}
+                                                name={`steelDetails.${index}.quantity`}
+                                                render={({ field }) => (
+                                                    <FormItem className="flex-1">
+                                                        <FormLabel>Quantity (units)</FormLabel>
+                                                        <FormControl>
+                                                            <Input type="number" {...field} placeholder="e.g., 50" onChange={e => field.onChange(Number(e.target.value))} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeSteel(index)} disabled={isSubmitting}>
+                                                <Trash2 className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <Button type="button" variant="outline" size="sm" onClick={() => appendSteel({ size: '', quantity: 0 })}>
+                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                    Add Another Size
+                                </Button>
+                                <Separator />
+                            </div>
                         )}
 
 

@@ -4,7 +4,7 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { Eye, FileText, CheckCircle, Clock, Droplets } from "lucide-react";
+import { Eye, FileText, CheckCircle, Clock, Droplets, Tally5 } from "lucide-react";
 import { useAuth, getOpenRequirements, getQuotationsByShopOwner, getRequirementById } from "@/lib/store";
 import { useEffect, useState, useCallback } from "react";
 import type { Requirement, Quotation } from "@/lib/types";
@@ -184,6 +184,19 @@ export default function ShopOwnerDashboard() {
                                                     <li key={brand.id} className="text-sm text-muted-foreground flex items-center gap-2">
                                                         <Droplets className="w-4 h-4 text-primary/70" />
                                                         <span>{brand.id}: <strong>{brand.quantity || 'N/A'} bags</strong></span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                     {req.steelDetails && req.steelDetails.length > 0 && (
+                                        <div className="mt-4 pt-4 border-t">
+                                            <h4 className="text-sm font-semibold mb-2">Steel Details:</h4>
+                                            <ul className="space-y-1">
+                                                {req.steelDetails.map(detail => (
+                                                    <li key={detail.size} className="text-sm text-muted-foreground flex items-center gap-2">
+                                                        <Tally5 className="w-4 h-4 text-primary/70" />
+                                                        <span>{detail.size}mm: <strong>{detail.quantity || 'N/A'} units</strong></span>
                                                     </li>
                                                 ))}
                                             </ul>

@@ -12,7 +12,7 @@ import { format } from "date-fns";
 import type { Timestamp } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
-import { Droplets } from "lucide-react";
+import { Droplets, Tally5 } from "lucide-react";
 
 function formatDate(date: Date | string | Timestamp) {
     if (!date) return '';
@@ -106,6 +106,19 @@ export default function ShopOwnerOpenRequirementsPage() {
                                                     <li key={brand.id} className="text-sm text-muted-foreground flex items-center gap-2">
                                                         <Droplets className="w-4 h-4 text-primary/70" />
                                                         <span>{brand.id}: <strong>{brand.quantity || 'N/A'} bags</strong></span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                     {req.steelDetails && req.steelDetails.length > 0 && (
+                                        <div className="mt-4 pt-4 border-t">
+                                            <h4 className="text-sm font-semibold mb-2">Steel Details:</h4>
+                                            <ul className="space-y-1">
+                                                {req.steelDetails.map(detail => (
+                                                    <li key={detail.size} className="text-sm text-muted-foreground flex items-center gap-2">
+                                                        <Tally5 className="w-4 h-4 text-primary/70" />
+                                                        <span>{detail.size}mm: <strong>{detail.quantity || 'N/A'} units</strong></span>
                                                     </li>
                                                 ))}
                                             </ul>

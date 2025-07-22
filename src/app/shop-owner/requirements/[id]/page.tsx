@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Calendar, Wrench, Droplets } from 'lucide-react';
+import { MapPin, Calendar, Wrench, Droplets, Tally5 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEffect, useState, useCallback } from 'react';
 import type { Requirement, Quotation } from '@/lib/types';
@@ -150,6 +150,22 @@ export default function RequirementDetailPageForShop() {
                             {requirement.flexibleBrand && (
                                 <p className="text-xs text-muted-foreground mt-2 text-center">User is open to alternative brands.</p>
                             )}
+                            <Separator className="my-4" />
+                        </div>
+                    )}
+                    
+                    {requirement.steelDetails && requirement.steelDetails.length > 0 && (
+                        <div className="mb-6">
+                            <Separator className="my-4" />
+                            <h4 className="text-base font-semibold mb-3">Steel (TMT Bar) Details</h4>
+                            <div className="space-y-2">
+                                {requirement.steelDetails.map(detail => (
+                                    <div key={detail.size} className="flex items-center justify-between text-sm p-2 bg-muted/50 rounded-md">
+                                        <span className="text-muted-foreground">{detail.size}mm</span>
+                                        <span className="font-medium">{detail.quantity} units</span>
+                                    </div>
+                                ))}
+                            </div>
                             <Separator className="my-4" />
                         </div>
                     )}

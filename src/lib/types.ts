@@ -33,6 +33,11 @@ type BrandSelection = {
   quantity?: number;
 }
 
+export type SteelDetail = {
+  size: string;
+  quantity: number;
+}
+
 export type Requirement = {
   id: string;
   homeownerId: string;
@@ -46,6 +51,7 @@ export type Requirement = {
   status: 'Open' | 'Purchased';
   brands?: BrandSelection[];
   flexibleBrand?: boolean;
+  steelDetails?: SteelDetail[];
 };
 
 export type Quotation = {
