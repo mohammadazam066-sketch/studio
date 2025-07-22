@@ -13,12 +13,9 @@ import type { UserRole } from "@/lib/types";
 const categories = [
     { id: 'Cement', label: 'Cement', imageHint: 'cement bag' },
     { id: 'Steel', label: 'Steel', imageHint: 'steel bars' },
-    { id: 'Bricks & Blocks', label: 'Bricks', imageHint: 'brick wall' },
-    { id: 'Sand & Aggregates', label: 'Sand', imageHint: 'sand pile' },
-    { id: 'Plumbing', label: 'Plumbing', imageHint: 'pipes plumbing' },
+    { id: 'Bricks & Blocks', label: 'Bricks & Blocks', imageHint: 'brick wall' },
+    { id: 'Sand & Aggregates', label: 'Sand & Aggregates', imageHint: 'sand pile' },
     { id: 'Electrical', label: 'Electrical', imageHint: 'electrical wires' },
-    { id: 'Paints & Finishes', label: 'Paint', imageHint: 'paint brush' },
-    { id: 'Other', label: 'Tools', imageHint: 'tools construction' }
 ];
 
 function CategoryGridSkeleton() {
@@ -52,16 +49,23 @@ export function MaterialCategoryGrid({ role }: MaterialCategoryGridProps) {
         fetchCounts();
     }, []);
 
-    const linkHref = role === 'shop-owner' ? '/shop-owner/requirements' : '/homeowner/dashboard'; // Homeowner doesn't have a category page yet.
+    const getLinkHref = (category: string) => {
+        if (role === 'homeowner') {
+            return '/homeowner/dashboard'; // Homeowner doesn't have a category page yet.
+        }
+        // URL-encode the category to handle special characters like '&'
+        return `/shop-owner/requirements/category/${encodeURIComponent(category)}`;
+    }
+
 
     if (loading) {
         return <CategoryGridSkeleton />;
     }
 
     return (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {categories.map((category) => (
-                <Link href={linkHref} key={category.id} className="group">
+                <Link href={getLinkHref(category.id)} key={category.id} className="group">
                     <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.02]">
                         <CardContent className="p-0 relative">
                             <Image
