@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Phone, User, Home, ShieldAlert } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
-import type { HomeownerProfile, Quotation } from '@/lib/types';
+import type { HomeownerProfile, QuotationWithRequirement } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -58,10 +58,12 @@ export default function HomeownerProfilePageForShop() {
     setProfile(profileData);
 
     // Check if any requirement from this homeowner quoted by the current shop owner is purchased.
-    const userQuotations = await getQuotationsByShopOwner(currentUser.id);
+    const userQuotations: QuotationWithRequirement[] = await getQuotationsByShopOwner(currentUser.id);
+    
     const hasPurchasedQuote = userQuotations.some(quote => 
         quote.requirement?.homeownerId === homeownerId && quote.requirement?.status === 'Purchased'
     );
+    
     setIsPurchased(hasPurchasedQuote);
     
     setLoading(false);

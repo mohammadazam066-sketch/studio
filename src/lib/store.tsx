@@ -3,7 +3,7 @@
 'use client';
 
 import React from 'react';
-import type { User, UserRole, HomeownerProfile, ShopOwnerProfile, Requirement, Quotation, Update } from './types';
+import type { User, UserRole, HomeownerProfile, ShopOwnerProfile, Requirement, Quotation, Update, QuotationWithRequirement } from './types';
 import { db, storage, auth } from './firebase';
 import { 
     doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, 
@@ -403,10 +403,19 @@ export const getQuotationForRequirementByShop = async (requirementId: string, sh
     return undefined;
 }
 
-export const getQuotationsByShopOwner = async (shopOwnerId: string): Promise<Quotation[]> => {
+export const getQuotationsByShopOwner = async (shopOwnerId: string): Promise<QuotationWithRequirement[]> => {
     const q = query(collection(db, "quotations"), where("shopOwnerId", "==", shopOwnerId), orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Quotation));
+    
+    const quotationsWithRequirements = await Promise.all(
+        querySnapshot.docs.map(async (doc) => {
+            const quote = { id: doc.id, ...doc.data() } as Quotation;
+            const requirement = await getRequirementById(quote.requirementId);
+            return { ...quote, requirement };
+        })
+    );
+    
+    return quotationsWithRequirements;
 }
 
 // == PROFILES ==
@@ -530,5 +539,3 @@ export const getUpdateById = async (id: string): Promise<Update | undefined> => 
     }
     return undefined;
 }
-
-    

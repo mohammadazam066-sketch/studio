@@ -1,4 +1,5 @@
 
+
 import type { Timestamp } from 'firebase/firestore';
 
 export type UserRole = 'homeowner' | 'shop-owner';
@@ -67,6 +68,10 @@ export type Quotation = {
   deliveryDate: Timestamp | Date | string;
   createdAt: Timestamp | Date | string;
 };
+
+export type QuotationWithRequirement = Quotation & {
+    requirement?: Requirement;
+}
 
 export type Update = {
   id: string;
