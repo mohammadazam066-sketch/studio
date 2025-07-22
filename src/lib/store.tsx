@@ -301,6 +301,23 @@ export const getOpenRequirements = async (): Promise<Requirement[]> => {
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Requirement));
 }
 
+export const getOpenRequirementsCountByCategory = async (): Promise<Record<string, number>> => {
+    const q = query(
+        collection(db, "requirements"), 
+        where("status", "==", "Open")
+    );
+    const querySnapshot = await getDocs(q);
+    const counts: Record<string, number> = {};
+    querySnapshot.forEach(doc => {
+        const requirement = doc.data() as Requirement;
+        if (requirement.category) {
+            counts[requirement.category] = (counts[requirement.category] || 0) + 1;
+        }
+    });
+    return counts;
+};
+
+
 export const updateRequirementStatus = async (id: string, status: 'Open' | 'Purchased') => {
     const requirementRef = doc(db, 'requirements', id);
     await updateDoc(requirementRef, { status });

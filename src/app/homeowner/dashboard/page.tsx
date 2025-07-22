@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import type { Timestamp } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
+import { MaterialCategoryGrid } from "@/components/material-category-grid";
 
 function formatDate(date: Date | string | Timestamp) {
     if (!date) return '';
@@ -100,6 +101,11 @@ export default function HomeownerDashboard() {
                         Post a New Requirement
                     </Link>
                 </Button>
+            </div>
+
+             <div className="space-y-4">
+                <h2 className="text-xl font-bold font-headline">Browse by Category</h2>
+                {currentUser && <MaterialCategoryGrid role={currentUser.role} />}
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
