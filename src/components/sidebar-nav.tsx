@@ -56,7 +56,7 @@ export function SidebarNav({ user }: { user: User }) {
                         <SidebarMenuItem key={item.href}>
                              <Link href={item.href}>
                                 <SidebarMenuButton
-                                    isActive={pathname === item.href}
+                                    isActive={pathname.startsWith(item.href) && (item.href !== '/shop-owner/dashboard' || pathname === '/shop-owner/dashboard')}
                                     icon={item.icon}
                                     // @ts-ignore
                                     tooltip={{
