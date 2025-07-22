@@ -116,7 +116,7 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
 
     files.forEach(file => {
       if (file.size > MAX_FILE_SIZE) {
-        toast({ variant: "destructive", title: "File too large", description: `${'${'}file.name} is over 5MB.` });
+        toast({ variant: "destructive", title: "File too large", description: `${file.name} is over 5MB.` });
         return;
       }
       if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
@@ -164,7 +164,7 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                 title: 'Requirement Updated!',
                 description: 'Your requirement has been successfully updated.',
              });
-             router.push(`/homeowner/requirements/${'${'}existingRequirement.id}`);
+             router.push('/homeowner/dashboard');
 
         } else {
             // Create logic
@@ -514,7 +514,7 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                                     </div>
                                 ))}
                                 <div className="flex items-center justify-center w-full">
-                                    <label htmlFor="dropzone-file" className={`flex flex-col items-center justify-center w-full h-full aspect-square border-2 border-dashed rounded-lg ${'${'}isSubmitting ? 'cursor-not-allowed bg-muted/50' : 'cursor-pointer bg-secondary hover:bg-muted'}`}>
+                                    <label htmlFor="dropzone-file" className={`flex flex-col items-center justify-center w-full h-full aspect-square border-2 border-dashed rounded-lg ${isSubmitting ? 'cursor-not-allowed bg-muted/50' : 'cursor-pointer bg-secondary hover:bg-muted'}`}>
                                         <div className="flex flex-col items-center justify-center text-center p-2">
                                             <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
                                             <p className="text-xs text-muted-foreground"><span className="font-semibold">Add photos</span></p>
@@ -538,5 +538,7 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
     </div>
   );
 }
+
+    
 
     
