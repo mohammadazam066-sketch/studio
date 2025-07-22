@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -178,7 +179,7 @@ export default function ShopOwnerDashboard() {
                                     <p className="text-muted-foreground line-clamp-2">{req.description}</p>
                                     {req.brands && req.brands.length > 0 && (
                                         <div className="mt-4 pt-4 border-t">
-                                            <h4 className="text-sm font-semibold mb-2">Brand Details:</h4>
+                                            <h4 className="text-sm font-semibold mb-2">Cement Details:</h4>
                                             <ul className="space-y-1">
                                                 {req.brands.map(brand => (
                                                     <li key={brand.id} className="text-sm text-muted-foreground flex items-center gap-2">
@@ -196,10 +197,13 @@ export default function ShopOwnerDashboard() {
                                                 {req.steelDetails.map(detail => (
                                                     <li key={detail.size} className="text-sm text-muted-foreground flex items-center gap-2">
                                                         <Tally5 className="w-4 h-4 text-primary/70" />
-                                                        <span>{detail.size}mm: <strong>{detail.quantity || 'N/A'} units</strong></span>
+                                                        <span>{detail.size}mm: <strong>{detail.quantity || 'N/A'} rods</strong></span>
                                                     </li>
                                                 ))}
                                             </ul>
+                                            {req.steelBrands && req.steelBrands.length > 0 && (
+                                                <p className="text-xs text-muted-foreground mt-2">Preferred Brands: {req.steelBrands.join(', ')}</p>
+                                            )}
                                         </div>
                                     )}
                                 </CardContent>

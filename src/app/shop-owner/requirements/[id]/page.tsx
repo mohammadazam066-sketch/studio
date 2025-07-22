@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { getRequirementById, getQuotationForRequirementByShop, useAuth } from '@/lib/store';
@@ -138,7 +139,7 @@ export default function RequirementDetailPageForShop() {
                     {requirement.brands && requirement.brands.length > 0 && (
                         <div className="mb-6">
                             <Separator className="my-4" />
-                            <h4 className="text-base font-semibold mb-3">Brand Details</h4>
+                            <h4 className="text-base font-semibold mb-3">Cement Details</h4>
                             <div className="space-y-2">
                                 {requirement.brands.map(brand => (
                                     <div key={brand.id} className="flex items-center justify-between text-sm p-2 bg-muted/50 rounded-md">
@@ -162,10 +163,16 @@ export default function RequirementDetailPageForShop() {
                                 {requirement.steelDetails.map(detail => (
                                     <div key={detail.size} className="flex items-center justify-between text-sm p-2 bg-muted/50 rounded-md">
                                         <span className="text-muted-foreground">{detail.size}mm</span>
-                                        <span className="font-medium">{detail.quantity} units</span>
+                                        <span className="font-medium">{detail.quantity} rods</span>
                                     </div>
                                 ))}
                             </div>
+                            {requirement.steelBrands && requirement.steelBrands.length > 0 && (
+                                <p className="text-sm text-muted-foreground mt-2">Preferred Brands: {requirement.steelBrands.join(', ')}</p>
+                            )}
+                            {requirement.flexibleSteelBrand && (
+                                <p className="text-xs text-muted-foreground mt-2 text-center">User is open to alternative brands for steel.</p>
+                            )}
                             <Separator className="my-4" />
                         </div>
                     )}
