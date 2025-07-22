@@ -11,10 +11,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { UserRole } from "@/lib/types";
 
 const categories = [
-    { id: 'Cement', label: 'Cement', imageUrl: 'https://images.unsplash.com/photo-1593963496933-468534de16c5', imageHint: 'cement bag' },
+    { id: 'Cement', label: 'Cement', imageUrl: 'https://images.unsplash.com/photo-1582971271439-84d7d3c05436', imageHint: 'cement bag' },
     { id: 'Steel', label: 'Steel', imageUrl: 'https://images.unsplash.com/photo-1521633585298-2253c35c345b', imageHint: 'steel bars' },
     { id: 'Bricks & Blocks', label: 'Bricks & Blocks', imageUrl: 'https://images.unsplash.com/photo-1557997428-482a44391a82', imageHint: 'brick wall' },
-    { id: 'Sand & Aggregates', label: 'Sand & Aggregates', imageUrl: 'https://images.unsplash.com/photo-1618063988365-5335a5371a54', imageHint: 'sand pile' },
+    { id: 'Sand & Aggregates', label: 'Sand & Aggregates', imageUrl: 'https://images.unsplash.com/photo-1618063988365-5335a541a54', imageHint: 'sand pile' },
     { id: 'Electrical', label: 'Electrical', imageUrl: 'https://images.unsplash.com/photo-1497671952136-e17df2339a06', imageHint: 'electrical wires' },
 ];
 
