@@ -5,7 +5,7 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { PlusCircle, Eye, CheckSquare, List, Droplets, Tally5 } from "lucide-react";
+import { PlusCircle, Eye, CheckSquare, List, Droplets, Tally5, Edit } from "lucide-react";
 import { useAuth, getRequirementsByHomeowner, getQuotationsForRequirement } from "@/lib/store";
 import { useEffect, useState, useCallback } from "react";
 import type { Requirement, Quotation } from "@/lib/types";
@@ -43,7 +43,10 @@ function RequirementListSkeleton() {
                     </CardContent>
                     <CardFooter className="flex justify-between">
                          <Skeleton className="h-5 w-24" />
-                         <Skeleton className="h-10 w-32" />
+                         <div className="flex gap-2">
+                            <Skeleton className="h-10 w-24" />
+                            <Skeleton className="h-10 w-32" />
+                         </div>
                     </CardFooter>
                 </Card>
             ))}
@@ -65,7 +68,7 @@ export default function HomeownerDashboard() {
             const userRequirements = await getRequirementsByHomeowner(currentUser.id);
             setRequirements(userRequirements);
 
-            const counts: {[key: string]: number} = {};
+            const counts: {[key:string]: number} = {};
             for (const req of userRequirements) {
                 const quotes = await getQuotationsForRequirement(req.id);
                 counts[req.id] = quotes.length;
@@ -192,15 +195,22 @@ export default function HomeownerDashboard() {
                                     )}
 
                                 </CardContent>
-                                <CardFooter className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-4">
                                      <div className="text-sm text-primary font-medium">
                                         {quotationCounts[req.id] !== undefined ? `${quotationCounts[req.id]} Quotation(s) Received` : ''}
                                     </div>
-                                    <Button asChild>
-                                        <Link href={`/homeowner/requirements/${req.id}`}>
-                                            View Details & Quotes
-                                        </Link>
-                                    </Button>
+                                    <div className="flex gap-2">
+                                        <Button asChild variant="outline">
+                                            <Link href={`/homeowner/requirements/edit/${req.id}`}>
+                                                <Edit className="mr-2 h-4 w-4" /> Edit
+                                            </Link>
+                                        </Button>
+                                        <Button asChild>
+                                            <Link href={`/homeowner/requirements/${req.id}`}>
+                                                View Details & Quotes
+                                            </Link>
+                                        </Button>
+                                    </div>
                                 </CardFooter>
                             </Card>
                         ))}
