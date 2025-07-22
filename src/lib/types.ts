@@ -52,6 +52,8 @@ export type Requirement = {
   brands?: BrandSelection[];
   flexibleBrand?: boolean;
   steelDetails?: SteelDetail[];
+  steelBrands?: string[];
+  flexibleSteelBrand?: boolean;
 };
 
 export type Quotation = {
@@ -76,3 +78,5 @@ export type Update = {
   imageUrl?: string;
   createdAt: Timestamp | Date | string;
 };
+
+    

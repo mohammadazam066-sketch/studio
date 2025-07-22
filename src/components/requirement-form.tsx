@@ -14,7 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import type { Requirement } from '@/lib/types';
@@ -46,6 +46,8 @@ const requirementFormSchema = z.object({
   brands: z.array(brandSchema).optional(),
   flexibleBrand: z.boolean().optional(),
   steelDetails: z.array(steelDetailSchema).optional(),
+  steelBrands: z.array(z.string()).optional(),
+  flexibleSteelBrand: z.boolean().optional(),
 });
 
 type RequirementFormValues = z.infer<typeof requirementFormSchema>;
@@ -64,6 +66,12 @@ const cementBrands = [
     { id: 'JK Cement', label: 'JK Cement' },
     { id: 'Dalmia', label: 'Dalmia' },
     { id: 'India Cements', label: 'India Cements' },
+];
+
+const steelBrandsList = [
+    { id: 'Metroll TMT Bars', label: 'Metroll TMT Bars' },
+    { id: 'Kaika TMT Bars', label: 'Kaika TMT Bars' },
+    { id: 'Kay2 TMT Bars', label: 'Kay2 TMT Bars' },
 ];
 
 
@@ -85,7 +93,9 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
       description: existingRequirement?.description || '',
       brands: existingRequirement?.brands || [],
       flexibleBrand: existingRequirement?.flexibleBrand || false,
-      steelDetails: existingRequirement?.steelDetails || [{ size: '', quantity: 0 }],
+      steelDetails: existingRequirement?.steelDetails?.length ? existingRequirement.steelDetails : [{ size: '', quantity: undefined }],
+      steelBrands: existingRequirement?.steelBrands || [],
+      flexibleSteelBrand: existingRequirement?.flexibleSteelBrand || false,
     },
   });
 
@@ -256,7 +266,7 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                                         <FormItem>
                                         <div className="mb-4">
                                             <FormLabel className="text-base">Brands</FormLabel>
-                                            <FormDescription>Select one or more brands.</FormDescription>
+                                            <p className="text-sm text-muted-foreground">Select one or more brands.</p>
                                         </div>
                                         <div className="space-y-4">
                                         {cementBrands.map((brand) => (
@@ -290,7 +300,7 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                                                                     <Input
                                                                         type="number"
                                                                         placeholder="Quantity (bags)"
-                                                                        value={selectedBrand.quantity || ''}
+                                                                        value={selectedBrand.quantity ?? ''}
                                                                         onChange={(e) => {
                                                                             const currentBrands = getValues("brands") || [];
                                                                             const updatedBrands = currentBrands.map(b => 
@@ -319,9 +329,9 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                                         <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
                                         <div className="space-y-0.5">
                                             <FormLabel>Flexible Brand</FormLabel>
-                                            <FormDescription>
-                                            I am open to alternative brands.
-                                            </FormDescription>
+                                             <p className="text-sm text-muted-foreground">
+                                                I am open to alternative brands.
+                                            </p>
                                         </div>
                                         <FormControl>
                                             <Switch
@@ -364,9 +374,9 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                                                 name={`steelDetails.${index}.quantity`}
                                                 render={({ field }) => (
                                                     <FormItem className="flex-1">
-                                                        <FormLabel>Quantity (units)</FormLabel>
+                                                        <FormLabel>Quantity (rods)</FormLabel>
                                                         <FormControl>
-                                                            <Input type="number" {...field} placeholder="e.g., 50" onChange={e => field.onChange(Number(e.target.value))} />
+                                                            <Input type="number" {...field} placeholder="e.g., 100" value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
                                                         </FormControl>
                                                         <FormMessage />
                                                     </FormItem>
@@ -378,10 +388,78 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                                         </div>
                                     ))}
                                 </div>
-                                <Button type="button" variant="outline" size="sm" onClick={() => appendSteel({ size: '', quantity: 0 })}>
+                                <Button type="button" variant="outline" size="sm" onClick={() => appendSteel({ size: '', quantity: undefined })}>
                                     <PlusCircle className="mr-2 h-4 w-4" />
                                     Add Another Size
                                 </Button>
+                                 <FormField
+                                    control={form.control}
+                                    name="steelBrands"
+                                    render={() => (
+                                        <FormItem className="pt-4">
+                                        <div className="mb-4">
+                                            <FormLabel className="text-base">Preferred Brands</FormLabel>
+                                            <p className="text-sm text-muted-foreground">Select one or more brands if you have a preference.</p>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {steelBrandsList.map((item) => (
+                                                <FormField
+                                                key={item.id}
+                                                control={form.control}
+                                                name="steelBrands"
+                                                render={({ field }) => {
+                                                    return (
+                                                    <FormItem
+                                                        key={item.id}
+                                                        className="flex flex-row items-start space-x-3 space-y-0"
+                                                    >
+                                                        <FormControl>
+                                                        <Checkbox
+                                                            checked={field.value?.includes(item.id)}
+                                                            onCheckedChange={(checked) => {
+                                                            return checked
+                                                                ? field.onChange([...(field.value || []), item.id])
+                                                                : field.onChange(
+                                                                    field.value?.filter(
+                                                                    (value) => value !== item.id
+                                                                    )
+                                                                )
+                                                            }}
+                                                        />
+                                                        </FormControl>
+                                                        <FormLabel className="font-normal">
+                                                        {item.label}
+                                                        </FormLabel>
+                                                    </FormItem>
+                                                    )
+                                                }}
+                                                />
+                                            ))}
+                                        </div>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                 <FormField
+                                    control={form.control}
+                                    name="flexibleSteelBrand"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm mt-4">
+                                        <div className="space-y-0.5">
+                                            <FormLabel>Flexible Brand</FormLabel>
+                                             <p className="text-sm text-muted-foreground">
+                                                I am open to alternative brands.
+                                            </p>
+                                        </div>
+                                        <FormControl>
+                                            <Switch
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                            />
+                                        </FormControl>
+                                        </FormItem>
+                                    )}
+                                />
                                 <Separator />
                             </div>
                         )}
@@ -402,7 +480,7 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                         />
                         <div className="space-y-2 md:col-span-2">
                             <Label>Site Photos (Optional)</Label>
-                            <CardDescription>Add photos of your site or material specifications.</CardDescription>
+                            <p className="text-sm text-muted-foreground">Add photos of your site or material specifications.</p>
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                                 {existingPhotos.map((url) => (
                                     <div key={url} className="relative group">
@@ -459,3 +537,5 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
     </div>
   );
 }
+
+    
