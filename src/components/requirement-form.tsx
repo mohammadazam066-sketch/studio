@@ -19,16 +19,26 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import type { Requirement } from '@/lib/types';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
 
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+const brandSchema = z.object({
+  id: z.string(),
+  quantity: z.coerce.number().optional(),
+});
 
 const requirementFormSchema = z.object({
   title: z.string().min(1, { message: "Title is required." }),
   category: z.string({ required_error: "Please select a category." }).min(1, "Please select a category."),
   location: z.string().min(2, { message: "Location is required." }),
   description: z.string().optional(),
+  brands: z.array(brandSchema).optional(),
+  flexibleBrand: z.boolean().optional(),
 });
 
 type RequirementFormValues = z.infer<typeof requirementFormSchema>;
@@ -38,6 +48,17 @@ interface RequirementFormProps {
     existingRequirement?: Requirement;
     initialCategory?: string;
 }
+
+const cementBrands = [
+    { id: 'UltraTech', label: 'UltraTech' },
+    { id: 'ACC', label: 'ACC' },
+    { id: 'Shree Cement', label: 'Shree Cement' },
+    { id: 'Birla', label: 'Birla' },
+    { id: 'JK Cement', label: 'JK Cement' },
+    { id: 'Dalmia', label: 'Dalmia' },
+    { id: 'India Cements', label: 'India Cements' },
+];
+
 
 export function RequirementForm({ existingRequirement, initialCategory }: RequirementFormProps) {
   const { currentUser } = useAuth();
@@ -55,10 +76,14 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
       category: existingRequirement?.category || initialCategory || '',
       location: existingRequirement?.location || '',
       description: existingRequirement?.description || '',
+      brands: existingRequirement?.brands || [],
+      flexibleBrand: existingRequirement?.flexibleBrand || false,
     },
   });
 
-  const { formState: { isSubmitting } } = form;
+  const { formState: { isSubmitting }, watch, setValue, getValues } = form;
+
+  const watchedCategory = watch("category");
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -202,6 +227,102 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                                 </FormItem>
                             )}
                         />
+
+                        {watchedCategory === 'Cement' && (
+                           <div className="md:col-span-2 space-y-6 border rounded-lg p-4">
+                                <Separator />
+                                <div>
+                                    <h3 className="text-lg font-semibold">Cement Details</h3>
+                                    <p className="text-sm text-muted-foreground">Specify the brands and quantities you need.</p>
+                                </div>
+                                <FormField
+                                    control={form.control}
+                                    name="brands"
+                                    render={() => (
+                                        <FormItem>
+                                        <div className="mb-4">
+                                            <FormLabel className="text-base">Brands</FormLabel>
+                                            <FormDescription>Select one or more brands.</FormDescription>
+                                        </div>
+                                        <div className="space-y-4">
+                                        {cementBrands.map((brand) => (
+                                            <FormField
+                                                key={brand.id}
+                                                control={form.control}
+                                                name="brands"
+                                                render={({ field }) => {
+                                                    const selectedBrand = field.value?.find(b => b.id === brand.id);
+                                                    return (
+                                                    <FormItem className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-lg border p-3 shadow-sm">
+                                                        <div className="flex items-center space-x-3">
+                                                            <FormControl>
+                                                                <Checkbox
+                                                                checked={field.value?.some(b => b.id === brand.id)}
+                                                                onCheckedChange={(checked) => {
+                                                                    const currentBrands = getValues("brands") || [];
+                                                                    if (checked) {
+                                                                        setValue("brands", [...currentBrands, { id: brand.id, quantity: undefined }]);
+                                                                    } else {
+                                                                        setValue("brands", currentBrands.filter((b) => b.id !== brand.id));
+                                                                    }
+                                                                }}
+                                                                />
+                                                            </FormControl>
+                                                            <FormLabel className="font-normal">{brand.label}</FormLabel>
+                                                        </div>
+                                                        {selectedBrand && (
+                                                            <div className="mt-2 sm:mt-0 w-full sm:w-auto sm:max-w-[150px]">
+                                                                <FormControl>
+                                                                    <Input
+                                                                        type="number"
+                                                                        placeholder="Quantity (bags)"
+                                                                        value={selectedBrand.quantity || ''}
+                                                                        onChange={(e) => {
+                                                                            const currentBrands = getValues("brands") || [];
+                                                                            const updatedBrands = currentBrands.map(b => 
+                                                                                b.id === brand.id ? { ...b, quantity: e.target.value === '' ? undefined : Number(e.target.value) } : b
+                                                                            );
+                                                                            setValue("brands", updatedBrands);
+                                                                        }}
+                                                                        className="h-9"
+                                                                    />
+                                                                </FormControl>
+                                                            </div>
+                                                        )}
+                                                    </FormItem>
+                                                )}}
+                                            />
+                                        ))}
+                                        </div>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="flexibleBrand"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                        <div className="space-y-0.5">
+                                            <FormLabel>Flexible Brand</FormLabel>
+                                            <FormDescription>
+                                            I am open to alternative brands.
+                                            </FormDescription>
+                                        </div>
+                                        <FormControl>
+                                            <Switch
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                            />
+                                        </FormControl>
+                                        </FormItem>
+                                    )}
+                                />
+                                <Separator />
+                           </div>
+                        )}
+
+
                         <FormField
                             control={form.control}
                             name="description"
@@ -274,3 +395,4 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
     </div>
   );
 }
+

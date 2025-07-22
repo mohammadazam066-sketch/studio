@@ -28,6 +28,10 @@ export type HomeownerProfile = {
     createdAt?: Timestamp | Date | string;
 }
 
+type BrandSelection = {
+  id: string;
+  quantity?: number;
+}
 
 export type Requirement = {
   id: string;
@@ -40,6 +44,8 @@ export type Requirement = {
   description: string;
   createdAt: Timestamp | Date | string;
   status: 'Open' | 'Purchased';
+  brands?: BrandSelection[];
+  flexibleBrand?: boolean;
 };
 
 export type Quotation = {
