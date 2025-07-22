@@ -263,8 +263,18 @@ export const updateRequirement = async (id, data, newPhotosDataUrls: string[], r
         photoUrls.push(...newPhotoUrls);
     }
     
+    const { title, category, location, description, brands, flexibleBrand, steelDetails, steelBrands, flexibleSteelBrand } = data;
+    
     await updateDoc(requirementRef, {
-        ...data,
+        title,
+        category,
+        location,
+        description,
+        brands,
+        flexibleBrand,
+        steelDetails,
+        steelBrands,
+        flexibleSteelBrand,
         photos: photoUrls
     });
 }
