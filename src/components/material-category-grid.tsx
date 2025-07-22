@@ -11,11 +11,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { UserRole } from "@/lib/types";
 
 const categories = [
-    { id: 'Cement', label: 'Cement', imageUrl: 'https://images.unsplash.com/photo-1584940021093-c1162d33a3b4?q=80&w=800', imageHint: 'cement bag' },
-    { id: 'Steel', label: 'Steel', imageUrl: 'https://images.unsplash.com/photo-1521633585298-2253c35c345b?q=80&w=800', imageHint: 'steel bars' },
-    { id: 'Bricks & Blocks', label: 'Bricks & Blocks', imageUrl: 'https://images.unsplash.com/photo-1557997428-482a44391a82?q=80&w=800', imageHint: 'brick wall' },
-    { id: 'Sand & Aggregates', label: 'Sand & Aggregates', imageUrl: 'https://images.unsplash.com/photo-1618063988365-5335a5371a54?q=80&w=800', imageHint: 'sand pile' },
-    { id: 'Electrical', label: 'Electrical', imageUrl: 'https://images.unsplash.com/photo-1497671952136-e17df2339a06?q=80&w=800', imageHint: 'electrical wires' },
+    { id: 'Cement', label: 'Cement', imageUrl: 'https://images.unsplash.com/photo-1593963496933-468534de16c5', imageHint: 'cement bag' },
+    { id: 'Steel', label: 'Steel', imageUrl: 'https://images.unsplash.com/photo-1521633585298-2253c35c345b', imageHint: 'steel bars' },
+    { id: 'Bricks & Blocks', label: 'Bricks & Blocks', imageUrl: 'https://images.unsplash.com/photo-1557997428-482a44391a82', imageHint: 'brick wall' },
+    { id: 'Sand & Aggregates', label: 'Sand & Aggregates', imageUrl: 'https://images.unsplash.com/photo-1618063988365-5335a5371a54', imageHint: 'sand pile' },
+    { id: 'Electrical', label: 'Electrical', imageUrl: 'https://images.unsplash.com/photo-1497671952136-e17df2339a06', imageHint: 'electrical wires' },
 ];
 
 function CategoryGridSkeleton() {
