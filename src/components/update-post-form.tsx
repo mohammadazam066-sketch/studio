@@ -9,12 +9,11 @@ import { useAuth, addUpdate } from '@/lib/store';
 import Image from 'next/image';
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Loader2, Upload, X, Newspaper } from 'lucide-react';
+import { Loader2, Upload, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -30,9 +29,10 @@ type PhotoState = { file: File, preview: string };
 
 interface UpdatePostFormProps {
     onPostSuccess?: () => void;
+    className?: string;
 }
 
-export function UpdatePostForm({ onPostSuccess }: UpdatePostFormProps) {
+export function UpdatePostForm({ onPostSuccess, className }: UpdatePostFormProps) {
   const { currentUser } = useAuth();
   const { toast } = useToast();
   
@@ -107,36 +107,10 @@ export function UpdatePostForm({ onPostSuccess }: UpdatePostFormProps) {
     }
   }
   
-  if (!currentUser) {
-      return (
-         <Card>
-            <CardHeader>
-                <CardTitle>Join the Conversation</CardTitle>
-                <CardDescription>Log in to share your knowledge and updates with the community.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <Button asChild className="w-full"><a href="/auth/login">Login or Sign Up</a></Button>
-            </CardContent>
-        </Card>
-      )
-  }
-
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-3">
-              <div className="bg-primary/10 p-2 rounded-lg">
-                <Newspaper className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <CardTitle>Share an Update</CardTitle>
-                <CardDescription>Post news, tips, or insights.</CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className={className}>
+        <div className="space-y-4">
             <FormField
               control={form.control}
               name="title"
@@ -191,17 +165,14 @@ export function UpdatePostForm({ onPostSuccess }: UpdatePostFormProps) {
                 </div> 
               )}
             </div>
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Publish Post
-            </Button>
-          </CardFooter>
-        </Card>
+             <div className="flex justify-end">
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Publish Post
+                </Button>
+            </div>
+          </div>
       </form>
     </Form>
   );
 }
-
-    
