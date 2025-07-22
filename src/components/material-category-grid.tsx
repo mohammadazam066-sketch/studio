@@ -14,8 +14,8 @@ const categories = [
     { id: 'Cement', label: 'Cement', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/tradeflow-tiu5k.firebasestorage.app/o/cement.jpg%2FLeonardo_Phoenix_10_Ultrarealistic_photo_of_a_clean_cement_bag_1%20(1).jpg?alt=media&token=08d0421b-2864-4071-8ec4-9cc774027488', imageHint: 'cement bags' },
     { id: 'Steel', label: 'Steel', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/tradeflow-tiu5k.firebasestorage.app/o/steel.jpg%2Fsteel%20.jpg?alt=media&token=54c47c65-036c-467a-b59a-57fe4e17ceb0', imageHint: 'steel bars' },
     { id: 'Bricks & Blocks', label: 'Bricks & Blocks', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/tradeflow-tiu5k.firebasestorage.app/o/bricks.jpg%2Fbrick.jpg?alt=media&token=42de071d-491d-4f0a-bc6c-bbbb76766b64', imageHint: 'brick wall' },
-    { id: 'Sand & Aggregates', label: 'Sand & Aggregates', imageUrl: 'https://images.unsplash.com/photo-1618063988365-5335a541a54a', imageHint: 'sand pile' },
-    { id: 'Electrical', label: 'Electrical', imageUrl: 'https://images.unsplash.com/photo-1497671952136-e17df2339a06', imageHint: 'electrical wires' },
+    { id: 'Sand & Aggregates', label: 'Sand & Aggregates', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/tradeflow-tiu5k.firebasestorage.app/o/sand.jpg%2FChatGPT%20Image%20Jul%2022%2C%202025%2C%2010_37_50%20PM.png?alt=media&token=98f572d2-ab7d-4201-af85-b64266ddb39e', imageHint: 'sand pile' },
+    { id: 'Electrical', label: 'Electrical', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/tradeflow-tiu5k.firebasestorage.app/o/electricals.jpg%2Felectric%20.jpg?alt=media&token=4d9031d0-a6f2-416a-8be7-bc86033ea3d7', imageHint: 'electrical wires' },
 ];
 
 function CategoryGridSkeleton() {
