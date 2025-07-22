@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Calendar, Wrench } from 'lucide-react';
+import { MapPin, Calendar, Wrench, Droplets } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEffect, useState, useCallback } from 'react';
 import type { Requirement, Quotation } from '@/lib/types';
@@ -15,6 +15,7 @@ import { QuotationForm } from '@/components/quotation-form';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 
 function formatDate(date: Date | string | Timestamp) {
     if (!date) return '';
@@ -132,23 +133,43 @@ export default function RequirementDetailPageForShop() {
                 </div>
                 </CardHeader>
                 <CardContent>
-                <p className="mb-6">{requirement.description}</p>
-                {requirement.photos.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                        {requirement.photos.map((photo, index) => (
-                        <div key={index} className="relative aspect-video">
-                            <Image 
-                                src={photo} 
-                                alt={`${requirement.title} photo ${index + 1}`} 
-                                fill
-                                style={{objectFit: 'cover'}}
-                                className="rounded-lg"
-                                data-ai-hint="construction site" 
-                            />
+                    <p className="mb-6">{requirement.description}</p>
+                    
+                    {requirement.brands && requirement.brands.length > 0 && (
+                        <div className="mb-6">
+                            <Separator className="my-4" />
+                            <h4 className="text-base font-semibold mb-3">Brand Details</h4>
+                            <div className="space-y-2">
+                                {requirement.brands.map(brand => (
+                                    <div key={brand.id} className="flex items-center justify-between text-sm p-2 bg-muted/50 rounded-md">
+                                        <span className="text-muted-foreground">{brand.id}</span>
+                                        <span className="font-medium">{brand.quantity} bags</span>
+                                    </div>
+                                ))}
+                            </div>
+                            {requirement.flexibleBrand && (
+                                <p className="text-xs text-muted-foreground mt-2 text-center">User is open to alternative brands.</p>
+                            )}
+                            <Separator className="my-4" />
                         </div>
-                        ))}
-                    </div>
-                )}
+                    )}
+
+                    {requirement.photos.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                            {requirement.photos.map((photo, index) => (
+                            <div key={index} className="relative aspect-video">
+                                <Image 
+                                    src={photo} 
+                                    alt={`${requirement.title} photo ${index + 1}`} 
+                                    fill
+                                    style={{objectFit: 'cover'}}
+                                    className="rounded-lg"
+                                    data-ai-hint="construction site" 
+                                />
+                            </div>
+                            ))}
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

@@ -4,7 +4,7 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { PlusCircle, Eye, CheckSquare, List } from "lucide-react";
+import { PlusCircle, Eye, CheckSquare, List, Droplets } from "lucide-react";
 import { useAuth, getRequirementsByHomeowner, getQuotationsForRequirement } from "@/lib/store";
 import { useEffect, useState, useCallback } from "react";
 import type { Requirement, Quotation } from "@/lib/types";
@@ -63,8 +63,6 @@ export default function HomeownerDashboard() {
             const userRequirements = await getRequirementsByHomeowner(currentUser.id);
             setRequirements(userRequirements);
 
-            // This part is causing issues, so we simplify it.
-            // We can get the counts on the detail page instead.
             const counts: {[key: string]: number} = {};
             for (const req of userRequirements) {
                 const quotes = await getQuotationsForRequirement(req.id);
@@ -159,6 +157,19 @@ export default function HomeownerDashboard() {
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-muted-foreground line-clamp-2">{req.description}</p>
+                                     {req.brands && req.brands.length > 0 && (
+                                        <div className="mt-4 pt-4 border-t">
+                                            <h4 className="text-sm font-semibold mb-2">Brand Details:</h4>
+                                            <ul className="space-y-1">
+                                                {req.brands.map(brand => (
+                                                    <li key={brand.id} className="text-sm text-muted-foreground flex items-center gap-2">
+                                                        <Droplets className="w-4 h-4 text-primary/70" />
+                                                        <span>{brand.id}: <strong>{brand.quantity || 'N/A'} bags</strong></span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
                                 </CardContent>
                                 <CardFooter className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                                      <div className="text-sm text-primary font-medium">

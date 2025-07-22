@@ -13,7 +13,7 @@ import type { Timestamp } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import { useParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Droplets } from "lucide-react";
 
 function formatDate(date: Date | string | Timestamp) {
     if (!date) return '';
@@ -108,6 +108,19 @@ export default function ShopOwnerCategoryRequirementsPage() {
                                 </CardHeader>
                                 <CardContent>
                                     <p className="text-muted-foreground line-clamp-2">{req.description}</p>
+                                    {req.brands && req.brands.length > 0 && (
+                                        <div className="mt-4 pt-4 border-t">
+                                            <h4 className="text-sm font-semibold mb-2">Brand Details:</h4>
+                                            <ul className="space-y-1">
+                                                {req.brands.map(brand => (
+                                                    <li key={brand.id} className="text-sm text-muted-foreground flex items-center gap-2">
+                                                        <Droplets className="w-4 h-4 text-primary/70" />
+                                                        <span>{brand.id}: <strong>{brand.quantity || 'N/A'} bags</strong></span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
                                 </CardContent>
                                 <CardFooter className="flex justify-end">
                                     <Button asChild>
