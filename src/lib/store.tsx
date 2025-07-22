@@ -236,14 +236,16 @@ export const addRequirement = async (data, photosDataUrls: string[]) => {
     return requirementRef.id;
 }
 
-export const updateRequirement = async (id, data, newPhotosDataUrls: string[], remainingExistingPhotos: string[]) => {
+export const updateRequirement = async (id: string, data: Partial<Requirement>, newPhotosDataUrls: string[], remainingExistingPhotos: string[]) => {
     if (!auth.currentUser) throw new Error("User not authenticated");
     const requirementRef = doc(db, 'requirements', id);
     
     const requirementSnap = await getDoc(requirementRef);
-    const requirementData = requirementSnap.data();
-    const photosToDelete = (requirementData?.photos || []).filter(url => !remainingExistingPhotos.includes(url));
+    if (!requirementSnap.exists()) throw new Error("Requirement not found");
+    const existingData = requirementSnap.data();
 
+    // Handle photo deletions
+    const photosToDelete = (existingData.photos || []).filter(url => !remainingExistingPhotos.includes(url));
     await Promise.all(photosToDelete.map(async (url) => {
         try {
             const photoRef = ref(storage, url);
@@ -255,17 +257,17 @@ export const updateRequirement = async (id, data, newPhotosDataUrls: string[], r
         }
     }));
 
-
-    let photoUrls = [...remainingExistingPhotos];
-
+    // Handle photo additions
+    let newPhotoUrls: string[] = [];
     if (newPhotosDataUrls.length > 0) {
-        const newPhotoUrls = await uploadPhotos('requirements', auth.currentUser.uid, newPhotosDataUrls, id);
-        photoUrls.push(...newPhotoUrls);
+        newPhotoUrls = await uploadPhotos('requirements', auth.currentUser.uid, newPhotosDataUrls, id);
     }
+    
+    const finalPhotos = [...remainingExistingPhotos, ...newPhotoUrls];
     
     await updateDoc(requirementRef, {
         ...data,
-        photos: photoUrls,
+        photos: finalPhotos,
     });
 }
 
