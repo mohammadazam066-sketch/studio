@@ -45,7 +45,6 @@ function RequirementListSkeleton() {
                          <Skeleton className="h-5 w-24" />
                          <div className="flex gap-2">
                             <Skeleton className="h-10 w-24" />
-                            <Skeleton className="h-10 w-32" />
                          </div>
                     </CardFooter>
                 </Card>
@@ -149,52 +148,54 @@ export default function HomeownerDashboard() {
                     <div className="space-y-4">
                         {requirements.map(req => (
                             <Card key={req.id}>
-                                <CardHeader>
-                                    <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
-                                        <div>
-                                            <CardTitle className="text-lg">{req.title}</CardTitle>
-                                            <CardDescription>Posted on {formatDate(req.createdAt)} &bull; {req.location}</CardDescription>
+                                <Link href={`/homeowner/requirements/${req.id}`} className="block hover:bg-muted/50 transition-colors rounded-t-lg">
+                                    <CardHeader>
+                                        <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
+                                            <div>
+                                                <CardTitle className="text-lg">{req.title}</CardTitle>
+                                                <CardDescription>Posted on {formatDate(req.createdAt)} &bull; {req.location}</CardDescription>
+                                            </div>
+                                            <Badge variant={req.status === 'Purchased' ? 'default' : 'secondary'} className={req.status === 'Purchased' ? 'bg-accent text-accent-foreground' : ''}>
+                                                {req.status}
+                                            </Badge>
                                         </div>
-                                         <Badge variant={req.status === 'Purchased' ? 'default' : 'secondary'} className={req.status === 'Purchased' ? 'bg-accent text-accent-foreground' : ''}>
-                                            {req.status}
-                                        </Badge>
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <p className="text-muted-foreground line-clamp-2">{req.description}</p>
-                                    
-                                     {req.brands && req.brands.length > 0 && (
-                                        <div className="mt-4 pt-4 border-t">
-                                            <h4 className="text-sm font-semibold mb-2">Cement Details:</h4>
-                                            <ul className="space-y-1">
-                                                {req.brands.map(brand => (
-                                                    <li key={brand.id} className="text-sm text-muted-foreground flex items-center gap-2">
-                                                        <Droplets className="w-4 h-4 text-primary/70" />
-                                                        <span>{brand.id}: <strong>{brand.quantity || 'N/A'} bags</strong></span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
+                                    </CardHeader>
+                                    <CardContent>
+                                        <p className="text-muted-foreground line-clamp-2">{req.description}</p>
+                                        
+                                        {req.brands && req.brands.length > 0 && (
+                                            <div className="mt-4 pt-4 border-t">
+                                                <h4 className="text-sm font-semibold mb-2">Cement Details:</h4>
+                                                <ul className="space-y-1">
+                                                    {req.brands.map(brand => (
+                                                        <li key={brand.id} className="text-sm text-muted-foreground flex items-center gap-2">
+                                                            <Droplets className="w-4 h-4 text-primary/70" />
+                                                            <span>{brand.id}: <strong>{brand.quantity || 'N/A'} bags</strong></span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
 
-                                    {req.steelDetails && req.steelDetails.length > 0 && (
-                                        <div className="mt-4 pt-4 border-t">
-                                            <h4 className="text-sm font-semibold mb-2">Steel Details:</h4>
-                                            <ul className="space-y-1">
-                                                {req.steelDetails.map(detail => (
-                                                    <li key={detail.size} className="text-sm text-muted-foreground flex items-center gap-2">
-                                                        <Tally5 className="w-4 h-4 text-primary/70" />
-                                                        <span>{detail.size}mm: <strong>{detail.quantity || 'N/A'} units</strong></span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                            {req.steelBrands && req.steelBrands.length > 0 && (
-                                                <p className="text-xs text-muted-foreground mt-2">Preferred Brands: {req.steelBrands.join(', ')}</p>
-                                            )}
-                                        </div>
-                                    )}
+                                        {req.steelDetails && req.steelDetails.length > 0 && (
+                                            <div className="mt-4 pt-4 border-t">
+                                                <h4 className="text-sm font-semibold mb-2">Steel Details:</h4>
+                                                <ul className="space-y-1">
+                                                    {req.steelDetails.map(detail => (
+                                                        <li key={detail.size} className="text-sm text-muted-foreground flex items-center gap-2">
+                                                            <Tally5 className="w-4 h-4 text-primary/70" />
+                                                            <span>{detail.size}mm: <strong>{detail.quantity || 'N/A'} units</strong></span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                                {req.steelBrands && req.steelBrands.length > 0 && (
+                                                    <p className="text-xs text-muted-foreground mt-2">Preferred Brands: {req.steelBrands.join(', ')}</p>
+                                                )}
+                                            </div>
+                                        )}
 
-                                </CardContent>
+                                    </CardContent>
+                                </Link>
                                 <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-4">
                                      <div className="text-sm text-primary font-medium">
                                         {quotationCounts[req.id] !== undefined ? `${quotationCounts[req.id]} Quotation(s) Received` : ''}
@@ -203,11 +204,6 @@ export default function HomeownerDashboard() {
                                         <Button asChild variant="outline">
                                             <Link href={`/homeowner/requirements/edit/${req.id}`}>
                                                 <Edit className="mr-2 h-4 w-4" /> Edit
-                                            </Link>
-                                        </Button>
-                                        <Button asChild>
-                                            <Link href={`/homeowner/requirements/${req.id}`}>
-                                                View Details & Quotes
                                             </Link>
                                         </Button>
                                     </div>
