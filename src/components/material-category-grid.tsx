@@ -12,7 +12,7 @@ import type { UserRole } from "@/lib/types";
 
 const categories = [
     { id: 'Cement', label: 'Cement', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/tradeflow-tiu5k.firebasestorage.app/o/cement.jpg%2FLeonardo_Phoenix_10_Ultrarealistic_photo_of_a_clean_cement_bag_1%20(1).jpg?alt=media&token=08d0421b-2864-4071-8ec4-9cc774027488', imageHint: 'cement bags' },
-    { id: 'Steel', label: 'Steel', imageUrl: 'https://images.unsplash.com/photo-1521633585298-2253c35c345b', imageHint: 'steel bars' },
+    { id: 'Steel', label: 'Steel', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/tradeflow-tiu5k.firebasestorage.app/o/steel.jpg%2Fsteel%20.jpg?alt=media&token=54c47c65-036c-467a-b59a-57fe4e17ceb0', imageHint: 'steel bars' },
     { id: 'Bricks & Blocks', label: 'Bricks & Blocks', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/tradeflow-tiu5k.firebasestorage.app/o/bricks.jpg%2Fbrick.jpg?alt=media&token=42de071d-491d-4f0a-bc6c-bbbb76766b64', imageHint: 'brick wall' },
     { id: 'Sand & Aggregates', label: 'Sand & Aggregates', imageUrl: 'https://images.unsplash.com/photo-1618063988365-5335a541a54a', imageHint: 'sand pile' },
     { id: 'Electrical', label: 'Electrical', imageUrl: 'https://images.unsplash.com/photo-1497671952136-e17df2339a06', imageHint: 'electrical wires' },
@@ -55,10 +55,10 @@ export function MaterialCategoryGrid({ role }: MaterialCategoryGridProps) {
 
     const getLinkHref = (category: string) => {
         if (role === 'homeowner') {
-            return `/homeowner/requirements/new?category=${encodeURIComponent(category)}`;
+            return `/homeowner/requirements/new?category=${'${'}encodeURIComponent(category)}`
         }
         // URL-encode the category to handle special characters like '&'
-        return `/shop-owner/requirements/category/${encodeURIComponent(category)}`;
+        return `/shop-owner/requirements/category/${'${'}encodeURIComponent(category)}`;
     }
 
 
