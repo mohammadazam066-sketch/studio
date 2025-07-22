@@ -305,11 +305,17 @@ export const getOpenRequirementsByCategory = async (category: string): Promise<R
     const q = query(
         collection(db, "requirements"),
         where("status", "==", "Open"),
-        where("category", "==", category),
-        orderBy("createdAt", "desc")
+        where("category", "==", category)
     );
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Requirement));
+    const requirements = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Requirement));
+
+    // Sort manually on the client-side to avoid needing a composite index
+    return requirements.sort((a, b) => {
+        const dateA = (a.createdAt as any)?.toDate ? (a.createdAt as any).toDate() : new Date(a.createdAt as string);
+        const dateB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate() : new Date(b.createdAt as string);
+        return dateB.getTime() - dateA.getTime();
+    });
 }
 
 export const getOpenRequirementsCountByCategory = async (): Promise<Record<string, number>> => {
@@ -523,3 +529,5 @@ export const getUpdateById = async (id: string): Promise<Update | undefined> => 
     }
     return undefined;
 }
+
+    
