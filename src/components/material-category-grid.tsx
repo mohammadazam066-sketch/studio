@@ -46,12 +46,16 @@ export function MaterialCategoryGrid({ role }: MaterialCategoryGridProps) {
             setCounts(categoryCounts);
             setLoading(false);
         }
-        fetchCounts();
-    }, []);
+        if (role === 'shop-owner') {
+            fetchCounts();
+        } else {
+            setLoading(false);
+        }
+    }, [role]);
 
     const getLinkHref = (category: string) => {
         if (role === 'homeowner') {
-            return '/homeowner/dashboard'; // Homeowner doesn't have a category page yet.
+            return `/homeowner/requirements/new?category=${encodeURIComponent(category)}`;
         }
         // URL-encode the category to handle special characters like '&'
         return `/shop-owner/requirements/category/${encodeURIComponent(category)}`;
@@ -76,7 +80,7 @@ export function MaterialCategoryGrid({ role }: MaterialCategoryGridProps) {
                                 className="object-cover w-full h-24"
                                 data-ai-hint={category.imageHint}
                             />
-                            {(counts[category.id] > 0) && (
+                            {(role === 'shop-owner' && counts[category.id] > 0) && (
                                 <Badge className="absolute top-2 right-2 bg-primary/80 backdrop-blur-sm text-primary-foreground">
                                     {counts[category.id]}
                                 </Badge>

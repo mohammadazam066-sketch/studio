@@ -26,7 +26,7 @@ const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 const requirementFormSchema = z.object({
   title: z.string().min(1, { message: "Title is required." }),
-  category: z.string({ required_error: "Please select a category." }),
+  category: z.string({ required_error: "Please select a category." }).min(1, "Please select a category."),
   location: z.string().min(2, { message: "Location is required." }),
   description: z.string().optional(),
 });
@@ -36,9 +36,10 @@ type PhotoState = { file: File, preview: string };
 
 interface RequirementFormProps {
     existingRequirement?: Requirement;
+    initialCategory?: string;
 }
 
-export function RequirementForm({ existingRequirement }: RequirementFormProps) {
+export function RequirementForm({ existingRequirement, initialCategory }: RequirementFormProps) {
   const { currentUser } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
@@ -51,7 +52,7 @@ export function RequirementForm({ existingRequirement }: RequirementFormProps) {
     resolver: zodResolver(requirementFormSchema),
     defaultValues: {
       title: existingRequirement?.title || '',
-      category: existingRequirement?.category || '',
+      category: existingRequirement?.category || initialCategory || '',
       location: existingRequirement?.location || '',
       description: existingRequirement?.description || '',
     },
@@ -273,5 +274,3 @@ export function RequirementForm({ existingRequirement }: RequirementFormProps) {
     </div>
   );
 }
-
-    
