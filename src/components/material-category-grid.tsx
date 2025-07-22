@@ -11,11 +11,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { UserRole } from "@/lib/types";
 
 const categories = [
-    { id: 'Cement', label: 'Cement', imageHint: 'cement bag' },
-    { id: 'Steel', label: 'Steel', imageHint: 'steel bars' },
-    { id: 'Bricks & Blocks', label: 'Bricks & Blocks', imageHint: 'brick wall' },
-    { id: 'Sand & Aggregates', label: 'Sand & Aggregates', imageHint: 'sand pile' },
-    { id: 'Electrical', label: 'Electrical', imageHint: 'electrical wires' },
+    { id: 'Cement', label: 'Cement', imageUrl: 'https://images.unsplash.com/photo-1593946303233-16f39343a41b?q=80&w=800', imageHint: 'cement bag' },
+    { id: 'Steel', label: 'Steel', imageUrl: 'https://images.unsplash.com/photo-1521633585298-2253c35c345b?q=80&w=800', imageHint: 'steel bars' },
+    { id: 'Bricks & Blocks', label: 'Bricks & Blocks', imageUrl: 'https://images.unsplash.com/photo-1557997428-482a44391a82?q=80&w=800', imageHint: 'brick wall' },
+    { id: 'Sand & Aggregates', label: 'Sand & Aggregates', imageUrl: 'https://images.unsplash.com/photo-1618063988365-5335a5371a54?q=80&w=800', imageHint: 'sand pile' },
+    { id: 'Electrical', label: 'Electrical', imageUrl: 'https://images.unsplash.com/photo-1497671952136-e17df2339a06?q=80&w=800', imageHint: 'electrical wires' },
 ];
 
 function CategoryGridSkeleton() {
@@ -73,7 +73,7 @@ export function MaterialCategoryGrid({ role }: MaterialCategoryGridProps) {
                     <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.02]">
                         <CardContent className="p-0 relative">
                             <Image
-                                src={`https://placehold.co/200x200.png`}
+                                src={category.imageUrl}
                                 alt={category.label}
                                 width={200}
                                 height={200}
