@@ -116,12 +116,12 @@ export default function MyQuotationsPage() {
                                         <FileText className="w-4 h-4 mt-1 text-muted-foreground flex-shrink-0" />
                                         <p className="text-muted-foreground">{quote.terms}</p>
                                     </div>
-                                    {isPurchased && quote.requirement?.homeownerId && (
+                                    {quote.requirement?.homeownerId && (
                                         <div className="pt-2">
                                             <Button asChild variant="link" className="p-0 h-auto">
                                                 <Link href={`/shop-owner/homeowner-profile/${quote.requirement.homeownerId}`}>
                                                     <User className="mr-2 h-4 w-4" />
-                                                    View {quote.requirement.homeownerName}'s Profile
+                                                    View {isPurchased ? `${quote.requirement.homeownerName}'s Contact` : "Homeowner's Profile"}
                                                 </Link>
                                             </Button>
                                         </div>
