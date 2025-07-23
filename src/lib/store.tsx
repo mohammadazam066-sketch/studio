@@ -2,7 +2,7 @@
 
 'use client';
 
-import React from 'react';
+import * as React from 'react';
 import type { User, UserRole, HomeownerProfile, ShopOwnerProfile, Requirement, Quotation, Update, QuotationWithRequirement } from './types';
 import { db, storage, auth } from './firebase';
 import { 
