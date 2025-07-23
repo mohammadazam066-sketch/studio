@@ -92,7 +92,10 @@ export default function HomePage() {
         </div>
       </main>
       <footer className="py-6 text-center text-muted-foreground text-sm">
-        © {new Date().getFullYear()} TradeFlow. All rights reserved.
+        <p>© {new Date().getFullYear()} TradeFlow. All rights reserved.</p>
+        <p className="mt-2">
+          Contact Support: <a href="mailto:tradeflow.kart@gmali.com" className="underline hover:text-primary">tradeflow.kart@gmali.com</a>
+        </p>
       </footer>
     </div>
   );
