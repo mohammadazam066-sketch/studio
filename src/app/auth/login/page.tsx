@@ -1,7 +1,7 @@
 
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { PhoneAuthForm } from '@/components/phone-auth-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useState } from 'react';
@@ -50,6 +50,11 @@ export default function LoginPage() {
           </TabsContent>
         </Tabs>
       </CardContent>
+      <CardFooter>
+        <p className="text-xs text-muted-foreground text-center w-full">
+          Need help? Contact <a href="mailto:tradeflow.kart@gmali.com" className="underline hover:text-primary">tradeflow.kart@gmali.com</a>
+        </p>
+      </CardFooter>
     </Card>
   );
 }
