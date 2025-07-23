@@ -165,7 +165,7 @@ export function UpdatePostForm({ onPostSuccess, className }: UpdatePostFormProps
                 </div> 
               )}
             </div>
-             <div className="flex justify-end">
+             <div className="flex justify-end pt-2">
                 <Button type="submit" disabled={isSubmitting}>
                   {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Publish Post
