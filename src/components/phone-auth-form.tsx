@@ -14,6 +14,8 @@ import type { UserRole } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { Checkbox } from './ui/checkbox';
+import { TermsDialog } from './terms-dialog';
 
 declare global {
   interface Window {
@@ -32,6 +34,7 @@ export function PhoneAuthForm() {
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [showRoleSelector, setShowRoleSelector] = useState(false);
   const [role, setRole] = useState<UserRole>('homeowner');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const { handleNewUser } = useAuth();
   const { toast } = useToast();
 
@@ -261,7 +264,16 @@ export function PhoneAuthForm() {
                 </div>
               </RadioGroup>
           </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <div className="flex items-center space-x-2">
+                <Checkbox id="terms" checked={agreedToTerms} onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)} />
+                <label
+                    htmlFor="terms"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                    I agree to the <TermsDialog />
+                </label>
+            </div>
+            <Button type="submit" className="w-full" disabled={loading || !agreedToTerms}>
                 {loading ? <Loader2 className="animate-spin" /> : 'Complete Registration'}
             </Button>
         </form>
