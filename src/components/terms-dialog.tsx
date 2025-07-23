@@ -56,12 +56,12 @@ export function TermsDialog() {
                         <h4 className="font-semibold text-foreground/90">5. Limitation of Liability</h4>
                         <p>
                             TradeFlow, its owners, employees, or partners will not be liable for any loss, damage, dispute, or claim arising out of:
-                            <ul className="list-disc pl-5 mt-2 space-y-1">
-                                <li>Transactions conducted through the Platform.</li>
-                                <li>Delays, non-delivery, or defective goods.</li>
-                                <li>Any misuse of the Platform by buyers or sellers.</li>
-                            </ul>
                         </p>
+                        <ul className="list-disc pl-5 mt-2 space-y-1">
+                            <li>Transactions conducted through the Platform.</li>
+                            <li>Delays, non-delivery, or defective goods.</li>
+                            <li>Any misuse of the Platform by buyers or sellers.</li>
+                        </ul>
                         <p>
                             You agree to indemnify and hold harmless TradeFlow from any claims arising out of your use of the Platform.
                         </p>
@@ -94,11 +94,9 @@ export function TermsDialog() {
                         </ul>
 
                         <h4 className="font-semibold text-foreground/90">2. How We Use Your Data</h4>
-                        <ul className="list-disc pl-5 mt-2 space-y-1">
-                           <li>To operate the Platform.</li>
-                           <li>To connect you with other users.</li>
-                           <li>To communicate with you regarding your activity on the Platform.</li>
-                        </ul>
+                         <p>To operate the Platform.</p>
+                         <p>To connect you with other users.</p>
+                         <p>To communicate with you regarding your activity on the Platform.</p>
 
                         <h4 className="font-semibold text-foreground/90">3. Data Sharing</h4>
                         <p>We do not sell your personal information. We only share your data with other users as needed for quotations and transactions.</p>
