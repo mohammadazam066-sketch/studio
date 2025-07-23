@@ -55,10 +55,10 @@ export function MaterialCategoryGrid({ role }: MaterialCategoryGridProps) {
 
     const getLinkHref = (category: string) => {
         if (role === 'homeowner') {
-            return `/homeowner/requirements/new?category=${'${'}encodeURIComponent(category)}`
+            return `/homeowner/requirements/new?category=${encodeURIComponent(category)}`;
         }
         // URL-encode the category to handle special characters like '&'
-        return `/shop-owner/requirements/category/${'${'}encodeURIComponent(category)}`;
+        return `/shop-owner/requirements/category/${encodeURIComponent(category)}`;
     }
 
 
