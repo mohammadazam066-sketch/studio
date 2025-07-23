@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { auth } from '@/lib/firebase';
 import { RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
 import { useAuth } from '@/lib/store';
-import { Loader2, ArrowRight } from 'lucide-react';
+import { Loader2, ArrowRight, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -31,10 +31,10 @@ export function PhoneAuthForm() {
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showOtpInput, setShowOtpInput] = useState(false);
-  const [showRoleSelector, setShowRoleSelector] = useState(false);
-  const [role, setRole] = useState<UserRole>('homeowner');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  
+  const [uiState, setUiState] = useState<'phone-input' | 'otp-input' | 'role-selector'>('phone-input');
+
   const { handleNewUser } = useAuth();
   const { toast } = useToast();
 
@@ -98,7 +98,7 @@ export function PhoneAuthForm() {
       // @ts-ignore - The 'null' verifier is valid for test numbers, but TS doesn't know that.
       const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, verifierForSignIn);
       window.confirmationResult = confirmationResult;
-      setShowOtpInput(true);
+      setUiState('otp-input');
       toast({
         title: 'OTP Sent!',
         description: 'Please check your phone for the verification code.',
@@ -147,9 +147,9 @@ export function PhoneAuthForm() {
 
       if (userDoc.exists()) {
         toast({ title: 'Login Successful!' });
+        // The main layout effect will handle redirecting the user.
       } else {
-        setShowRoleSelector(true);
-        setShowOtpInput(false);
+        setUiState('role-selector');
         toast({ title: "Welcome!", description: "Please select your role to complete registration."});
       }
     } catch (error) {
@@ -181,6 +181,7 @@ export function PhoneAuthForm() {
     try {
         await handleNewUser(user, role);
         toast({ title: "Registration complete! Welcome to TradeFlow." });
+        // The main layout effect will handle redirecting the user.
     } catch (error) {
         console.error("Failed to create user profile:", error);
         toast({
@@ -193,11 +194,16 @@ export function PhoneAuthForm() {
     }
   }
 
+  const goBackToPhoneInput = () => {
+    setOtp('');
+    setUiState('phone-input');
+  }
+
   return (
     <>
       {/* This empty div is required for the invisible reCAPTCHA to work */}
       <div id="recaptcha-container"></div>
-      {!showOtpInput && !showRoleSelector && (
+      {uiState === 'phone-input' && (
         <form onSubmit={onSendOtp} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="phone">Phone Number</Label>
@@ -229,7 +235,7 @@ export function PhoneAuthForm() {
         </form>
       )}
 
-      {showOtpInput && (
+      {uiState === 'otp-input' && (
         <form onSubmit={onVerifyOtp} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="otp">Enter OTP</Label>
@@ -243,17 +249,22 @@ export function PhoneAuthForm() {
               disabled={loading}
             />
           </div>
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? <Loader2 className="animate-spin" /> : 'Verify OTP'}
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button type="button" variant="outline" onClick={goBackToPhoneInput} className="w-full sm:w-auto" disabled={loading}>
+                <ArrowLeft className="mr-2" /> Go Back
+            </Button>
+            <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? <Loader2 className="animate-spin" /> : 'Verify OTP'}
+            </Button>
+          </div>
         </form>
       )}
       
-      {showRoleSelector && (
+      {uiState === 'role-selector' && (
         <form onSubmit={onSelectRole} className="space-y-6">
             <div className="space-y-2">
              <Label>I am a...</Label>
-              <RadioGroup defaultValue="homeowner" className="flex gap-4 pt-2" onValueChange={(value: UserRole) => setRole(value)} disabled={loading}>
+              <RadioGroup defaultValue="homeowner" className="flex gap-4 pt-2" onValueChange={(value) => setRole(value as UserRole)} disabled={loading}>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="homeowner" id="r1" />
                   <Label htmlFor="r1">Homeowner</Label>
