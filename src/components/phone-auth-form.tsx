@@ -32,6 +32,7 @@ export function PhoneAuthForm() {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [role, setRole] = useState<UserRole>('homeowner');
   
   const [uiState, setUiState] = useState<'phone-input' | 'otp-input' | 'role-selector'>('phone-input');
 
@@ -281,7 +282,7 @@ export function PhoneAuthForm() {
                     htmlFor="terms"
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                    I agree to the <TermsDialog />
+                    I have read and agree to the <TermsDialog /> and Privacy Policy.
                 </label>
             </div>
             <Button type="submit" className="w-full" disabled={loading || !agreedToTerms}>
@@ -292,3 +293,5 @@ export function PhoneAuthForm() {
     </>
   );
 }
+
+    
