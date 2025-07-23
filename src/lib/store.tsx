@@ -452,7 +452,7 @@ export const getUser = async (userId: string): Promise<User | undefined> => {
 
 // == UPDATES ==
 
-export const addUpdate = async (data: { title: string, content: string }, photoDataUrl?: string) => {
+export const addUpdate = async (data: { title: string, content: string }, photosDataUrls: string[] = []) => {
     if (!auth.currentUser) throw new Error("User not authenticated");
     
     const userDocSnap = await getDoc(doc(db, 'users', auth.currentUser.uid));
@@ -468,13 +468,13 @@ export const addUpdate = async (data: { title: string, content: string }, photoD
         authorName: profileData?.name || userData.phoneNumber,
         authorRole: userData.role,
         createdAt: serverTimestamp(),
-        imageUrl: '', // Initial empty value
+        imageUrls: [], // Initial empty value
     });
     
-    if (photoDataUrl) {
-        const [imageUrl] = await uploadPhotos('updates', auth.currentUser.uid, [photoDataUrl], updateRef.id);
-        if (imageUrl) {
-            await updateDoc(updateRef, { imageUrl });
+    if (photosDataUrls.length > 0) {
+        const urls = await uploadPhotos('updates', auth.currentUser.uid, photosDataUrls, updateRef.id);
+        if (urls.length > 0) {
+            await updateDoc(updateRef, { imageUrls: urls });
         }
     }
 
@@ -482,47 +482,54 @@ export const addUpdate = async (data: { title: string, content: string }, photoD
 }
 
 
-export const updateUpdate = async (id: string, data: { title: string, content: string }, newImageData?: { dataUrl: string, oldImageUrl?: string }) => {
+export const updateUpdate = async (id: string, data: { title: string; content: string }, newPhotosDataUrls: string[], remainingExistingPhotos: string[]) => {
     if (!auth.currentUser) throw new Error("User not authenticated");
     const updateRef = doc(db, 'updates', id);
-    let updateData: any = { ...data };
 
-    if (newImageData) {
-        if (newImageData.oldImageUrl) {
-            try {
-                const oldImageRef = ref(storage, newImageData.oldImageUrl);
-                await deleteObject(oldImageRef);
-            } catch (error: any) {
-                if (error.code !== 'storage/object-not-found') {
-                    console.error("Failed to delete old image:", error);
-                }
+    const updateSnap = await getDoc(updateRef);
+    if (!updateSnap.exists()) throw new Error("Update not found");
+    const existingData = updateSnap.data();
+
+    const photosToDelete = (existingData.imageUrls || []).filter((url: string) => !remainingExistingPhotos.includes(url));
+    await Promise.all(photosToDelete.map(async (url: string) => {
+        try {
+            const photoRef = ref(storage, url);
+            await deleteObject(photoRef);
+        } catch (error: any) {
+            if (error.code !== 'storage/object-not-found') {
+                console.error("Failed to delete old photo:", error);
             }
         }
-        
-        if (newImageData.dataUrl) {
-            const [newImageUrl] = await uploadPhotos('updates', auth.currentUser.uid, [newImageData.dataUrl], id);
-            updateData.imageUrl = newImageUrl || '';
-        } else {
-            updateData.imageUrl = '';
-        }
+    }));
+    
+    let newPhotoUrls: string[] = [];
+    if (newPhotosDataUrls.length > 0) {
+        newPhotoUrls = await uploadPhotos('updates', auth.currentUser.uid, newPhotosDataUrls, id);
     }
     
-    await updateDoc(updateRef, updateData);
+    const finalPhotos = [...remainingExistingPhotos, ...newPhotoUrls];
+
+    await updateDoc(updateRef, {
+        ...data,
+        imageUrls: finalPhotos,
+    });
 }
 
-export const deleteUpdate = async (id: string, imageUrl?: string) => {
+
+export const deleteUpdate = async (id: string, imageUrls?: string[]) => {
     const updateRef = doc(db, 'updates', id);
     await deleteDoc(updateRef);
 
-    if (imageUrl) {
-         try {
-            const imageRef = ref(storage, imageUrl);
-            await deleteObject(imageRef);
-        } catch (error: any) {
-            if (error.code !== 'storage/object-not-found') {
-                console.error("Failed to delete post image:", error);
-            }
-        }
+    if (imageUrls && imageUrls.length > 0) {
+         const deletePromises = imageUrls.map(url => {
+            const imageRef = ref(storage, url);
+            return deleteObject(imageRef).catch(error => {
+                 if (error.code !== 'storage/object-not-found') {
+                    console.error("Failed to delete post image:", error);
+                }
+            });
+         });
+         await Promise.all(deletePromises);
     }
 }
 

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { getUpdateById, deleteUpdate } from '@/lib/store';
@@ -43,7 +44,6 @@ function PageSkeleton() {
     <div className="max-w-4xl mx-auto space-y-8">
        <Skeleton className="h-10 w-32" />
       <Card>
-        <Skeleton className="h-64 w-full rounded-t-lg" />
         <CardHeader>
           <Skeleton className="h-8 w-3/4 mb-2" />
           <div className="flex items-center gap-4">
@@ -52,6 +52,10 @@ function PageSkeleton() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+             <Skeleton className="h-64 w-full rounded-lg" />
+             <Skeleton className="h-64 w-full rounded-lg" />
+          </div>
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-2/3" />
@@ -89,7 +93,7 @@ export default function UpdateDetailPage() {
   const handleDelete = async () => {
     if (!update) return;
     try {
-        await deleteUpdate(update.id, update.imageUrl);
+        await deleteUpdate(update.id, update.imageUrls);
         toast({
             title: "Post Deleted",
             description: "Your update has been successfully removed.",
@@ -150,18 +154,6 @@ export default function UpdateDetailPage() {
         </div>
       </div>
       <Card>
-         {update.imageUrl && (
-            <div className="relative h-64 sm:h-80 md:h-96 w-full">
-                <Image 
-                    src={update.imageUrl} 
-                    alt={update.title} 
-                    fill
-                    style={{objectFit: 'cover'}}
-                    className="rounded-t-lg"
-                    data-ai-hint="construction industry news"
-                />
-            </div>
-        )}
         <CardHeader>
           <CardTitle className="text-2xl sm:text-3xl font-bold font-headline">{update.title}</CardTitle>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 text-sm text-muted-foreground pt-2">
@@ -176,6 +168,22 @@ export default function UpdateDetailPage() {
           </div>
         </CardHeader>
         <CardContent>
+          {update.imageUrls && update.imageUrls.length > 0 && (
+            <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {update.imageUrls.map((url, index) => (
+                    <div key={index} className="relative aspect-video">
+                        <Image 
+                            src={url} 
+                            alt={`${update.title} photo ${index + 1}`} 
+                            fill
+                            style={{objectFit: 'cover'}}
+                            className="rounded-lg"
+                            data-ai-hint="construction industry news"
+                        />
+                    </div>
+                ))}
+            </div>
+          )}
           <p className="whitespace-pre-wrap text-base leading-relaxed">{update.content}</p>
         </CardContent>
       </Card>
@@ -185,7 +193,7 @@ export default function UpdateDetailPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete your post.
+              This action cannot be undone. This will permanently delete your post and all its images.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

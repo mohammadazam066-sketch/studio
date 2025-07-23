@@ -80,7 +80,7 @@ export type Update = {
   authorRole: UserRole;
   title: string;
   content: string;
-  imageUrl?: string;
+  imageUrls?: string[];
   createdAt: Timestamp | Date | string;
 };
 

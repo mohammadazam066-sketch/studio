@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -8,7 +9,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Upload, X, Newspaper } from 'lucide-react';
+import { Loader2, Upload, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getUpdateById, updateUpdate, useAuth } from '@/lib/store';
 import Image from 'next/image';
@@ -52,9 +53,8 @@ export default function EditUpdatePage() {
   const [update, setUpdate] = useState<Update | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [photo, setPhoto] = useState<PhotoState | null>(null);
-  const [existingImageUrl, setExistingImageUrl] = useState<string | undefined>(undefined);
-  const [isImageRemoved, setIsImageRemoved] = useState(false);
+  const [newPhotos, setNewPhotos] = useState<PhotoState[]>([]);
+  const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -71,7 +71,7 @@ export default function EditUpdatePage() {
     setUpdate(updateData);
     setTitle(updateData.title);
     setContent(updateData.content);
-    setExistingImageUrl(updateData.imageUrl);
+    setExistingImageUrls(updateData.imageUrls || []);
     setLoading(false);
   }, [id, currentUser, router, toast]);
 
@@ -81,49 +81,49 @@ export default function EditUpdatePage() {
 
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setExistingImageUrl(undefined);
-      setIsImageRemoved(false);
-      setPhoto({ file, preview: URL.createObjectURL(file) });
-    }
+    const files = Array.from(e.target.files || []);
+    const photosToUpload: PhotoState[] = [];
+
+    files.forEach(file => {
+      photosToUpload.push({ file, preview: URL.createObjectURL(file) });
+    });
+
+    setNewPhotos(prev => [...prev, ...photosToUpload]);
+    e.target.value = '';
   };
 
-  const handleRemovePhoto = () => {
-    if (photo) {
-      URL.revokeObjectURL(photo.preview);
+  const removeNewPhoto = (index: number) => {
+    const photoToRemove = newPhotos[index];
+    if (photoToRemove) {
+      URL.revokeObjectURL(photoToRemove.preview);
     }
-    setPhoto(null);
-    setExistingImageUrl(undefined);
-    setIsImageRemoved(true);
+    setNewPhotos(prev => prev.filter((_, i) => i !== index));
   };
+  
+   const removeExistingPhoto = (url: string) => {
+    setExistingImageUrls(prev => prev.filter(photoUrl => photoUrl !== url));
+  }
+
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!update) return;
     setSaving(true);
-
-    let newImageData: { dataUrl: string; oldImageUrl?: string } | undefined;
     
-    // Case 1: A new photo was uploaded
-    if (photo) {
-        newImageData = {
-            dataUrl: await new Promise<string>((resolve, reject) => {
+    const newPhotosAsDataUrls = await Promise.all(
+        newPhotos.map(photo => {
+            return new Promise<string>((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onloadend = () => resolve(reader.result as string);
                 reader.onerror = reject;
                 reader.readAsDataURL(photo.file);
-            }),
-            oldImageUrl: update.imageUrl, // Pass old URL for deletion
-        }
-    } 
-    // Case 2: An existing photo was removed, and no new one was added
-    else if (isImageRemoved) {
-        newImageData = { dataUrl: '', oldImageUrl: update.imageUrl };
-    }
+            });
+        })
+    );
+
 
     try {
-        await updateUpdate(update.id, { title, content }, newImageData);
+        await updateUpdate(update.id, { title, content }, newPhotosAsDataUrls, existingImageUrls);
         toast({
           title: "Update Saved!",
           description: "Your post has been successfully updated.",
@@ -150,7 +150,6 @@ export default function EditUpdatePage() {
     return null; // Should have been redirected
   }
 
-  const imagePreviewUrl = photo?.preview || existingImageUrl;
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -175,32 +174,48 @@ export default function EditUpdatePage() {
                 </div>
                 
                 <div className="space-y-2">
-                    <Label htmlFor="photo">Image</Label>
-                    {imagePreviewUrl ? (
-                        <div className="relative group w-fit">
-                            <Image src={imagePreviewUrl} alt="Upload preview" width={200} height={150} className="rounded-lg object-cover w-full aspect-video" />
-                            <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={handleRemovePhoto}
-                            disabled={saving}
-                            >
-                            <X className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    ) : (
+                    <Label htmlFor="photo">Images</Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                        {existingImageUrls.map((url) => (
+                            <div key={url} className="relative group">
+                                <Image src={url} alt="Existing photo" width={150} height={150} className="rounded-lg object-cover aspect-square" />
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="icon"
+                                    className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => removeExistingPhoto(url)}
+                                    disabled={saving}
+                                    >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        ))}
+                        {newPhotos.map((photo, index) => (
+                            <div key={photo.preview} className="relative group">
+                                <Image src={photo.preview} alt="Upload preview" width={150} height={150} className="rounded-lg object-cover aspect-square" />
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="icon"
+                                    className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => removeNewPhoto(index)}
+                                    disabled={saving}
+                                    >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        ))}
                         <div className="flex items-center justify-center w-full">
-                            <label htmlFor="dropzone-file" className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg ${saving ? 'cursor-not-allowed bg-muted/50' : 'cursor-pointer bg-secondary hover:bg-muted'}`}>
-                                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                    <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
-                                    <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span></p>
+                            <label htmlFor="dropzone-file" className={`flex flex-col items-center justify-center w-full h-full aspect-square border-2 border-dashed rounded-lg ${saving ? 'cursor-not-allowed bg-muted/50' : 'cursor-pointer bg-secondary hover:bg-muted'}`}>
+                                <div className="flex flex-col items-center justify-center text-center p-2">
+                                    <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
+                                    <p className="text-xs text-muted-foreground"><span className="font-semibold">Add photos</span></p>
                                 </div>
-                                <Input id="dropzone-file" type="file" className="hidden" onChange={handlePhotoUpload} accept="image/png, image/jpeg" disabled={saving} />
+                                <Input id="dropzone-file" type="file" className="hidden" onChange={handlePhotoUpload} accept="image/png, image/jpeg, image/webp" multiple disabled={saving} />
                             </label>
                         </div> 
-                    )}
+                    </div>
                 </div>
             </CardContent>
             <CardFooter>
@@ -214,5 +229,3 @@ export default function EditUpdatePage() {
     </div>
   );
 }
-
-    
