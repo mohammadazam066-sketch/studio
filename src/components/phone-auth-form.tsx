@@ -276,13 +276,13 @@ export function PhoneAuthForm() {
                 </div>
               </RadioGroup>
           </div>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-start space-x-2">
                 <Checkbox id="terms" checked={agreedToTerms} onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)} />
                 <label
                     htmlFor="terms"
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                    I have read and agree to the <TermsDialog /> and Privacy Policy.
+                    I have read and agree to the <TermsDialog />.
                 </label>
             </div>
             <Button type="submit" className="w-full" disabled={loading || !agreedToTerms}>
@@ -293,7 +293,3 @@ export function PhoneAuthForm() {
     </>
   );
 }
-
-    
-
-    
