@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Checkbox } from './ui/checkbox';
-import { TermsDialog } from './terms-dialog';
+import Link from 'next/link';
 
 declare global {
   interface Window {
@@ -282,7 +282,10 @@ export function PhoneAuthForm() {
                     htmlFor="terms"
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
-                    I have read and agree to the <TermsDialog />.
+                    I have read and agree to the{' '}
+                    <Link href="/legal/terms" target="_blank" className="underline hover:text-primary">
+                        Terms &amp; Conditions and Privacy Policy
+                    </Link>.
                 </label>
             </div>
             <Button type="submit" className="w-full" disabled={loading || !agreedToTerms}>
