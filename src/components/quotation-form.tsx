@@ -119,6 +119,7 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
                                             type="number"
                                             placeholder="e.g., 50000"
                                             {...field}
+                                            value={field.value ?? ''}
                                             disabled={isSubmitting}
                                         />
                                     </FormControl>
