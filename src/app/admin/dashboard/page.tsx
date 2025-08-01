@@ -80,18 +80,18 @@ export default function AdminDashboardPage() {
                 getOpenRequirements()
             ]);
 
+            const allShopOwnerIds = shopOwnerData.map(so => so.id);
+
             const openRequirementsWithResponses = await Promise.all(
               openReqsData.map(async (req) => {
                 const quotations = await getQuotationsForRequirement(req.id);
-                const respondedShopOwnerIds = quotations.map(q => q.shopOwnerId);
+                const respondedShopOwnerIds = new Set(quotations.map(q => q.shopOwnerId));
                 
-                // Assuming `invitedShopOwners` is a field on the requirement. If not, this logic needs adjustment.
-                const invitedShopOwners = (req as any).invitedShopOwners || []; 
-                const notResponded = invitedShopOwners.filter((id: string) => !respondedShopOwnerIds.includes(id));
+                const notResponded = allShopOwnerIds.filter(id => !respondedShopOwnerIds.has(id));
                 
                 return { 
                   ...req, 
-                  responded: respondedShopOwnerIds, 
+                  responded: Array.from(respondedShopOwnerIds), 
                   notResponded: notResponded,
                 };
               })
@@ -158,11 +158,19 @@ export default function AdminDashboardPage() {
                                                         </button>
                                                     </CollapsibleTrigger>
                                                     <CollapsibleContent>
-                                                        <div className="p-2 mt-2 bg-muted rounded-md">
-                                                            <h4 className="font-semibold text-xs mb-1">Responded:</h4>
-                                                            {req.responded.length > 0 ? (
-                                                                <ul className="list-disc pl-4 text-xs">{req.responded.map(id => <li key={id}>{id}</li>)}</ul>
-                                                            ) : <p className="text-xs text-muted-foreground">None</p>}
+                                                        <div className="p-2 mt-2 bg-muted rounded-md space-y-2">
+                                                            <div>
+                                                                <h4 className="font-semibold text-xs mb-1">Responded:</h4>
+                                                                {req.responded.length > 0 ? (
+                                                                    <ul className="list-disc pl-4 text-xs">{req.responded.map(id => <li key={id}>{id}</li>)}</ul>
+                                                                ) : <p className="text-xs text-muted-foreground">None</p>}
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="font-semibold text-xs mb-1">Did Not Respond:</h4>
+                                                                {req.notResponded.length > 0 ? (
+                                                                    <ul className="list-disc pl-4 text-xs">{req.notResponded.map(id => <li key={id}>{id}</li>)}</ul>
+                                                                ) : <p className="text-xs text-muted-foreground">All shop owners have responded.</p>}
+                                                            </div>
                                                         </div>
                                                     </CollapsibleContent>
                                                 </Collapsible>
@@ -237,7 +245,7 @@ export default function AdminDashboardPage() {
                                         <TableRow key={user.id}>
                                             <TableCell className="font-medium">{user.profile?.name || 'N/A'}</TableCell>
                                             <TableCell>{user.id}</TableCell>
-                                            <TableCell>N/A</TableCell>
+                                            <TableCell>{(user.profile as HomeownerProfile)?.address || 'N/A'}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -278,4 +286,5 @@ export default function AdminDashboardPage() {
             </Tabs>
         </div>
     );
-}
+
+    
