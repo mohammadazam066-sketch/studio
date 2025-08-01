@@ -94,7 +94,7 @@ export type Purchase = {
     material: string;
     homeownerName: string;
     shopOwnerName: string;
+    status: 'Open' | 'Purchased';
     createdAt: Timestamp | Date | string;
 }
 
-    

@@ -21,9 +21,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (loading) {
       return; // Wait until auth state is confirmed
     }
-    if (!currentUser || !checkIsAdmin(currentUser.id)) {
+    if (!currentUser) {
+       router.replace('/auth/login');
+       return;
+    }
+    if (!checkIsAdmin(currentUser.id)) {
       // If not loading, and user is not an admin, redirect.
-      router.replace('/homeowner/dashboard'); // or a dedicated 403 page
+      router.replace('/'); 
     }
   }, [currentUser, loading, router]);
 
@@ -44,3 +48,4 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </DashboardLayout>
   );
 }
+

@@ -577,6 +577,7 @@ export const createPurchase = async (requirement: Requirement, quotation: Quotat
         quotationId: quotation.id,
         amount: quotation.amount,
         material: requirement.title,
+        status: requirement.status,
         homeownerName: requirement.homeownerName,
         shopOwnerName: quotation.shopOwnerName,
         createdAt: serverTimestamp(),
@@ -588,3 +589,4 @@ export const getAllPurchases = async (): Promise<Purchase[]> => {
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
 };
+

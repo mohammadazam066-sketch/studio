@@ -116,7 +116,7 @@ export default function AdminDashboardPage() {
                 <h1 className="text-2xl font-bold font-headline tracking-tight">Admin Dashboard</h1>
                 <p className="text-muted-foreground">Platform overview and management.</p>
             </div>
-            <Tabs defaultValue="open-requirements">
+            <Tabs defaultValue="purchases">
                 <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="open-requirements">Open Requirements</TabsTrigger>
                     <TabsTrigger value="purchases">Purchases</TabsTrigger>
@@ -197,6 +197,7 @@ export default function AdminDashboardPage() {
                                         <TableHead>Homeowner</TableHead>
                                         <TableHead>Shop Owner</TableHead>
                                         <TableHead>Price</TableHead>
+                                        <TableHead>Status</TableHead>
                                         <TableHead>Timestamp</TableHead>
                                     </TableRow>
                                 </TableHeader>
@@ -217,6 +218,11 @@ export default function AdminDashboardPage() {
                                                 </div>
                                             </TableCell>
                                             <TableCell>Rs {p.amount.toFixed(2)}</TableCell>
+                                            <TableCell>
+                                                <Badge variant={p.status === 'Purchased' ? 'default' : 'secondary'} className={p.status === 'Purchased' ? 'bg-accent text-accent-foreground' : ''}>
+                                                    {p.status}
+                                                </Badge>
+                                            </TableCell>
                                             <TableCell>{formatDate(p.createdAt)}</TableCell>
                                         </TableRow>
                                     ))}
@@ -286,5 +292,5 @@ export default function AdminDashboardPage() {
             </Tabs>
         </div>
     );
+}
 
-    
