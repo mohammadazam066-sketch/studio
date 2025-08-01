@@ -2,7 +2,7 @@
 
 import type { Timestamp } from 'firebase/firestore';
 
-export type UserRole = 'homeowner' | 'shop-owner';
+export type UserRole = 'homeowner' | 'shop-owner' | 'admin';
 
 export type User = {
   id: string;
@@ -83,5 +83,18 @@ export type Update = {
   imageUrls?: string[];
   createdAt: Timestamp | Date | string;
 };
+
+export type Purchase = {
+    id: string;
+    requirementId: string;
+    homeownerId: string;
+    shopOwnerId: string;
+    quotationId: string;
+    amount: number;
+    material: string;
+    homeownerName: string;
+    shopOwnerName: string;
+    createdAt: Timestamp | Date | string;
+}
 
     

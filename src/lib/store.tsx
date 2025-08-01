@@ -3,7 +3,7 @@
 'use client';
 
 import * as React from 'react';
-import type { User, UserRole, HomeownerProfile, ShopOwnerProfile, Requirement, Quotation, Update, QuotationWithRequirement } from './types';
+import type { User, UserRole, HomeownerProfile, ShopOwnerProfile, Requirement, Quotation, Update, QuotationWithRequirement, Purchase } from './types';
 import { db, storage, auth } from './firebase';
 import { 
     doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, 
@@ -548,3 +548,44 @@ export const getUpdateById = async (id: string): Promise<Update | undefined> => 
     }
     return undefined;
 }
+
+
+// == ADMIN FUNCTIONS ==
+
+export const getAllUsersByRole = async (role: UserRole): Promise<User[]> => {
+    const usersQuery = query(collection(db, 'users'), where('role', '==', role));
+    const usersSnapshot = await getDocs(usersQuery);
+    const users: User[] = [];
+
+    for (const userDoc of usersSnapshot.docs) {
+        const userData = userDoc.data() as User;
+        const profileCollection = role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
+        const profileDocRef = doc(db, profileCollection, userDoc.id);
+        const profileSnap = await getDoc(profileDocRef);
+        if (profileSnap.exists()) {
+            userData.profile = profileSnap.data() as HomeownerProfile | ShopOwnerProfile;
+        }
+        users.push({ id: userDoc.id, ...userData });
+    }
+    return users;
+};
+
+export const createPurchase = async (requirement: Requirement, quotation: Quotation) => {
+    await addDoc(collection(db, 'purchases'), {
+        requirementId: requirement.id,
+        homeownerId: requirement.homeownerId,
+        shopOwnerId: quotation.shopOwnerId,
+        quotationId: quotation.id,
+        amount: quotation.amount,
+        material: requirement.title,
+        homeownerName: requirement.homeownerName,
+        shopOwnerName: quotation.shopOwnerName,
+        createdAt: serverTimestamp(),
+    });
+};
+
+export const getAllPurchases = async (): Promise<Purchase[]> => {
+    const q = query(collection(db, "purchases"), orderBy("createdAt", "desc"));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
+};

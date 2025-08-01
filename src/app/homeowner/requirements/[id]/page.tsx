@@ -2,7 +2,7 @@
 
 'use client';
 
-import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, deleteRequirement } from '@/lib/store';
+import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, deleteRequirement, createPurchase } from '@/lib/store';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -160,6 +160,7 @@ export default function RequirementDetailPage() {
     if (requirement && selectedQuote) {
         try {
             await updateRequirementStatus(requirement.id, 'Purchased');
+            await createPurchase(requirement, selectedQuote);
             setRequirement(prev => prev ? { ...prev, status: 'Purchased' } : undefined);
             
             toast({
@@ -354,7 +355,7 @@ export default function RequirementDetailPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Purchase</AlertDialogTitle>
             <AlertDialogDescription>
-              You are about to mark the quotation from <span className="font-bold">{selectedQuote?.shopOwnerName}</span> for <span className="font-bold">Rs{selectedQuote?.amount.toFixed(2)}</span> as purchased.
+              You are about to mark the quotation from <span className="font-bold">{selectedQuote?.shopOwnerName}</span> for <span className="font-bold">Rs{selectedQuote?.amount.toFixed(2)}</span> as purchased. This will create a permanent purchase record.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
