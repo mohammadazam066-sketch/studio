@@ -8,7 +8,7 @@ import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
 function checkIsAdmin(uid: string): boolean {
-    const adminUids = process.env.NEXT_PUBLIC_ADMIN_UIDS?.split(',') || [];
+    const adminUids = (process.env.NEXT_PUBLIC_ADMIN_UIDS || "").split(',');
     return adminUids.includes(uid);
 }
 
