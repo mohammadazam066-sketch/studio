@@ -1,64 +1,13 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // --- Collection Group Functions ---
-    // Function to check if a user is the owner of a requirement
-    function isRequirementOwner(requirementId) {
-      return get(/databases/$(database)/documents/requirements/$(requirementId)).data.homeownerId == request.auth.uid;
-    }
-    
-    // --- Default deny all ---
+    // Allow read/write access to all collections for any authenticated user.
+    // WARNING: For production, you should implement more granular rules
+    // to restrict access based on user roles (e.g., admin, homeowner, shop-owner).
     match /{document=**} {
-      allow read, write: if false;
-    }
-
-    // --- User & Profile Rules ---
-    // Users can only read/write their own user and profile documents.
-    // Public profiles are readable by anyone.
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    match /homeownerProfiles/{userId} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-    match /shopOwnerProfiles/{userId} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // --- Requirement Rules ---
-    // Anyone can read/list open requirements.
-    // Only the homeowner who created it can update or delete it.
-    // Any authenticated user can create a requirement.
-    match /requirements/{requirementId} {
-      allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.homeownerId;
-    }
-
-    // --- Quotation Rules ---
-    // A homeowner can read quotations for their own requirements.
-    // A shop owner can read any quotation (to check if they've already quoted).
-    // A shop owner can only write/update/delete their own quotation.
-    match /quotations/{quotationId} {
-      allow read: if request.auth != null && 
-                  (isRequirementOwner(resource.data.requirementId) || request.auth.uid == resource.data.shopOwnerId);
-      allow list: if request.auth != null; // Allow listing for shop owners' "My Quotations" page
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.shopOwnerId;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.shopOwnerId;
-    }
-
-    // --- Updates Rules ---
-    // Anyone can read/list updates.
-    // Any authenticated user can create an update.
-    // Only the author can update or delete their own update.
-    match /updates/{updateId} {
-      allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && request.auth.uid == resource.data.authorId;
+      allow read, write: if request.auth != null;
     }
   }
 }
