@@ -27,6 +27,7 @@ type NavItem = {
     label: string;
     icon: React.ElementType;
     roles: UserRole[];
+    adminOnly?: boolean;
 };
 
 const navItems: NavItem[] = [
@@ -34,15 +35,28 @@ const navItems: NavItem[] = [
     { href: '/shop-owner/dashboard', label: 'Dashboard', icon: Home, roles: ['shop-owner'] },
     { href: '/shop-owner/requirements', label: 'Open Requirements', icon: Eye, roles: ['shop-owner'] },
     { href: '/shop-owner/my-quotations', label: 'My Quotations', icon: FileText, roles: ['shop-owner'] },
-    { href: '/updates', label: 'Updates', icon: Newspaper, roles: ['homeowner', 'shop-owner'] },
-    { href: '/admin/dashboard', label: 'Admin Panel', icon: ShieldCheck, roles: ['homeowner', 'shop-owner', 'admin'] },
+    { href: '/updates', label: 'Updates', icon: Newspaper, roles: ['homeowner', 'shop-owner', 'admin'] },
+    { href: '/admin/dashboard', label: 'Admin Panel', icon: ShieldCheck, roles: ['admin'], adminOnly: true },
 ];
+
+function checkIsAdmin(uid: string): boolean {
+    const adminUids = process.env.NEXT_PUBLIC_ADMIN_UIDS?.split(',') || [];
+    return adminUids.includes(uid);
+}
+
 
 export function SidebarNav({ user }: { user: User }) {
     const pathname = usePathname();
     const { logout } = useAuth();
+
+    const isAdmin = checkIsAdmin(user.id);
     
-    const userNavItems = navItems.filter(item => item.roles.includes(user.role));
+    const userNavItems = navItems.filter(item => {
+        if (item.adminOnly) {
+            return isAdmin;
+        }
+        return item.roles.includes(user.role);
+    });
 
     return (
         <>

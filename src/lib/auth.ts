@@ -9,7 +9,7 @@ import {
   getDoc,
 } from 'firebase/firestore';
 import { auth, db } from './firebase'; 
-import type { User } from './types';
+import type { User, UserRole } from './types';
 
 
 // This function is now handled in store.tsx to ensure auth is complete first.
@@ -45,7 +45,12 @@ export const onAuthChanged = (callback: (user: User | null) => void) => {
       const userData = userDocSnap.data() as Omit<User, 'id' | 'profile'> & { id: string };
 
       // Determine profile collection based on role
-      const profileCollection = userData.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
+      const profileCollection = userData.role === 'admin' 
+        ? 'shopOwnerProfiles' // Or a dedicated admin profile collection
+        : userData.role === 'homeowner' 
+            ? 'homeownerProfiles' 
+            : 'shopOwnerProfiles';
+      
       const profileDocRef = doc(db, profileCollection, user.uid);
       let profileDocSnap = await getDoc(profileDocRef);
       
