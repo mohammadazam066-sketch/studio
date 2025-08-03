@@ -17,7 +17,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronsUpDown, FileText, Calendar, Wallet, User as UserIcon, Phone } from 'lucide-react';
+import { ChevronsUpDown, FileText, Calendar, Wallet, User as UserIcon, Phone, Droplets, Tally5 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -187,6 +187,34 @@ export default function AdminDashboardPage() {
                                                     </CollapsibleTrigger>
                                                     <CollapsibleContent>
                                                         <div className="p-2 mt-2 bg-muted rounded-md space-y-4">
+                                                            <div>
+                                                                <h4 className="font-semibold text-xs mb-2">Requirement Specifications:</h4>
+                                                                <div className="p-2 bg-background rounded-md border text-xs space-y-2">
+                                                                    {req.brands && req.brands.length > 0 && (
+                                                                        <div className="space-y-1">
+                                                                            <h5 className="font-medium">Cement Details:</h5>
+                                                                            {req.brands.map(brand => (
+                                                                                <p key={brand.id} className="flex items-center gap-1.5 text-muted-foreground"><Droplets className="w-3 h-3 text-primary/70" /> {brand.id}: <strong>{brand.quantity || 'N/A'} bags</strong></p>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+                                                                    {req.steelDetails && req.steelDetails.length > 0 && (
+                                                                         <div className="space-y-1">
+                                                                            <h5 className="font-medium">Steel Details:</h5>
+                                                                            {req.steelDetails.map(detail => (
+                                                                                <p key={detail.size} className="flex items-center gap-1.5 text-muted-foreground"><Tally5 className="w-3 h-3 text-primary/70" /> {detail.size}mm: <strong>{detail.quantity || 'N/A'} rods</strong></p>
+                                                                            ))}
+                                                                             {req.steelBrands && req.steelBrands.length > 0 && (
+                                                                                <p className="text-xs text-muted-foreground pt-1">Preferred: {req.steelBrands.join(', ')}</p>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                    {(!req.brands || req.brands.length === 0) && (!req.steelDetails || req.steelDetails.length === 0) && (
+                                                                        <p className="text-muted-foreground">No specific brand or size details provided.</p>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+
                                                             <div>
                                                                 <h4 className="font-semibold text-xs mb-2">Responded:</h4>
                                                                 {req.quotations.length > 0 ? (
