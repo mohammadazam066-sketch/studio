@@ -24,9 +24,15 @@ function formatDate(date: Date | string | Timestamp) {
     return format(dateObj, 'PPP p');
 }
 
+type ShopOwnerInfo = {
+    id: string;
+    name: string;
+    phone: string;
+}
+
 type OpenRequirementWithResponses = Requirement & {
-  responded: string[];
-  notResponded: string[];
+  responded: ShopOwnerInfo[];
+  notResponded: ShopOwnerInfo[];
 };
 
 function AdminDashboardSkeleton() {
@@ -80,19 +86,28 @@ export default function AdminDashboardPage() {
                 getOpenRequirements()
             ]);
 
-            const allShopOwnerIds = shopOwnerData.map(so => so.id);
+            const shopOwnerMap = new Map(shopOwnerData.map(so => [so.id, { id: so.id, name: so.profile?.name || so.id, phone: so.phoneNumber }]));
 
             const openRequirementsWithResponses = await Promise.all(
               openReqsData.map(async (req) => {
                 const quotations = await getQuotationsForRequirement(req.id);
                 const respondedShopOwnerIds = new Set(quotations.map(q => q.shopOwnerId));
                 
-                const notResponded = allShopOwnerIds.filter(id => !respondedShopOwnerIds.has(id));
+                const responded: ShopOwnerInfo[] = [];
+                const notResponded: ShopOwnerInfo[] = [];
+
+                shopOwnerMap.forEach((shopOwner, id) => {
+                    if (respondedShopOwnerIds.has(id)) {
+                        responded.push(shopOwner);
+                    } else {
+                        notResponded.push(shopOwner);
+                    }
+                });
                 
                 return { 
                   ...req, 
-                  responded: Array.from(respondedShopOwnerIds), 
-                  notResponded: notResponded,
+                  responded,
+                  notResponded,
                 };
               })
             );
@@ -154,7 +169,7 @@ export default function AdminDashboardPage() {
                                                <Collapsible>
                                                     <CollapsibleTrigger asChild>
                                                         <button className="flex items-center text-sm font-medium text-primary hover:underline">
-                                                            View Non-Responders <ChevronsUpDown className="h-4 w-4 ml-1" />
+                                                            View Responses <ChevronsUpDown className="h-4 w-4 ml-1" />
                                                         </button>
                                                     </CollapsibleTrigger>
                                                     <CollapsibleContent>
@@ -162,13 +177,13 @@ export default function AdminDashboardPage() {
                                                             <div>
                                                                 <h4 className="font-semibold text-xs mb-1">Responded:</h4>
                                                                 {req.responded.length > 0 ? (
-                                                                    <ul className="list-disc pl-4 text-xs">{req.responded.map(id => <li key={id}>{id}</li>)}</ul>
+                                                                    <ul className="list-disc pl-4 text-xs">{req.responded.map(so => <li key={so.id}>{so.name} ({so.phone})</li>)}</ul>
                                                                 ) : <p className="text-xs text-muted-foreground">None</p>}
                                                             </div>
                                                             <div>
                                                                 <h4 className="font-semibold text-xs mb-1">Did Not Respond:</h4>
                                                                 {req.notResponded.length > 0 ? (
-                                                                    <ul className="list-disc pl-4 text-xs">{req.notResponded.map(id => <li key={id}>{id}</li>)}</ul>
+                                                                    <ul className="list-disc pl-4 text-xs">{req.notResponded.map(so => <li key={so.id}>{so.name} ({so.phone})</li>)}</ul>
                                                                 ) : <p className="text-xs text-muted-foreground">All shop owners have responded.</p>}
                                                             </div>
                                                         </div>
@@ -242,16 +257,18 @@ export default function AdminDashboardPage() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Name</TableHead>
-                                        <TableHead>User ID</TableHead>
+                                        <TableHead>Phone Number</TableHead>
                                         <TableHead>Location</TableHead>
+                                        <TableHead>User ID</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {homeowners.map(user => (
                                         <TableRow key={user.id}>
                                             <TableCell className="font-medium">{user.profile?.name || 'N/A'}</TableCell>
-                                            <TableCell>{user.id}</TableCell>
+                                            <TableCell>{user.phoneNumber}</TableCell>
                                             <TableCell>{(user.profile as HomeownerProfile)?.address || 'N/A'}</TableCell>
+                                            <TableCell>{user.id}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -271,8 +288,9 @@ export default function AdminDashboardPage() {
                                     <TableRow>
                                         <TableHead>Shop Name</TableHead>
                                         <TableHead>Owner Name</TableHead>
-                                        <TableHead>User ID</TableHead>
+                                        <TableHead>Phone Number</TableHead>
                                         <TableHead>Location</TableHead>
+                                        <TableHead>User ID</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -280,8 +298,9 @@ export default function AdminDashboardPage() {
                                         <TableRow key={user.id}>
                                             <TableCell className="font-medium">{(user.profile as ShopOwnerProfile)?.shopName || 'N/A'}</TableCell>
                                             <TableCell>{user.profile?.name || 'N/A'}</TableCell>
-                                            <TableCell>{user.id}</TableCell>
+                                            <TableCell>{user.phoneNumber}</TableCell>
                                             <TableCell>{(user.profile as ShopOwnerProfile)?.location || 'N/A'}</TableCell>
+                                            <TableCell>{user.id}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>
@@ -293,4 +312,3 @@ export default function AdminDashboardPage() {
         </div>
     );
 }
-
