@@ -15,12 +15,15 @@ import type { Timestamp } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import { MaterialCategoryGrid } from "@/components/material-category-grid";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 function formatDate(date: Date | string | Timestamp) {
     if (!date) return '';
     const dateObj = (date as Timestamp)?.toDate ? (date as Timestamp).toDate() : new Date(date as string);
     return format(dateObj, 'PPP');
 }
+
+const locations = ["Bidar", "Kalaburagi", "Humnabad", "Basavakalyan", "Zaheerabad"];
 
 function RequirementListSkeleton() {
     return (
@@ -52,8 +55,10 @@ function RequirementListSkeleton() {
 export default function ShopOwnerDashboard() {
     const { currentUser } = useAuth();
     const [openRequirementsToQuote, setOpenRequirementsToQuote] = useState<Requirement[]>([]);
+    const [filteredRequirements, setFilteredRequirements] = useState<Requirement[]>([]);
     const [myQuotations, setMyQuotations] = useState<QuotationWithRequirement[]>([]);
     const [loading, setLoading] = useState(true);
+    const [locationFilter, setLocationFilter] = useState('all');
 
     const fetchData = useCallback(async () => {
         if (!currentUser?.id) return;
@@ -85,6 +90,14 @@ export default function ShopOwnerDashboard() {
     useEffect(() => {
         fetchData();
     }, [fetchData]);
+
+    useEffect(() => {
+        if (locationFilter === 'all') {
+            setFilteredRequirements(openRequirementsToQuote);
+        } else {
+            setFilteredRequirements(openRequirementsToQuote.filter(req => req.location.toLowerCase().includes(locationFilter.toLowerCase())));
+        }
+    }, [locationFilter, openRequirementsToQuote]);
     
     const submittedQuotesCount = myQuotations.length;
     // An accepted quote is one of yours where the associated requirement is 'Purchased'
@@ -106,7 +119,7 @@ export default function ShopOwnerDashboard() {
                             <Eye className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{openRequirementsToQuote.length}</div>
+                            <div className="text-2xl font-bold">{filteredRequirements.length}</div>
                             <p className="text-xs text-muted-foreground">Opportunities available to quote</p>
                         </CardContent>
                     </Card>
@@ -155,12 +168,25 @@ export default function ShopOwnerDashboard() {
             </div>
             
             <div>
-                 <h2 className="text-xl font-bold font-headline mb-4">Latest Available Requirements</h2>
+                 <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-bold font-headline">Latest Available Requirements</h2>
+                     <Select value={locationFilter} onValueChange={setLocationFilter}>
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                            <SelectValue placeholder="Filter by location" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Locations</SelectItem>
+                            {locations.map(loc => (
+                                <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                 </div>
                  {loading ? (
                     <RequirementListSkeleton />
-                 ) : openRequirementsToQuote.length > 0 ? (
+                 ) : filteredRequirements.length > 0 ? (
                     <div className="space-y-4">
-                        {openRequirementsToQuote.slice(0, 5).map(req => ( // Show latest 5
+                        {filteredRequirements.slice(0, 5).map(req => ( // Show latest 5
                             <Card key={req.id}>
                                 <CardHeader>
                                     <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
@@ -194,7 +220,7 @@ export default function ShopOwnerDashboard() {
                                                 {req.steelDetails.map(detail => (
                                                     <li key={detail.size} className="text-sm text-muted-foreground flex items-center gap-2">
                                                         <Tally5 className="w-4 h-4 text-primary/70" />
-                                                        <span>{detail.size}mm: <strong>{detail.quantity || 'N/A'} rods</strong></span>
+                                                        <span>{detail.size}mm: <strong>{detail.quantity || 'NA'} rods</strong></span>
                                                     </li>
                                                 ))}
                                             </ul>
@@ -220,7 +246,12 @@ export default function ShopOwnerDashboard() {
                             <Image src="https://placehold.co/100x100.png" width={100} height={100} alt="All caught up" data-ai-hint="celebration happy checklist" className="rounded-full" />
                         </div>
                         <h3 className="text-lg font-medium">All caught up!</h3>
-                        <p className="text-muted-foreground mt-1">There are no new requirements to quote right now. Check back later!</p>
+                        <p className="text-muted-foreground mt-1">
+                            {locationFilter === 'all'
+                                ? "There are no new requirements to quote right now."
+                                : `No new requirements found for ${locationFilter}.`}
+                             Check back later!
+                        </p>
                     </div>
                 )}
             </div>

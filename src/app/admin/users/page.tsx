@@ -144,7 +144,7 @@ export default function AdminUsersPage() {
                             <SelectContent>
                                 <SelectItem value="all">All Locations</SelectItem>
                                 {locations.map(loc => (
-                                    <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                                    <SelectItem key={loc} value={loc.toLowerCase()}>{loc}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>

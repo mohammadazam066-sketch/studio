@@ -16,6 +16,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import { MaterialCategoryGrid } from "@/components/material-category-grid";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 
 function formatDate(date: Date | string | Timestamp) {
     if (!date) return '';
@@ -26,6 +28,8 @@ function formatDate(date: Date | string | Timestamp) {
 type RequirementWithQuoteCount = Requirement & {
     quoteCount: number;
 };
+
+const locations = ["Bidar", "Kalaburagi", "Humnabad", "Basavakalyan", "Zaheerabad"];
 
 function RequirementListSkeleton() {
     return (
@@ -61,7 +65,9 @@ function RequirementListSkeleton() {
 export default function HomeownerDashboard() {
     const { currentUser } = useAuth();
     const [requirements, setRequirements] = useState<RequirementWithQuoteCount[]>([]);
+    const [filteredRequirements, setFilteredRequirements] = useState<RequirementWithQuoteCount[]>([]);
     const [loading, setLoading] = useState(true);
+    const [locationFilter, setLocationFilter] = useState('all');
 
     const fetchRequirements = useCallback(async () => {
         if (!currentUser) return;
@@ -90,8 +96,16 @@ export default function HomeownerDashboard() {
         fetchRequirements();
     }, [fetchRequirements]);
     
-    const openRequirementsCount = requirements.filter(r => r.status === 'Open').length;
-    const purchasedRequirementsCount = requirements.filter(r => r.status === 'Purchased').length;
+    useEffect(() => {
+        if (locationFilter === 'all') {
+            setFilteredRequirements(requirements);
+        } else {
+            setFilteredRequirements(requirements.filter(req => req.location.toLowerCase().includes(locationFilter.toLowerCase())));
+        }
+    }, [locationFilter, requirements]);
+
+    const openRequirementsCount = filteredRequirements.filter(r => r.status === 'Open').length;
+    const purchasedRequirementsCount = filteredRequirements.filter(r => r.status === 'Purchased').length;
 
 
     return (
@@ -121,7 +135,7 @@ export default function HomeownerDashboard() {
                         <List className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{requirements.length}</div>
+                        <div className="text-2xl font-bold">{filteredRequirements.length}</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -145,12 +159,25 @@ export default function HomeownerDashboard() {
             </div>
             
             <div>
-                 <h2 className="text-xl font-bold font-headline mb-4">Your Requirements</h2>
+                 <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-bold font-headline">Your Requirements</h2>
+                     <Select value={locationFilter} onValueChange={setLocationFilter}>
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                            <SelectValue placeholder="Filter by location" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">All Locations</SelectItem>
+                            {locations.map(loc => (
+                                <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                 </div>
                  {loading ? (
                     <RequirementListSkeleton />
-                 ) : requirements.length > 0 ? (
+                 ) : filteredRequirements.length > 0 ? (
                     <div className="space-y-4">
-                        {requirements.map(req => (
+                        {filteredRequirements.map(req => (
                             <Card key={req.id}>
                                 <Link href={`/homeowner/requirements/${req.id}`} className="block hover:bg-muted/50 transition-colors rounded-t-lg">
                                     <CardHeader>
@@ -221,7 +248,11 @@ export default function HomeownerDashboard() {
                             <Image src="https://placehold.co/100x100.png" width={100} height={100} alt="No requirements" data-ai-hint="empty box document" className="rounded-full" />
                         </div>
                         <h3 className="text-lg font-medium">No requirements yet</h3>
-                        <p className="text-muted-foreground mt-1">Click the button above to post your first material requirement.</p>
+                        <p className="text-muted-foreground mt-1">
+                            {locationFilter === 'all'
+                                ? "Click the button above to post your first material requirement."
+                                : `No requirements found for ${locationFilter}. Try selecting "All Locations".`}
+                        </p>
                     </div>
                 )}
             </div>
