@@ -16,7 +16,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronsUpDown } from 'lucide-react';
+import { ChevronsUpDown, FileText, Calendar, Wallet } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 
 function formatDate(date: Date | string | Timestamp) {
     if (!date) return 'N/A';
@@ -24,14 +25,21 @@ function formatDate(date: Date | string | Timestamp) {
     return format(dateObj, 'PPP p');
 }
 
+function formatShortDate(date: Date | string | Timestamp) {
+    if (!date) return 'N/A';
+    const dateObj = (date as Timestamp)?.toDate ? (date as Timestamp).toDate() : new Date(date as string);
+    return format(dateObj, 'PPP');
+}
+
+
 type ShopOwnerInfo = {
     id: string;
     name: string;
     phone: string;
 }
 
-type OpenRequirementWithResponses = Requirement & {
-  responded: ShopOwnerInfo[];
+type OpenRequirementWithDetails = Requirement & {
+  quotations: Quotation[];
   notResponded: ShopOwnerInfo[];
 };
 
@@ -73,7 +81,7 @@ export default function AdminDashboardPage() {
     const [homeowners, setHomeowners] = useState<User[]>([]);
     const [shopOwners, setShopOwners] = useState<User[]>([]);
     const [purchases, setPurchases] = useState<Purchase[]>([]);
-    const [openRequirements, setOpenRequirements] = useState<OpenRequirementWithResponses[]>([]);
+    const [openRequirements, setOpenRequirements] = useState<OpenRequirementWithDetails[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -88,25 +96,22 @@ export default function AdminDashboardPage() {
 
             const shopOwnerMap = new Map(shopOwnerData.map(so => [so.id, { id: so.id, name: so.profile?.name || so.id, phone: so.phoneNumber }]));
 
-            const openRequirementsWithResponses = await Promise.all(
+            const openRequirementsWithDetails = await Promise.all(
               openReqsData.map(async (req) => {
                 const quotations = await getQuotationsForRequirement(req.id);
                 const respondedShopOwnerIds = new Set(quotations.map(q => q.shopOwnerId));
                 
-                const responded: ShopOwnerInfo[] = [];
                 const notResponded: ShopOwnerInfo[] = [];
 
                 shopOwnerMap.forEach((shopOwner, id) => {
-                    if (respondedShopOwnerIds.has(id)) {
-                        responded.push(shopOwner);
-                    } else {
+                    if (!respondedShopOwnerIds.has(id)) {
                         notResponded.push(shopOwner);
                     }
                 });
                 
                 return { 
                   ...req, 
-                  responded,
+                  quotations,
                   notResponded,
                 };
               })
@@ -115,7 +120,7 @@ export default function AdminDashboardPage() {
             setHomeowners(homeownerData);
             setShopOwners(shopOwnerData);
             setPurchases(purchaseData);
-            setOpenRequirements(openRequirementsWithResponses);
+            setOpenRequirements(openRequirementsWithDetails);
             setLoading(false);
         }
         fetchData();
@@ -131,7 +136,7 @@ export default function AdminDashboardPage() {
                 <h1 className="text-2xl font-bold font-headline tracking-tight">Admin Dashboard</h1>
                 <p className="text-muted-foreground">Platform overview and management.</p>
             </div>
-            <Tabs defaultValue="purchases">
+            <Tabs defaultValue="open-requirements">
                 <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="open-requirements">Open Requirements</TabsTrigger>
                     <TabsTrigger value="purchases">Purchases</TabsTrigger>
@@ -157,7 +162,7 @@ export default function AdminDashboardPage() {
                                 </TableHeader>
                                 <TableBody>
                                     {openRequirements.map(req => {
-                                        const responseCount = req.responded.length;
+                                        const responseCount = req.quotations.length;
                                         return (
                                         <TableRow key={req.id} className={responseCount < 2 ? 'bg-destructive/10' : ''}>
                                             <TableCell className="font-medium">{req.title}</TableCell>
@@ -169,15 +174,28 @@ export default function AdminDashboardPage() {
                                                <Collapsible>
                                                     <CollapsibleTrigger asChild>
                                                         <button className="flex items-center text-sm font-medium text-primary hover:underline">
-                                                            View Responses <ChevronsUpDown className="h-4 w-4 ml-1" />
+                                                            View Details <ChevronsUpDown className="h-4 w-4 ml-1" />
                                                         </button>
                                                     </CollapsibleTrigger>
                                                     <CollapsibleContent>
-                                                        <div className="p-2 mt-2 bg-muted rounded-md space-y-2">
+                                                        <div className="p-2 mt-2 bg-muted rounded-md space-y-4">
                                                             <div>
-                                                                <h4 className="font-semibold text-xs mb-1">Responded:</h4>
-                                                                {req.responded.length > 0 ? (
-                                                                    <ul className="list-disc pl-4 text-xs">{req.responded.map(so => <li key={so.id}>{so.name} ({so.phone})</li>)}</ul>
+                                                                <h4 className="font-semibold text-xs mb-2">Responded:</h4>
+                                                                {req.quotations.length > 0 ? (
+                                                                    <div className="space-y-3">
+                                                                        {req.quotations.map(quote => (
+                                                                            <div key={quote.id} className="p-2 bg-background rounded-md border text-xs">
+                                                                                <p className="font-bold">{quote.shopName}</p>
+                                                                                <p className="text-muted-foreground">{quote.shopOwnerName}</p>
+                                                                                <Separator className="my-1.5" />
+                                                                                <div className="space-y-1">
+                                                                                     <p className="flex items-center gap-1.5"><Wallet className="w-3 h-3" /> <span className="font-mono">Rs {quote.amount.toFixed(2)}</span></p>
+                                                                                     <p className="flex items-center gap-1.5"><Calendar className="w-3 h-3" /> {formatShortDate(quote.deliveryDate)}</p>
+                                                                                     {quote.terms && <p className="flex items-start gap-1.5"><FileText className="w-3 h-3 mt-0.5" /> {quote.terms}</p>}
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
                                                                 ) : <p className="text-xs text-muted-foreground">None</p>}
                                                             </div>
                                                             <div>
