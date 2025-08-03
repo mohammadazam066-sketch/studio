@@ -244,13 +244,13 @@ export default function AdminDashboardPage() {
                                             <TableCell>
                                                 <div className="flex flex-col">
                                                     <span>{p.homeownerName}</span>
-                                                    <span className="text-xs text-muted-foreground">{p.homeownerId}</span>
+                                                    <span className="text-xs text-muted-foreground">{homeowners.find(h => h.id === p.homeownerId)?.phoneNumber || p.homeownerId}</span>
                                                 </div>
                                             </TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col">
                                                     <span>{p.shopOwnerName}</span>
-                                                    <span className="text-xs text-muted-foreground">{p.shopOwnerId}</span>
+                                                    <span className="text-xs text-muted-foreground">{shopOwners.find(s => s.id === p.shopOwnerId)?.phoneNumber || p.shopOwnerId}</span>
                                                 </div>
                                             </TableCell>
                                             <TableCell>Rs {p.amount.toFixed(2)}</TableCell>
@@ -332,5 +332,4 @@ export default function AdminDashboardPage() {
             </Tabs>
         </div>
     );
-
-    
+}
