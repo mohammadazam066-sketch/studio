@@ -23,6 +23,10 @@ function formatDate(date: Date | string | Timestamp) {
     return format(dateObj, 'PPP');
 }
 
+type RequirementWithQuoteCount = Requirement & {
+    quoteCount: number;
+};
+
 function RequirementListSkeleton() {
     return (
         <div className="space-y-4">
@@ -56,8 +60,7 @@ function RequirementListSkeleton() {
 
 export default function HomeownerDashboard() {
     const { currentUser } = useAuth();
-    const [requirements, setRequirements] = useState<Requirement[]>([]);
-    const [quotationCounts, setQuotationCounts] = useState<{[key: string]: number}>({});
+    const [requirements, setRequirements] = useState<RequirementWithQuoteCount[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchRequirements = useCallback(async () => {
@@ -65,14 +68,15 @@ export default function HomeownerDashboard() {
         setLoading(true);
         try {
             const userRequirements = await getRequirementsByHomeowner(currentUser.id);
-            setRequirements(userRequirements);
-
-            const counts: {[key:string]: number} = {};
-            for (const req of userRequirements) {
-                const quotes = await getQuotationsForRequirement(req.id);
-                counts[req.id] = quotes.length;
-            }
-            setQuotationCounts(counts);
+            
+            const requirementsWithCounts = await Promise.all(
+                userRequirements.map(async (req) => {
+                    const quotes = await getQuotationsForRequirement(req.id);
+                    return { ...req, quoteCount: quotes.length };
+                })
+            );
+            
+            setRequirements(requirementsWithCounts);
 
         } catch (error) {
             console.error("Failed to fetch requirements:", error);
@@ -198,7 +202,7 @@ export default function HomeownerDashboard() {
                                 </Link>
                                 <CardFooter className="flex flex-col sm:flex-row items-center justify-between gap-4">
                                      <div className="text-sm text-primary font-medium">
-                                        {quotationCounts[req.id] !== undefined ? `${quotationCounts[req.id]} Quotation(s) Received` : ''}
+                                        {req.quoteCount} Quotation(s) Received
                                     </div>
                                     <div className="flex gap-2">
                                         <Button asChild variant="outline">

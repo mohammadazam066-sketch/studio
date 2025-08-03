@@ -6,9 +6,9 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 import { Eye, FileText, CheckCircle, Clock, Droplets, Tally5 } from "lucide-react";
-import { useAuth, getOpenRequirements, getQuotationsByShopOwner, getRequirementById } from "@/lib/store";
+import { useAuth, getOpenRequirements, getQuotationsByShopOwner } from "@/lib/store";
 import { useEffect, useState, useCallback } from "react";
-import type { Requirement, Quotation } from "@/lib/types";
+import type { Requirement, QuotationWithRequirement } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import type { Timestamp } from "firebase/firestore";
@@ -49,34 +49,37 @@ function RequirementListSkeleton() {
     )
 }
 
-type QuotationWithRequirement = Quotation & {
-    requirement?: Requirement;
-}
-
 export default function ShopOwnerDashboard() {
     const { currentUser } = useAuth();
-    const [openRequirements, setOpenRequirements] = useState<Requirement[]>([]);
+    const [openRequirementsToQuote, setOpenRequirementsToQuote] = useState<Requirement[]>([]);
     const [myQuotations, setMyQuotations] = useState<QuotationWithRequirement[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchData = useCallback(async () => {
         if (!currentUser?.id) return;
         setLoading(true);
-        const [openReqs, userQuotations] = await Promise.all([
-            getOpenRequirements(),
-            getQuotationsByShopOwner(currentUser.id)
-        ]);
-        
-        const quotationsWithRequirements = await Promise.all(
-            userQuotations.map(async (quote) => {
-                const requirement = await getRequirementById(quote.requirementId);
-                return { ...quote, requirement };
-            })
-        );
 
-        setOpenRequirements(openReqs);
-        setMyQuotations(quotationsWithRequirements);
-        setLoading(false);
+        try {
+            const [openReqs, userQuotations] = await Promise.all([
+                getOpenRequirements(),
+                getQuotationsByShopOwner(currentUser.id)
+            ]);
+            
+            // Filter out requirements the shop owner has already quoted on
+            const quotedRequirementIds = new Set(userQuotations.map(q => q.requirementId));
+            const availableReqs = openReqs.filter(
+                req => !quotedRequirementIds.has(req.id)
+            );
+
+            setOpenRequirementsToQuote(availableReqs);
+            setMyQuotations(userQuotations);
+
+        } catch (error) {
+            console.error("Failed to fetch dashboard data:", error);
+        } finally {
+            setLoading(false);
+        }
+
     }, [currentUser]);
 
     useEffect(() => {
@@ -88,12 +91,6 @@ export default function ShopOwnerDashboard() {
     const acceptedQuotesCount = myQuotations.filter(q => q.requirement?.status === 'Purchased').length;
     const pendingReviewCount = submittedQuotesCount - acceptedQuotesCount;
     
-    // Of the open requirements, filter out those the shop owner has already quoted on
-    const quotedRequirementIds = new Set(myQuotations.map(q => q.requirementId));
-    const openRequirementsToQuote = openRequirements.filter(
-        req => !quotedRequirementIds.has(req.id)
-    );
-
     return (
         <div className="space-y-6">
             <div>
