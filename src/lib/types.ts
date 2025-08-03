@@ -98,3 +98,9 @@ export type Purchase = {
     createdAt: Timestamp | Date | string;
 }
 
+export type PurchaseWithDetails = Purchase & {
+  requirement?: Requirement;
+  quotation?: Quotation;
+  homeowner?: HomeownerProfile;
+  shopOwner?: ShopOwnerProfile;
+}

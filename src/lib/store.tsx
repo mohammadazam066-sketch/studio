@@ -1,8 +1,9 @@
 
+
 'use client';
 
 import * as React from 'react';
-import type { User, UserRole, HomeownerProfile, ShopOwnerProfile, Requirement, Quotation, Update, QuotationWithRequirement, Purchase } from './types';
+import type { User, UserRole, HomeownerProfile, ShopOwnerProfile, Requirement, Quotation, Update, QuotationWithRequirement, Purchase, PurchaseWithDetails } from './types';
 import { db, storage, auth } from './firebase';
 import { 
     doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, 
@@ -590,3 +591,28 @@ export const getAllPurchases = async (): Promise<Purchase[]> => {
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Purchase));
 };
 
+export const getPurchaseById = async (id: string): Promise<PurchaseWithDetails | undefined> => {
+    const purchaseRef = doc(db, 'purchases', id);
+    const purchaseSnap = await getDoc(purchaseRef);
+
+    if (!purchaseSnap.exists()) {
+        return undefined;
+    }
+
+    const purchase = { id: purchaseSnap.id, ...purchaseSnap.data() } as Purchase;
+
+    const [requirement, quotation, homeowner, shopOwner] = await Promise.all([
+        getRequirementById(purchase.requirementId),
+        getQuotationById(purchase.quotationId),
+        getHomeownerProfileById(purchase.homeownerId),
+        getProfile(purchase.shopOwnerId),
+    ]);
+
+    return {
+        ...purchase,
+        requirement,
+        quotation,
+        homeowner,
+        shopOwner
+    };
+};

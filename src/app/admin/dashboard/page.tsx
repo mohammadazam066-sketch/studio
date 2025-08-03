@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -16,8 +17,10 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronsUpDown, FileText, Calendar, Wallet } from 'lucide-react';
+import { ChevronsUpDown, FileText, Calendar, Wallet, User as UserIcon, Phone } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 function formatDate(date: Date | string | Timestamp) {
     if (!date) return 'N/A';
@@ -83,6 +86,8 @@ export default function AdminDashboardPage() {
     const [purchases, setPurchases] = useState<Purchase[]>([]);
     const [openRequirements, setOpenRequirements] = useState<OpenRequirementWithDetails[]>([]);
     const [loading, setLoading] = useState(true);
+    const router = useRouter();
+
 
     useEffect(() => {
         async function fetchData() {
@@ -239,7 +244,7 @@ export default function AdminDashboardPage() {
                                 </TableHeader>
                                 <TableBody>
                                     {purchases.map(p => (
-                                        <TableRow key={p.id}>
+                                        <TableRow key={p.id} className="cursor-pointer hover:bg-muted/50" onClick={() => router.push(`/admin/purchases/${p.id}`)}>
                                             <TableCell className="font-medium">{p.material}</TableCell>
                                             <TableCell>
                                                 <div className="flex flex-col">
