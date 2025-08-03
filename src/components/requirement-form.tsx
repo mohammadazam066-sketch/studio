@@ -74,6 +74,9 @@ const steelBrandsList = [
     { id: 'Metroll TMT Bars', label: 'Metroll TMT Bars' },
     { id: 'Kaika TMT Bars', label: 'Kaika TMT Bars' },
     { id: 'Kay2 TMT Bars', label: 'Kay2 TMT Bars' },
+    { id: 'Rajuri TMT', label: 'Rajuri TMT' },
+    { id: 'SRJ TMT', label: 'SRJ TMT' },
+    { id: 'Tirupati TMT', label: 'Tirupati TMT' },
 ];
 
 const locations = ["Bidar", "Kalaburagi", "Humnabad", "Basavakalyan", "Zaheerabad"];
@@ -576,3 +579,4 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
     
 
     
+
