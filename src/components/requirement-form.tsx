@@ -42,7 +42,8 @@ const steelDetailSchema = z.object({
 const requirementFormSchema = z.object({
   title: z.string().min(1, { message: "Title is required." }),
   category: z.string({ required_error: "Please select a category." }).min(1, "Please select a category."),
-  location: z.string().min(2, { message: "Location is required." }),
+  location: z.string({ required_error: "Please select a location." }).min(2, { message: "Location is required." }),
+  address: z.string().min(3, { message: "A specific address is required." }),
   description: z.string().optional(),
   brands: z.array(brandSchema).optional(),
   flexibleBrand: z.boolean().optional(),
@@ -75,6 +76,8 @@ const steelBrandsList = [
     { id: 'Kay2 TMT Bars', label: 'Kay2 TMT Bars' },
 ];
 
+const locations = ["Bidar", "Kalaburagi", "Humnabad", "Basavakalyan", "Zaheerabad"];
+
 
 export function RequirementForm({ existingRequirement, initialCategory }: RequirementFormProps) {
   const { currentUser } = useAuth();
@@ -91,6 +94,7 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
       title: existingRequirement?.title || '',
       category: existingRequirement?.category || initialCategory || '',
       location: existingRequirement?.location || '',
+      address: (existingRequirement as any)?.address || '', // Add address field
       description: existingRequirement?.description || '',
       brands: existingRequirement?.brands || [],
       flexibleBrand: existingRequirement?.flexibleBrand || false,
@@ -244,14 +248,38 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                             name="location"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Site Location</FormLabel>
+                                <FormLabel>Service Area</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value} disabled={isSubmitting}>
+                                        <FormControl>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select your city/area" />
+                                        </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            {locations.map(loc => (
+                                                <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                        
+                         <FormField
+                            control={form.control}
+                            name="address"
+                            render={({ field }) => (
+                                <FormItem className="md:col-span-2">
+                                <FormLabel>Full Site Address / Drop Point</FormLabel>
                                 <FormControl>
-                                    <Input placeholder="e.g., Jayanagar, Bangalore" {...field} disabled={isSubmitting} />
+                                    <Input placeholder="e.g., #123, 4th Cross, Near Water Tank, Jayanagar" {...field} disabled={isSubmitting} />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>
                             )}
                         />
+
 
                         {watchedCategory === 'Cement' && (
                            <div className="md:col-span-2 space-y-6 border rounded-lg p-4">
@@ -394,7 +422,7 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                                 </div>
                                  <FormDescription>
                                     Please check the numbers again before submitting.
-                                </FormDescription>
+                                 </FormDescription>
                                 <Button type="button" variant="outline" size="sm" onClick={() => appendSteel({ size: '', quantity: 0 })}>
                                     <PlusCircle className="mr-2 h-4 w-4" />
                                     Add Another Size

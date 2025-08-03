@@ -46,6 +46,7 @@ export type Requirement = {
   title: string;
   category: string;
   location: string;
+  address: string;
   photos: string[];
   description: string;
   createdAt: Timestamp | Date | string;
