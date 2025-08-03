@@ -165,7 +165,10 @@ export default function AdminDashboardPage() {
                                         const responseCount = req.quotations.length;
                                         return (
                                         <TableRow key={req.id} className={responseCount < 2 ? 'bg-destructive/10' : ''}>
-                                            <TableCell className="font-medium">{req.title}</TableCell>
+                                            <TableCell>
+                                                <div className="font-medium">{req.title}</div>
+                                                <div className="text-sm text-muted-foreground">{req.category}</div>
+                                            </TableCell>
                                             <TableCell>{req.homeownerId}</TableCell>
                                             <TableCell>
                                                 <Badge variant={responseCount < 2 ? 'destructive' : 'secondary'}>{responseCount} response(s)</Badge>
@@ -329,4 +332,5 @@ export default function AdminDashboardPage() {
             </Tabs>
         </div>
     );
-}
+
+    
