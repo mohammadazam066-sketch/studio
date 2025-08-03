@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
@@ -123,6 +123,9 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
                                             disabled={isSubmitting}
                                         />
                                     </FormControl>
+                                    <FormDescription>
+                                        Please check the numbers again before submitting.
+                                    </FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}

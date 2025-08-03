@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import type { Requirement } from '@/lib/types';
@@ -319,6 +319,9 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                                             />
                                         ))}
                                         </div>
+                                        <FormDescription className="pt-2">
+                                            Please check the numbers again before submitting.
+                                        </FormDescription>
                                         <FormMessage />
                                         </FormItem>
                                     )}
@@ -389,6 +392,9 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                                         </div>
                                     ))}
                                 </div>
+                                 <FormDescription>
+                                    Please check the numbers again before submitting.
+                                </FormDescription>
                                 <Button type="button" variant="outline" size="sm" onClick={() => appendSteel({ size: '', quantity: 0 })}>
                                     <PlusCircle className="mr-2 h-4 w-4" />
                                     Add Another Size
