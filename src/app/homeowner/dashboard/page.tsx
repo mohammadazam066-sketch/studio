@@ -184,7 +184,7 @@ export default function HomeownerDashboard() {
                                                     {req.steelDetails.map(detail => (
                                                         <li key={detail.size} className="text-sm text-muted-foreground flex items-center gap-2">
                                                             <Tally5 className="w-4 h-4 text-primary/70" />
-                                                            <span>{detail.size}mm: <strong>{detail.quantity || 'N/A'} units</strong></span>
+                                                            <span>{detail.size}mm: <strong>{detail.quantity || 'N/A'} rods</strong></span>
                                                         </li>
                                                     ))}
                                                 </ul>
