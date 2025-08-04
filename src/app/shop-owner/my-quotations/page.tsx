@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +14,9 @@ import type { Timestamp } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Edit, FileText, User } from "lucide-react";
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 function formatDate(date: Date | string | Timestamp) {
     if (!date) return '';
@@ -55,7 +59,11 @@ function QuotationListSkeleton() {
 
 export default function MyQuotationsPage() {
     const { currentUser } = useAuth();
-    const [quotations, setQuotations] = useState<QuotationWithRequirement[]>([]);
+    const searchParams = useSearchParams();
+    const filter = searchParams.get('filter') || 'all';
+
+    const [allQuotations, setAllQuotations] = useState<QuotationWithRequirement[]>([]);
+    const [filteredQuotations, setFilteredQuotations] = useState<QuotationWithRequirement[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchQuotations = useCallback(async () => {
@@ -70,7 +78,7 @@ export default function MyQuotationsPage() {
             })
         );
         
-        setQuotations(quotationsWithRequirements);
+        setAllQuotations(quotationsWithRequirements);
         setLoading(false);
     }, [currentUser]);
 
@@ -78,19 +86,37 @@ export default function MyQuotationsPage() {
         fetchQuotations();
     }, [fetchQuotations]);
 
+    useEffect(() => {
+        let quotes = allQuotations;
+        if (filter === 'accepted') {
+            quotes = allQuotations.filter(q => q.requirement?.status === 'Purchased');
+        } else if (filter === 'pending') {
+            quotes = allQuotations.filter(q => q.requirement?.status !== 'Purchased');
+        }
+        setFilteredQuotations(quotes);
+    }, [filter, allQuotations]);
+
     return (
         <div className="space-y-6">
             <div>
                 <h1 className="text-2xl font-bold font-headline tracking-tight">My Quotations</h1>
                 <p className="text-muted-foreground">A history of all the quotations you have submitted.</p>
             </div>
+
+            <Tabs defaultValue={filter} onValueChange={(value) => router.push(`/shop-owner/my-quotations?filter=${value}`)}>
+                <TabsList>
+                    <TabsTrigger value="all">All</TabsTrigger>
+                    <TabsTrigger value="accepted">Accepted</TabsTrigger>
+                    <TabsTrigger value="pending">Pending</TabsTrigger>
+                </TabsList>
+            </Tabs>
             
             <div>
                  {loading ? (
                     <QuotationListSkeleton />
-                 ) : quotations.length > 0 ? (
+                 ) : filteredQuotations.length > 0 ? (
                     <div className="space-y-4">
-                        {quotations.map(quote => {
+                        {filteredQuotations.map(quote => {
                             const isPurchased = quote.requirement?.status === 'Purchased';
                             return (
                             <Card key={quote.id}>
@@ -103,7 +129,7 @@ export default function MyQuotationsPage() {
                                             </CardDescription>
                                         </div>
                                         <Badge variant={isPurchased ? 'default' : 'secondary'} className={isPurchased ? 'bg-accent text-accent-foreground' : ''}>
-                                            {quote.requirement?.status || 'Status Unknown'}
+                                            {isPurchased ? "Accepted" : "Pending Review"}
                                         </Badge>
                                     </div>
                                 </CardHeader>
@@ -144,8 +170,12 @@ export default function MyQuotationsPage() {
                         <div className="mx-auto w-24 h-24 mb-4">
                             <Image src="https://placehold.co/100x100.png" width={100} height={100} alt="No quotations" data-ai-hint="empty box document" className="rounded-full" />
                         </div>
-                        <h3 className="text-lg font-medium">No quotations submitted</h3>
-                        <p className="text-muted-foreground mt-1">Visit the dashboard to find requirements to quote on.</p>
+                        <h3 className="text-lg font-medium">No quotations found</h3>
+                        <p className="text-muted-foreground mt-1">
+                            {filter === 'all'
+                                ? "You haven't submitted any quotations yet."
+                                : `You have no ${filter} quotations.`}
+                        </p>
                     </div>
                 )}
             </div>

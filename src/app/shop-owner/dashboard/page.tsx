@@ -142,7 +142,7 @@ export default function ShopOwnerDashboard() {
                         </CardContent>
                     </Card>
                  </Link>
-                <Link href="/shop-owner/my-quotations" className="block">
+                <Link href="/shop-owner/my-quotations?filter=all" className="block">
                     <Card className="hover:bg-muted/50 transition-colors">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Quotes Submitted</CardTitle>
@@ -154,7 +154,7 @@ export default function ShopOwnerDashboard() {
                         </CardContent>
                     </Card>
                 </Link>
-                <Link href="/shop-owner/my-quotations" className="block">
+                <Link href="/shop-owner/my-quotations?filter=accepted" className="block">
                     <Card className="hover:bg-muted/50 transition-colors">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Accepted Quotes</CardTitle>
@@ -166,7 +166,7 @@ export default function ShopOwnerDashboard() {
                         </CardContent>
                     </Card>
                 </Link>
-                 <Link href="/shop-owner/my-quotations" className="block">
+                 <Link href="/shop-owner/my-quotations?filter=pending" className="block">
                     <Card className="hover:bg-muted/50 transition-colors">
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium">Pending Review</CardTitle>
