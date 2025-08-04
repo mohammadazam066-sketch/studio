@@ -7,22 +7,27 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useAuth } from '@/lib/store';
 import type { HomeownerProfile } from '@/lib/types';
-
+import Image from 'next/image';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, User } from 'lucide-react';
+import { Loader2, User, Upload, X } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Label } from '@/components/ui/label';
 
 const profileFormSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
   phoneNumber: z.string().optional(),
   address: z.string().optional(),
+  occupation: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
+type PhotoState = { file: File, preview: string };
+
 
 function ProfileSkeleton() {
     return (
@@ -62,6 +67,7 @@ export default function HomeownerProfilePage() {
   const { currentUser, loading: authLoading, updateUserProfile } = useAuth();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  const [photo, setPhoto] = useState<PhotoState | null>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -69,6 +75,7 @@ export default function HomeownerProfilePage() {
       name: '',
       phoneNumber: '',
       address: '',
+      occupation: '',
     },
   });
 
@@ -79,18 +86,46 @@ export default function HomeownerProfilePage() {
         name: profile.name || '',
         phoneNumber: currentUser.phoneNumber || '',
         address: profile.address || '',
+        occupation: profile.occupation || '',
       });
     }
   }, [currentUser, form]);
 
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhoto({ file, preview: URL.createObjectURL(file) });
+      e.target.value = ''; // Reset file input
+    }
+  };
+
+  const removePhoto = () => {
+    if (photo) {
+        URL.revokeObjectURL(photo.preview);
+    }
+    setPhoto(null);
+  };
+
+
   async function onSubmit(data: ProfileFormValues) {
     setIsSaving(true);
+    let newPhotoDataUrl: string[] = [];
+    if (photo) {
+        newPhotoDataUrl.push(await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(photo.file);
+        }));
+    }
+
     try {
-        await updateUserProfile(data);
+        await updateUserProfile(data, newPhotoDataUrl);
         toast({
             title: "Profile Updated",
             description: "Your information has been successfully saved.",
         });
+        setPhoto(null); // Clear staged photo
     } catch (error) {
         console.error("Failed to update profile:", error);
         toast({
@@ -107,6 +142,14 @@ export default function HomeownerProfilePage() {
       return <ProfileSkeleton />;
   }
 
+  const profile = currentUser?.profile as HomeownerProfile;
+  const photoPreview = photo?.preview || profile?.photoURL;
+  
+  const getInitials = (name?: string) => {
+    if (!name) return 'U';
+    return name.split(' ').map(n => n[0]).join('').toUpperCase();
+  }
+
 
   return (
     <div className="space-y-6">
@@ -120,7 +163,36 @@ export default function HomeownerProfilePage() {
                     <CardHeader>
                         <CardTitle>Personal Details</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
+                    <CardContent className="space-y-6">
+                        <div className="flex items-center gap-4">
+                           <div className="relative">
+                             <Avatar className="h-20 w-20">
+                                {photoPreview ? (
+                                    <AvatarImage src={photoPreview} alt={profile?.name} />
+                                ) : null}
+                                <AvatarFallback className="text-2xl">
+                                    {getInitials(profile?.name)}
+                                </AvatarFallback>
+                             </Avatar>
+                             {photo && (
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="icon"
+                                    className="absolute -top-1 -right-1 h-6 w-6 rounded-full"
+                                    onClick={removePhoto}
+                                    disabled={isSaving}
+                                    >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                             )}
+                           </div>
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="photo-upload">Profile Photo (Optional)</Label>
+                                <Input id="photo-upload" type="file" onChange={handlePhotoUpload} accept="image/png, image/jpeg, image/webp" disabled={isSaving} className="max-w-xs" />
+                            </div>
+                        </div>
+
                         <FormField
                             control={form.control}
                             name="name"
@@ -152,9 +224,22 @@ export default function HomeownerProfilePage() {
                             name="address"
                             render={({ field }) => (
                                 <FormItem>
-                                <FormLabel>Address</FormLabel>
+                                <FormLabel>Address (Optional)</FormLabel>
                                 <FormControl>
                                     <Input placeholder="123 Main St, Anytown, USA" {...field} disabled={isSaving} />
+                                </FormControl>
+                                <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="occupation"
+                            render={({ field }) => (
+                                <FormItem>
+                                <FormLabel>Occupation (Optional)</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="e.g., Engineer, Doctor" {...field} disabled={isSaving} />
                                 </FormControl>
                                 <FormMessage />
                                 </FormItem>

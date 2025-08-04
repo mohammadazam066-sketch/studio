@@ -54,29 +54,47 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const profileDocRef = doc(db, profileCollection, currentUser.id);
 
     const currentProfileSnap = await getDoc(profileDocRef);
-    const currentProfile = currentProfileSnap.data() as ShopOwnerProfile;
-    const currentPhotos = currentProfile?.shopPhotos || [];
+    const currentProfile = currentProfileSnap.data() as ShopOwnerProfile & HomeownerProfile;
     
-    const photosToKeep = updatedProfileData.photosToKeep || [];
-    const photosToDelete = currentPhotos.filter(url => !photosToKeep.includes(url));
+    // --- Photo Deletion Logic ---
+    if (currentUser.role === 'shop-owner') {
+        const currentPhotos = currentProfile?.shopPhotos || [];
+        const photosToKeep = updatedProfileData.photosToKeep || [];
+        const photosToDelete = currentPhotos.filter(url => !photosToKeep.includes(url));
 
-    await Promise.all(photosToDelete.map(async (url) => {
-      try {
-        const photoRef = ref(storage, url);
-        await deleteObject(photoRef);
-      } catch (error: any) {
-        if (error.code !== 'storage/object-not-found') {
-          console.error("Failed to delete old photo:", error);
-        }
-      }
-    }));
-
-    let uploadedUrls: string[] = [];
-    if (newPhotosDataUrls.length > 0 && currentUser.role === 'shop-owner') {
-        uploadedUrls = await uploadPhotos('shopOwnerProfiles', currentUser.id, newPhotosDataUrls);
+        await Promise.all(photosToDelete.map(async (url) => {
+            try {
+                const photoRef = ref(storage, url);
+                await deleteObject(photoRef);
+            } catch (error: any) {
+                if (error.code !== 'storage/object-not-found') {
+                    console.error("Failed to delete old photo:", error);
+                }
+            }
+        }));
     }
-    
-    const finalPhotos = [...photosToKeep, ...uploadedUrls];
+
+    // --- Photo Upload Logic ---
+    let uploadedUrls: string[] = [];
+    if (newPhotosDataUrls.length > 0) {
+        if (currentUser.role === 'shop-owner') {
+            uploadedUrls = await uploadPhotos('shopOwnerProfiles', currentUser.id, newPhotosDataUrls);
+        } else if (currentUser.role === 'homeowner' && newPhotosDataUrls.length === 1) {
+            // Homeowners can only have one profile picture
+            // Delete old photo if it exists
+            if (currentProfile?.photoURL) {
+                try {
+                    const oldPhotoRef = ref(storage, currentProfile.photoURL);
+                    await deleteObject(oldPhotoRef);
+                } catch (error: any) {
+                     if (error.code !== 'storage/object-not-found') {
+                        console.error("Failed to delete old profile picture:", error);
+                    }
+                }
+            }
+            uploadedUrls = await uploadPhotos('homeownerProfiles', currentUser.id, newPhotosDataUrls);
+        }
+    }
     
     const { photosToKeep: _, ...restOfProfileData } = updatedProfileData;
 
@@ -84,8 +102,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       ...restOfProfileData,
     };
     
+    // Add photo URLs to the correct field based on role
     if(currentUser.role === 'shop-owner') {
-        finalProfileData.shopPhotos = finalPhotos;
+        const existingPhotos = updatedProfileData.photosToKeep || [];
+        finalProfileData.shopPhotos = [...existingPhotos, ...uploadedUrls];
+    } else if (currentUser.role === 'homeowner' && uploadedUrls.length > 0) {
+        finalProfileData.photoURL = uploadedUrls[0];
     }
 
 
@@ -156,6 +178,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             name: defaultName,
             phoneNumber: user.phoneNumber,
             address: '',
+            occupation: '',
+            photoURL: '',
             createdAt: serverTimestamp(),
         };
          await setDoc(profileDocRef, profileData);

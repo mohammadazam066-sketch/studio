@@ -26,6 +26,8 @@ export type HomeownerProfile = {
     name: string;
     phoneNumber: string;
     address?: string;
+    occupation?: string;
+    photoURL?: string;
     createdAt?: Timestamp | Date | string;
 }
 
