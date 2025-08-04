@@ -34,8 +34,54 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthChanged((user) => {
-      setCurrentUserAndLog(user);
+    const adminUids = ['CbjcQE935XUuBidcYEX3Y7fdh0O2'];
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user && user.phoneNumber) {
+        // User is signed in, fetch their data from 'users' and their profile.
+        const userDocRef = doc(db, 'users', user.uid);
+        let userDocSnap = await getDoc(userDocRef);
+
+        if (!userDocSnap.exists()) {
+          // This can happen for a brand new user who just finished OTP, but hasn't selected a role yet.
+          // The UI will handle role selection, and then create the document.
+          // For our state, we'll return a minimal user object.
+          setCurrentUserAndLog({
+            id: user.uid,
+            phoneNumber: user.phoneNumber,
+            // Role and profile will be missing until they complete registration.
+          } as User);
+          setLoading(false);
+          return;
+        }
+        
+        const userData = userDocSnap.data() as Omit<User, 'id' | 'profile'> & { id: string };
+
+        // ** Temporary Admin Check **
+        if(adminUids.includes(user.uid)) {
+            userData.role = 'admin';
+        }
+
+        // Determine profile collection based on role
+        const profileCollection = userData.role === 'admin' 
+          ? 'shopOwnerProfiles' // Or a dedicated admin profile collection
+          : userData.role === 'homeowner' 
+              ? 'homeownerProfiles' 
+              : 'shopOwnerProfiles';
+        
+        const profileDocRef = doc(db, profileCollection, user.uid);
+        let profileDocSnap = await getDoc(profileDocRef);
+        
+        const userProfile = profileDocSnap.exists() ? { id: profileDocSnap.id, ...profileDocSnap.data() } : undefined;
+
+        setCurrentUserAndLog({
+          ...userData,
+          profile: userProfile,
+        });
+
+      } else {
+        // User is signed out.
+        setCurrentUserAndLog(null);
+      }
       setLoading(false);
     });
     return () => unsubscribe();
