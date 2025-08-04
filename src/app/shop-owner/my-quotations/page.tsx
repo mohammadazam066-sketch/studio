@@ -14,7 +14,7 @@ import type { Timestamp } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Edit, FileText, User } from "lucide-react";
 import Image from 'next/image';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
@@ -60,6 +60,7 @@ function QuotationListSkeleton() {
 export default function MyQuotationsPage() {
     const { currentUser } = useAuth();
     const searchParams = useSearchParams();
+    const router = useRouter();
     const filter = searchParams.get('filter') || 'all';
 
     const [allQuotations, setAllQuotations] = useState<QuotationWithRequirement[]>([]);
