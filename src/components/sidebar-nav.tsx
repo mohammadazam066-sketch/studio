@@ -3,7 +3,6 @@
 'use client';
 
 import {
-    Sidebar,
     SidebarContent,
     SidebarHeader,
     SidebarMenu,
