@@ -36,39 +36,47 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const adminUids = ['CbjcQE935XUuBidcYEX3Y7fdh0O2', 'gu8eCopKXDdTpWFwjltteyu8xk32'];
+    
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user && user.phoneNumber) {
-        // User is signed in, fetch their data from 'users' and their profile.
         const userDocRef = doc(db, 'users', user.uid);
         let userDocSnap = await getDoc(userDocRef);
+        const isDesignatedAdmin = adminUids.includes(user.uid);
+
+        // If the user is a designated admin and doesn't have a user document,
+        // create one for them. This is crucial for their first login.
+        if (isDesignatedAdmin && !userDocSnap.exists()) {
+            await setDoc(userDocRef, {
+                id: user.uid,
+                phoneNumber: user.phoneNumber,
+                role: 'admin',
+                createdAt: serverTimestamp(),
+            });
+            // Re-fetch the document snapshot after creating it.
+            userDocSnap = await getDoc(userDocRef);
+        }
 
         if (!userDocSnap.exists()) {
-          // This can happen for a brand new user who just finished OTP, but hasn't selected a role yet.
-          // The UI will handle role selection, and then create the document.
-          // For our state, we'll return a minimal user object.
+          // This path is now for non-admin new users who haven't selected a role yet.
           setCurrentUserAndLog({
             id: user.uid,
             phoneNumber: user.phoneNumber,
-            // Role and profile will be missing until they complete registration.
           } as User);
           setLoading(false);
           return;
         }
         
-        const userData = userDocSnap.data() as Omit<User, 'id' | 'profile'> & { id: string };
-        const isDesignatedAdmin = adminUids.includes(user.uid);
-
-        let userProfile;
-        // The original role of the user, before we override it to admin.
-        const originalRole = userData.role;
-
+        const userData = userDocSnap.data() as User;
+        
+        // Ensure the role is 'admin' if the UID matches, overriding what's in the DB if necessary.
         if (isDesignatedAdmin) {
             userData.role = 'admin';
         }
 
-        // Fetch profile based on the *original* role of the user, not the potentially overridden 'admin' role.
-        if (originalRole === 'homeowner' || originalRole === 'shop-owner') {
-            const profileCollection = originalRole === 'homeowner' 
+        let userProfile;
+        // Admins might not have a homeowner/shop-owner profile, so this check must be optional.
+        if (userData.role === 'homeowner' || userData.role === 'shop-owner') {
+            const profileCollection = userData.role === 'homeowner' 
                 ? 'homeownerProfiles' 
                 : 'shopOwnerProfiles';
             
@@ -241,7 +249,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Force a re-check of the auth state to load the new user data
       const updatedUser = onAuthStateChanged(auth, user => {
         if(user) {
-            setCurrentUserAndLog(user)
+            // The main listener will handle the update, no need to call setCurrentUser here.
         }
       });
       // The onAuthChanged listener will handle the state update.
