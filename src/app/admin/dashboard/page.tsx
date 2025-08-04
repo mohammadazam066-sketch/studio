@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { getAllUsersByRole, getAllPurchases, getOpenRequirements, getQuotationsForRequirement } from '@/lib/store';
-import type { User, Purchase, Requirement, Quotation } from '@/lib/types';
+import type { User, Purchase, Requirement, Quotation, HomeownerProfile, ShopOwnerProfile } from '@/lib/types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
