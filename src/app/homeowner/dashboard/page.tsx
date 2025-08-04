@@ -5,7 +5,7 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { PlusCircle, Eye, CheckSquare, List, Droplets, Tally5, Edit } from "lucide-react";
+import { PlusCircle, Eye, CheckSquare, List, Droplets, Tally5, Edit, Newspaper } from "lucide-react";
 import { useAuth, getRequirementsByHomeowner, getQuotationsForRequirement } from "@/lib/store";
 import { useEffect, useState, useCallback } from "react";
 import type { Requirement, Quotation } from "@/lib/types";
@@ -115,12 +115,20 @@ export default function HomeownerDashboard() {
                     <h1 className="text-2xl font-bold font-headline tracking-tight">Homeowner Dashboard</h1>
                     <p className="text-muted-foreground">Manage your material requirements and view quotations.</p>
                 </div>
-                <Button asChild>
-                    <Link href="/homeowner/requirements/new">
-                        <PlusCircle className="mr-2" />
-                        Post a New Requirement
-                    </Link>
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <Button asChild>
+                        <Link href="/homeowner/requirements/new">
+                            <PlusCircle className="mr-2" />
+                            Post a New Requirement
+                        </Link>
+                    </Button>
+                     <Button asChild variant="outline">
+                        <Link href="/updates">
+                            <Newspaper className="mr-2" />
+                            View Updates
+                        </Link>
+                    </Button>
+                </div>
             </div>
 
              <div className="space-y-4">

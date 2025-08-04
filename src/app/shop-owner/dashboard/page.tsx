@@ -5,7 +5,7 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { Eye, FileText, CheckCircle, Clock, Droplets, Tally5 } from "lucide-react";
+import { Eye, FileText, CheckCircle, Clock, Droplets, Tally5, Newspaper } from "lucide-react";
 import { useAuth, getOpenRequirements, getQuotationsByShopOwner } from "@/lib/store";
 import { useEffect, useState, useCallback } from "react";
 import type { Requirement, QuotationWithRequirement } from "@/lib/types";
@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import { MaterialCategoryGrid } from "@/components/material-category-grid";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 
 function formatDate(date: Date | string | Timestamp) {
     if (!date) return '';
@@ -110,6 +111,23 @@ export default function ShopOwnerDashboard() {
                 <h1 className="text-2xl font-bold font-headline tracking-tight">Shop Owner Dashboard</h1>
                 <p className="text-muted-foreground">Find new business opportunities and manage your quotations.</p>
             </div>
+
+             <Card>
+                <CardHeader>
+                    <CardTitle>Community Updates</CardTitle>
+                    <CardDescription>Check out the latest news and information from the TradeFlow community.</CardDescription>
+                </CardHeader>
+                <CardFooter>
+                     <Button asChild>
+                        <Link href="/updates">
+                            <Newspaper className="mr-2 h-4 w-4" />
+                            View All Updates
+                        </Link>
+                    </Button>
+                </CardFooter>
+            </Card>
+
+            <Separator />
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                  <Link href="/shop-owner/requirements" className="block">
