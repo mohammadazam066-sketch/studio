@@ -233,22 +233,28 @@ export const addRequirement = async (data, photosDataUrls: string[]) => {
     await updateDoc(requirementRef, { photos: photoUrls });
     
     // Create notifications for shop owners in the same location
-    const shopOwnersQuery = query(collection(db, 'shopOwnerProfiles'), where("location", "==", data.location));
+    const shopOwnersQuery = query(collection(db, 'users'), where("role", "==", "shop-owner"));
     const shopOwnersSnapshot = await getDocs(shopOwnersQuery);
     
     const batch = writeBatch(db);
 
-    shopOwnersSnapshot.forEach(shopOwnerDoc => {
-        const notifRef = doc(collection(db, 'notifications'));
-        batch.set(notifRef, {
-            userId: shopOwnerDoc.id,
-            message: `New requirement '${data.title}' posted in ${data.location}.`,
-            link: `/shop-owner/requirements/${requirementRef.id}`,
-            read: false,
-            createdAt: serverTimestamp()
-        });
-    });
-
+    for (const shopOwnerUserDoc of shopOwnersSnapshot.docs) {
+        const shopOwnerProfileDoc = await getDoc(doc(db, 'shopOwnerProfiles', shopOwnerUserDoc.id));
+        if (shopOwnerProfileDoc.exists()) {
+            const shopOwnerProfile = shopOwnerProfileDoc.data() as ShopOwnerProfile;
+            if (shopOwnerProfile.location === data.location) {
+                 const notifRef = doc(collection(db, 'notifications'));
+                 batch.set(notifRef, {
+                    userId: shopOwnerUserDoc.id,
+                    message: `New requirement '${data.title}' posted in ${data.location}.`,
+                    link: `/shop-owner/requirements/${requirementRef.id}`,
+                    read: false,
+                    createdAt: serverTimestamp()
+                });
+            }
+        }
+    }
+    
     await batch.commit();
 
 

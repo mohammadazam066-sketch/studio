@@ -8,7 +8,6 @@ import { useAuth } from "@/lib/store";
 import type { UserRole } from "@/lib/types";
 import { Loader2 } from "lucide-react";
 import { UserNav } from "./user-nav";
-import { NotificationsMenu } from "./notifications-menu";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -40,7 +39,6 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
              <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-2">
                 <SidebarTrigger className="md:hidden" />
                  <div className="flex items-center gap-4 ml-auto">
-                    {currentUser && <NotificationsMenu userId={currentUser.id} />}
                     {currentUser && <UserNav user={currentUser} />}
                 </div>
              </header>

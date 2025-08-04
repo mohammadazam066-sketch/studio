@@ -21,6 +21,7 @@ import type { User } from "@/lib/types";
 import { LogOut, User as UserIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { NotificationsMenu } from "./notifications-menu";
 
 
 export function UserNav({ user }: { user: User }) {
@@ -44,44 +45,46 @@ export function UserNav({ user }: { user: User }) {
     await logout();
     // Redirect to the welcome page and force a full refresh
     // to clear any stale application state.
-    router.push('/');
-    window.location.reload();
+    router.push('/goodbye');
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-          <Avatar className="h-10 w-10">
-            {/* Add avatar image if available */}
-            <AvatarFallback>{getInitials(user.profile?.name, user.phoneNumber)}</AvatarFallback>
-          </Avatar>
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">{displayName}</p>
-            <p className="text-xs leading-none text-muted-foreground">
-              {user.phoneNumber}
-            </p>
-          </div>
-        </DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        <DropdownMenuGroup>
-           <Link href={profileLink}>
-            <DropdownMenuItem>
-                <UserIcon className="mr-2 h-4 w-4" />
-                <span>Profile</span>
+    <div className="flex items-center gap-4">
+        <NotificationsMenu userId={user.id} />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+              <Avatar className="h-10 w-10">
+                {/* Add avatar image if available */}
+                <AvatarFallback>{getInitials(user.profile?.name, user.phoneNumber)}</AvatarFallback>
+              </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56" align="end" forceMount>
+            <DropdownMenuLabel className="font-normal">
+              <div className="flex flex-col space-y-1">
+                <p className="text-sm font-medium leading-none">{displayName}</p>
+                <p className="text-xs leading-none text-muted-foreground">
+                  {user.phoneNumber}
+                </p>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+               <Link href={profileLink}>
+                <DropdownMenuItem>
+                    <UserIcon className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                </DropdownMenuItem>
+              </Link>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
             </DropdownMenuItem>
-          </Link>
-        </DropdownMenuGroup>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout}>
-            <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+          </DropdownMenuContent>
+        </DropdownMenu>
+    </div>
   )
 }
