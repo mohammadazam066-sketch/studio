@@ -41,9 +41,9 @@ export function PhoneAuthForm() {
 
   useEffect(() => {
     // This effect sets up the reCAPTCHA verifier when the component mounts.
-    // It's set to 'invisible' so the user doesn't have to click anything.
+    // It's set to 'normal' to ensure the user can always interact with it.
     const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-      'size': 'invisible',
+      'size': 'normal',
       'callback': (response: any) => {
         // reCAPTCHA solved, allow signInWithPhoneNumber.
       },
@@ -202,8 +202,6 @@ export function PhoneAuthForm() {
 
   return (
     <>
-      {/* This empty div is required for the invisible reCAPTCHA to work */}
-      <div id="recaptcha-container"></div>
       {uiState === 'phone-input' && (
         <form onSubmit={onSendOtp} className="space-y-4">
           <div className="space-y-2">
@@ -229,6 +227,8 @@ export function PhoneAuthForm() {
               </p>
             )}
           </div>
+          {/* This container is now inside the form to ensure it's visible */}
+          <div id="recaptcha-container" className="flex justify-center"></div>
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? <Loader2 className="animate-spin" /> : 'Send OTP'}
             <ArrowRight className="ml-2" />
