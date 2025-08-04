@@ -1,7 +1,6 @@
 
 import {
   signOut,
-  onAuthStateChanged,
   deleteUser,
 } from 'firebase/auth';
 import {
@@ -22,8 +21,7 @@ export const logoutUser = async () => {
   return await signOut(auth);
 };
 
-// Auth state observer (This is now the main one used in AuthProvider)
-// The onAuthChanged in the original auth.ts can be considered a backup or for non-React parts if any.
-export { onAuthStateChanged };
+// onAuthStateChanged is now called directly from firebase/auth in store.tsx
+// to avoid circular dependencies and import issues.
 
     

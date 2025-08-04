@@ -10,7 +10,8 @@ import {
     collection, query, where, getDocs, serverTimestamp, orderBy, writeBatch
 } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
-import { onAuthStateChanged, logoutUser } from './auth';
+import { logoutUser } from './auth';
+import { onAuthStateChanged } from 'firebase/auth';
 
 // --- AUTH CONTEXT & PROVIDER ---
 
@@ -35,7 +36,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const adminUids = ['CbjcQE935XUuBidcYEX3Y7fdh0O2'];
-    const unsubscribe = onAuthStateChanged(async (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user && user.phoneNumber) {
         // User is signed in, fetch their data from 'users' and their profile.
         const userDocRef = doc(db, 'users', user.uid);
@@ -232,7 +233,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
   
       // Force a re-check of the auth state to load the new user data
-      const updatedUser = onAuthStateChanged(user => {
+      const updatedUser = onAuthStateChanged(auth, user => {
         if(user) {
             setCurrentUserAndLog(user)
         }
@@ -777,5 +778,3 @@ export const getPurchaseById = async (id: string): Promise<PurchaseWithDetails |
         shopOwner
     };
 };
-
-    
