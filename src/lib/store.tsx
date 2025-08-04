@@ -2,11 +2,11 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import type { User, UserRole, HomeownerProfile, ShopOwnerProfile, Requirement, Quotation, Update, QuotationWithRequirement, Purchase, PurchaseWithDetails } from './types';
+import type { User, UserRole, HomeownerProfile, ShopOwnerProfile, Requirement, Quotation, Update, QuotationWithRequirement, Purchase, PurchaseWithDetails, Notification } from './types';
 import { db, storage, auth } from './firebase';
 import { 
     doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, 
-    collection, query, where, getDocs, serverTimestamp, orderBy 
+    collection, query, where, getDocs, serverTimestamp, orderBy, writeBatch
 } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 import { onAuthChanged, logoutUser } from './auth';
@@ -231,6 +231,26 @@ export const addRequirement = async (data, photosDataUrls: string[]) => {
 
     const photoUrls = await uploadPhotos('requirements', auth.currentUser.uid, photosDataUrls, requirementRef.id);
     await updateDoc(requirementRef, { photos: photoUrls });
+    
+    // Create notifications for shop owners in the same location
+    const shopOwnersQuery = query(collection(db, 'shopOwnerProfiles'), where("location", "==", data.location));
+    const shopOwnersSnapshot = await getDocs(shopOwnersQuery);
+    
+    const batch = writeBatch(db);
+
+    shopOwnersSnapshot.forEach(shopOwnerDoc => {
+        const notifRef = doc(collection(db, 'notifications'));
+        batch.set(notifRef, {
+            userId: shopOwnerDoc.id,
+            message: `New requirement '${data.title}' posted in ${data.location}.`,
+            link: `/shop-owner/requirements/${requirementRef.id}`,
+            read: false,
+            createdAt: serverTimestamp()
+        });
+    });
+
+    await batch.commit();
+
 
     return requirementRef.id;
 }
@@ -350,6 +370,10 @@ export const addQuotation = async (data) => {
     const profileDocRef = doc(db, 'shopOwnerProfiles', auth.currentUser.uid);
     const profileDocSnap = await getDoc(profileDocRef);
     const profileData = profileDocSnap.data() as ShopOwnerProfile;
+    
+    const requirementSnap = await getDoc(doc(db, 'requirements', data.requirementId));
+    const requirement = requirementSnap.data() as Requirement;
+
 
     const quotationData = {
         ...data,
@@ -359,6 +383,16 @@ export const addQuotation = async (data) => {
         createdAt: serverTimestamp(),
     }
     const docRef = await addDoc(collection(db, 'quotations'), quotationData);
+    
+    // Create notification for homeowner
+    await addDoc(collection(db, 'notifications'), {
+        userId: requirement.homeownerId,
+        message: `You received a new quote from ${quotationData.shopName} for '${requirement.title}'.`,
+        link: `/homeowner/requirements/${data.requirementId}`,
+        read: false,
+        createdAt: serverTimestamp()
+    });
+    
     return docRef.id;
 }
 
@@ -548,6 +582,28 @@ export const getUpdateById = async (id: string): Promise<Update | undefined> => 
     return undefined;
 }
 
+// == NOTIFICATIONS ==
+
+export const getNotifications = async (userId: string): Promise<Notification[]> => {
+    const q = query(
+        collection(db, "notifications"),
+        where("userId", "==", userId),
+        orderBy("createdAt", "desc")
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
+};
+
+export const markNotificationsAsRead = async (notificationIds: string[]) => {
+    if (notificationIds.length === 0) return;
+    const batch = writeBatch(db);
+    notificationIds.forEach(id => {
+        const notifRef = doc(db, 'notifications', id);
+        batch.update(notifRef, { read: true });
+    });
+    await batch.commit();
+};
+
 
 // == ADMIN FUNCTIONS ==
 
@@ -615,5 +671,3 @@ export const getPurchaseById = async (id: string): Promise<PurchaseWithDetails |
         shopOwner
     };
 };
-
-    

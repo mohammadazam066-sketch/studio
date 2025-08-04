@@ -51,17 +51,11 @@ export function UserNav({ user }: { user: User }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-full justify-start gap-2 px-2">
-          <Avatar className="h-8 w-8">
+        <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+          <Avatar className="h-10 w-10">
             {/* Add avatar image if available */}
             <AvatarFallback>{getInitials(user.profile?.name, user.phoneNumber)}</AvatarFallback>
           </Avatar>
-           <div className="text-left truncate">
-              <p className="text-sm font-medium leading-none group-data-[collapsible=icon]:hidden truncate">{displayName}</p>
-              <p className="text-xs leading-none text-muted-foreground group-data-[collapsible=icon]:hidden">
-                {user.role === 'homeowner' ? 'Homeowner' : 'Shop Owner'}
-              </p>
-          </div>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>

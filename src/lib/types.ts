@@ -105,3 +105,12 @@ export type PurchaseWithDetails = Purchase & {
   homeowner?: HomeownerProfile;
   shopOwner?: ShopOwnerProfile;
 }
+
+export type Notification = {
+    id: string;
+    userId: string;
+    message: string;
+    link: string;
+    createdAt: Timestamp;
+    read: boolean;
+};

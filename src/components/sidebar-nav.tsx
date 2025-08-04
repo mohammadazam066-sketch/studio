@@ -10,7 +10,6 @@ import {
     SidebarMenuItem,
     SidebarMenuButton,
     SidebarFooter,
-    SidebarTrigger,
     SidebarSeparator
 } from '@/components/ui/sidebar';
 import { Logo } from './logo';
@@ -58,13 +57,25 @@ export function SidebarNav({ user }: { user: User }) {
         }
         return item.roles.includes(user.role);
     });
+    
+    const getInitials = (name?: string, phone?: string) => {
+        if (name) {
+            return name.split(' ').map(n => n[0]).join('').toUpperCase();
+        }
+        if (phone) {
+            return phone.slice(-2);
+        }
+        return 'U';
+    }
+
+    const profileLink = user.role === 'homeowner' ? '/homeowner/profile' : '/shop-owner/profile';
+    const displayName = user.profile?.name || user.phoneNumber;
 
     return (
         <>
             <SidebarHeader>
                 <div className="flex w-full items-center justify-between">
                     <Logo />
-                    <SidebarTrigger className="hidden md:flex" />
                 </div>
             </SidebarHeader>
             <SidebarContent>
@@ -87,9 +98,9 @@ export function SidebarNav({ user }: { user: User }) {
                     ))}
                 </SidebarMenu>
             </SidebarContent>
-            <SidebarFooter>
+             <SidebarFooter className="md:hidden">
                 <SidebarSeparator />
-                <UserNav user={user} />
+                 <UserNav user={user} />
             </SidebarFooter>
         </>
     );
