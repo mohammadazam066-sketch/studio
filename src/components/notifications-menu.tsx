@@ -48,14 +48,19 @@ export function NotificationsMenu({ userId }: NotificationsMenuProps) {
         if (!userId) return;
 
         setLoading(true);
+        // We query only by userId. Sorting will be done on the client
+        // to avoid needing a composite index in Firestore.
         const q = query(
             collection(db, "notifications"),
-            where("userId", "==", userId),
-            orderBy("createdAt", "desc")
+            where("userId", "==", userId)
         );
         
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const notifs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
+            
+            // Sort notifications by creation date, descending.
+            notifs.sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime());
+
             setNotifications(notifs);
             setHasUnread(notifs.some(n => !n.read));
             setLoading(false);
