@@ -17,6 +17,7 @@ import Image from "next/image";
 import { MaterialCategoryGrid } from "@/components/material-category-grid";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 
 function formatDate(date: Date | string | Timestamp) {
@@ -65,9 +66,11 @@ function RequirementListSkeleton() {
 export default function HomeownerDashboard() {
     const { currentUser } = useAuth();
     const [requirements, setRequirements] = useState<RequirementWithQuoteCount[]>([]);
-    const [filteredRequirements, setFilteredRequirements] = useState<RequirementWithQuoteCount[]>([]);
+    const [displayRequirements, setDisplayRequirements] = useState<RequirementWithQuoteCount[]>([]);
     const [loading, setLoading] = useState(true);
     const [locationFilter, setLocationFilter] = useState('all');
+    const [statusFilter, setStatusFilter] = useState<'all' | 'Open' | 'Purchased'>('all');
+
 
     const fetchRequirements = useCallback(async () => {
         if (!currentUser) return;
@@ -97,15 +100,22 @@ export default function HomeownerDashboard() {
     }, [fetchRequirements]);
     
     useEffect(() => {
-        if (locationFilter === 'all') {
-            setFilteredRequirements(requirements);
-        } else {
-            setFilteredRequirements(requirements.filter(req => req.location.toLowerCase().includes(locationFilter.toLowerCase())));
-        }
-    }, [locationFilter, requirements]);
+        let filtered = requirements;
 
-    const openRequirementsCount = filteredRequirements.filter(r => r.status === 'Open').length;
-    const purchasedRequirementsCount = filteredRequirements.filter(r => r.status === 'Purchased').length;
+        if (locationFilter !== 'all') {
+            filtered = filtered.filter(req => req.location === locationFilter);
+        }
+
+        if (statusFilter !== 'all') {
+            filtered = filtered.filter(req => req.status === statusFilter);
+        }
+        
+        setDisplayRequirements(filtered);
+    }, [locationFilter, statusFilter, requirements]);
+
+    const totalRequirementsCount = requirements.filter(r => locationFilter === 'all' || r.location === locationFilter).length;
+    const openRequirementsCount = requirements.filter(r => r.status === 'Open' && (locationFilter === 'all' || r.location === locationFilter)).length;
+    const purchasedRequirementsCount = requirements.filter(r => r.status === 'Purchased' && (locationFilter === 'all' || r.location === locationFilter)).length;
 
 
     return (
@@ -137,16 +147,22 @@ export default function HomeownerDashboard() {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                 <Card>
+                 <Card
+                    onClick={() => setStatusFilter('all')}
+                    className={cn("cursor-pointer transition-all", statusFilter === 'all' && "ring-2 ring-primary shadow-lg")}
+                 >
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Total Requirements</CardTitle>
                         <List className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{filteredRequirements.length}</div>
+                        <div className="text-2xl font-bold">{totalRequirementsCount}</div>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card
+                    onClick={() => setStatusFilter('Open')}
+                    className={cn("cursor-pointer transition-all", statusFilter === 'Open' && "ring-2 ring-primary shadow-lg")}
+                >
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Open</CardTitle>
                         <Eye className="h-4 w-4 text-muted-foreground" />
@@ -155,7 +171,10 @@ export default function HomeownerDashboard() {
                         <div className="text-2xl font-bold">{openRequirementsCount}</div>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card
+                    onClick={() => setStatusFilter('Purchased')}
+                    className={cn("cursor-pointer transition-all", statusFilter === 'Purchased' && "ring-2 ring-primary shadow-lg")}
+                >
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Purchased</CardTitle>
                         <CheckSquare className="h-4 w-4 text-muted-foreground" />
@@ -183,9 +202,9 @@ export default function HomeownerDashboard() {
                  </div>
                  {loading ? (
                     <RequirementListSkeleton />
-                 ) : filteredRequirements.length > 0 ? (
+                 ) : displayRequirements.length > 0 ? (
                     <div className="space-y-4">
-                        {filteredRequirements.map(req => (
+                        {displayRequirements.map(req => (
                             <Card key={req.id}>
                                 <Link href={`/homeowner/requirements/${req.id}`} className="block hover:bg-muted/50 transition-colors rounded-t-lg">
                                     <CardHeader>
@@ -257,9 +276,9 @@ export default function HomeownerDashboard() {
                         </div>
                         <h3 className="text-lg font-medium">No requirements yet</h3>
                         <p className="text-muted-foreground mt-1">
-                            {locationFilter === 'all'
+                            {locationFilter === 'all' && statusFilter === 'all'
                                 ? "Click the button above to post your first material requirement."
-                                : `No requirements found for ${locationFilter}. Try selecting "All Locations".`}
+                                : `No requirements found matching your filters.`}
                         </p>
                     </div>
                 )}
