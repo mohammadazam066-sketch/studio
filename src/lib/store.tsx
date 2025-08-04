@@ -674,7 +674,7 @@ export const getAllUsersByRole = async (role: UserRole): Promise<User[]> => {
 };
 
 export const createPurchase = async (requirement: Requirement, quotation: Quotation) => {
-    await addDoc(collection(db, 'purchases'), {
+    const purchaseRef = await addDoc(collection(db, 'purchases'), {
         requirementId: requirement.id,
         homeownerId: requirement.homeownerId,
         shopOwnerId: quotation.shopOwnerId,
@@ -686,6 +686,18 @@ export const createPurchase = async (requirement: Requirement, quotation: Quotat
         shopOwnerName: quotation.shopOwnerName,
         createdAt: serverTimestamp(),
     });
+
+    // Create notification for shop owner about the purchase
+    await addDoc(collection(db, 'notifications'), {
+        userId: quotation.shopOwnerId,
+        message: `Your quote for '${requirement.title}' was accepted by ${requirement.homeownerName}!`,
+        link: `/shop-owner/my-quotations?filter=accepted`,
+        read: false,
+        createdAt: serverTimestamp(),
+        type: 'purchase'
+    });
+
+    return purchaseRef;
 };
 
 export const getAllPurchases = async (): Promise<Purchase[]> => {

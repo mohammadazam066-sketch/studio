@@ -9,7 +9,7 @@ import { onSnapshot, query, collection, where, orderBy } from 'firebase/firestor
 import { db } from '@/lib/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Bell, CheckCheck, FileText, Newspaper } from 'lucide-react';
+import { Bell, CheckCheck, FileText, Newspaper, ShoppingCart } from 'lucide-react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -39,6 +39,8 @@ function NotificationIcon({ type }: { type: Notification['type'] }) {
             return <Newspaper className="h-5 w-5 text-primary" />;
         case 'admin_update':
             return <Bell className="h-5 w-5 text-primary" />;
+        case 'purchase':
+            return <ShoppingCart className="h-5 w-5 text-accent" />;
         default:
             return <Bell className="h-5 w-5 text-primary" />;
     }

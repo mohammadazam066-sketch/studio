@@ -115,5 +115,5 @@ export type Notification = {
     link: string;
     createdAt: Timestamp;
     read: boolean;
-    type: 'quote' | 'admin_update' | 'requirement';
+    type: 'quote' | 'admin_update' | 'requirement' | 'purchase';
 };
