@@ -179,7 +179,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     handleNewUser,
   };
 
-  return React.createElement(AuthContext.Provider, { value }, children);
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => {
@@ -250,7 +250,8 @@ export const addRequirement = async (data, photosDataUrls: string[]) => {
                     message: `New requirement '${data.title}' posted in ${data.location}.`,
                     link: `/shop-owner/requirements/${requirementRef.id}`,
                     read: false,
-                    createdAt: serverTimestamp()
+                    createdAt: serverTimestamp(),
+                    type: 'requirement'
                 });
             }
         }
@@ -397,7 +398,8 @@ export const addQuotation = async (data) => {
         message: `You received a new quote from ${quotationData.shopName} for '${requirement.title}'.`,
         link: `/homeowner/requirements/${data.requirementId}`,
         read: false,
-        createdAt: serverTimestamp()
+        createdAt: serverTimestamp(),
+        type: 'quote',
     });
     
     return docRef.id;
@@ -533,7 +535,8 @@ export const addUpdate = async (data: { title: string, content: string }, photos
             message: `New community update posted: "${data.title}"`,
             link: `/updates/${updateRef.id}`,
             read: false,
-            createdAt: serverTimestamp()
+            createdAt: serverTimestamp(),
+            type: 'admin_update'
         });
     });
 

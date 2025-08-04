@@ -72,14 +72,14 @@ export function UserNav({ user }: { user: User }) {
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
                <Link href={profileLink}>
-                <DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">
                     <UserIcon className="mr-2 h-4 w-4" />
                     <span>Profile</span>
                 </DropdownMenuItem>
               </Link>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
+            <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
                 <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
             </DropdownMenuItem>

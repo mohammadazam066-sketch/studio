@@ -13,9 +13,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Bell } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
-import { getNotifications, markNotificationsAsRead } from "@/lib/store";
+import { markNotificationsAsRead } from "@/lib/store";
 import type { Notification } from "@/lib/types";
-import { onSnapshot, query, collection, where, orderBy } from 'firebase/firestore';
+import { onSnapshot, query, collection, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import Link from "next/link";
 import { formatDistanceToNow } from 'date-fns';
@@ -42,25 +42,20 @@ export function NotificationsMenu({ userId }: NotificationsMenuProps) {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
     const [hasUnread, setHasUnread] = useState(false);
-    const [isOpen, setIsOpen] = useState(false);
 
     useEffect(() => {
         if (!userId) return;
 
         setLoading(true);
-        // We query only by userId. Sorting will be done on the client
-        // to avoid needing a composite index in Firestore.
         const q = query(
             collection(db, "notifications"),
-            where("userId", "==", userId)
+            where("userId", "==", userId),
+            orderBy("createdAt", "desc"),
+            limit(20) // Limit to the last 20 notifications to avoid performance issues
         );
         
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const notifs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
-            
-            // Sort notifications by creation date, descending.
-            notifs.sort((a, b) => b.createdAt.toDate().getTime() - a.createdAt.toDate().getTime());
-
             setNotifications(notifs);
             setHasUnread(notifs.some(n => !n.read));
             setLoading(false);
@@ -71,7 +66,6 @@ export function NotificationsMenu({ userId }: NotificationsMenuProps) {
     }, [userId]);
 
     const handleOpenChange = async (open: boolean) => {
-        setIsOpen(open);
         if (open && hasUnread) {
             // Mark all visible notifications as read when menu is opened
             const unreadIds = notifications.filter(n => !n.read).map(n => n.id);
@@ -106,7 +100,7 @@ export function NotificationsMenu({ userId }: NotificationsMenuProps) {
                     ) : notifications.length > 0 ? (
                         notifications.map(notif => (
                             <Link key={notif.id} href={notif.link} passHref>
-                                <DropdownMenuItem className="flex-col items-start whitespace-normal">
+                                <DropdownMenuItem className="flex-col items-start whitespace-normal cursor-pointer">
                                     <p className="text-sm">{notif.message}</p>
                                     <p className="text-xs text-muted-foreground mt-1">
                                         {formatDistanceToNow(notif.createdAt.toDate(), { addSuffix: true })}

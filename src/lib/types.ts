@@ -108,9 +108,10 @@ export type PurchaseWithDetails = Purchase & {
 
 export type Notification = {
     id: string;
-    userId: string;
+    userId: string; // The user who should receive the notification
     message: string;
     link: string;
     createdAt: Timestamp;
     read: boolean;
+    type: 'quote' | 'admin_update' | 'requirement';
 };
