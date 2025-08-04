@@ -49,7 +49,7 @@ export function UserNav({ user }: { user: User }) {
   }
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex items-center gap-2">
         <NotificationsMenu userId={user.id} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

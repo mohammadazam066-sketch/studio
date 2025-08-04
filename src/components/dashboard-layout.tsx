@@ -25,12 +25,8 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
     );
   }
 
-  // A special role for admin to reuse layouts
-  const effectiveRole = role === 'admin' ? 'shop-owner' : role;
-
-
   return (
-    <ProtectedRoute role={effectiveRole}>
+    <ProtectedRoute role={role}>
        <SidebarProvider>
         <Sidebar>
             {currentUser && <SidebarNav user={currentUser} />}
