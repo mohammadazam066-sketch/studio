@@ -10,15 +10,19 @@ import {
     SidebarMenuItem,
     SidebarMenuButton,
     SidebarFooter,
-    SidebarSeparator
+    SidebarSeparator,
+    SidebarMenuBadge
 } from '@/components/ui/sidebar';
 import { Logo } from './logo';
 import { UserNav } from './user-nav';
-import type { User, UserRole } from '@/lib/types';
+import type { User, UserRole, Notification } from '@/lib/types';
 import { usePathname } from 'next/navigation';
-import { Home, List, FileText, User as UserIcon, LogOut, Newspaper, Eye, ShieldCheck, Users } from 'lucide-react';
+import { Home, List, FileText, User as UserIcon, LogOut, Newspaper, Eye, ShieldCheck, Users, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/store';
+import { useState, useEffect } from 'react';
+import { onSnapshot, query, collection, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 
 type NavItem = {
@@ -27,6 +31,7 @@ type NavItem = {
     icon: React.ElementType;
     roles: UserRole[];
     adminOnly?: boolean;
+    isNotification?: boolean;
 };
 
 const navItems: NavItem[] = [
@@ -35,6 +40,7 @@ const navItems: NavItem[] = [
     { href: '/shop-owner/requirements', label: 'Open Requirements', icon: Eye, roles: ['shop-owner'] },
     { href: '/shop-owner/my-quotations', label: 'My Quotations', icon: FileText, roles: ['shop-owner'] },
     { href: '/updates', label: 'Updates', icon: Newspaper, roles: ['homeowner', 'shop-owner', 'admin'] },
+    { href: '/notifications', label: 'Notifications', icon: Bell, roles: ['homeowner', 'shop-owner'], isNotification: true },
     { href: '/admin/dashboard', label: 'Admin Panel', icon: ShieldCheck, roles: ['admin'], adminOnly: true },
     { href: '/admin/users', label: 'Users', icon: Users, roles: ['admin'], adminOnly: true },
 ];
@@ -48,6 +54,7 @@ function checkIsAdmin(uid: string): boolean {
 export function SidebarNav({ user }: { user: User }) {
     const pathname = usePathname();
     const { logout } = useAuth();
+    const [unreadCount, setUnreadCount] = useState(0);
 
     const isAdmin = checkIsAdmin(user.id);
     
@@ -58,18 +65,24 @@ export function SidebarNav({ user }: { user: User }) {
         return item.roles.includes(user.role);
     });
     
-    const getInitials = (name?: string, phone?: string) => {
-        if (name) {
-            return name.split(' ').map(n => n[0]).join('').toUpperCase();
-        }
-        if (phone) {
-            return phone.slice(-2);
-        }
-        return 'U';
-    }
+    useEffect(() => {
+        if (!user.id) return;
+        
+        const q = query(
+            collection(db, "notifications"),
+            where("userId", "==", user.id),
+            where("read", "==", false)
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            setUnreadCount(snapshot.size);
+        });
+
+        return () => unsubscribe();
+    }, [user.id]);
+
 
     const profileLink = user.role === 'homeowner' ? '/homeowner/profile' : '/shop-owner/profile';
-    const displayName = user.profile?.name || user.phoneNumber;
 
     return (
         <>
@@ -84,7 +97,7 @@ export function SidebarNav({ user }: { user: User }) {
                         <SidebarMenuItem key={item.href}>
                              <Link href={item.href}>
                                 <SidebarMenuButton
-                                    isActive={pathname.startsWith(item.href) && (item.href !== '/shop-owner/dashboard' || pathname === '/shop-owner/dashboard')}
+                                    isActive={pathname.startsWith(item.href)}
                                     icon={item.icon}
                                     // @ts-ignore
                                     tooltip={{
@@ -92,6 +105,9 @@ export function SidebarNav({ user }: { user: User }) {
                                     }}
                                 >
                                     {item.label}
+                                    {item.isNotification && unreadCount > 0 && (
+                                        <SidebarMenuBadge>{unreadCount}</SidebarMenuBadge>
+                                    )}
                                 </SidebarMenuButton>
                             </Link>
                         </SidebarMenuItem>

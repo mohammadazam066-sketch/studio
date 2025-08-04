@@ -21,7 +21,6 @@ import type { User, HomeownerProfile } from "@/lib/types";
 import { LogOut, User as UserIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { NotificationsMenu } from "./notifications-menu";
 
 
 export function UserNav({ user }: { user: User }) {
@@ -52,7 +51,6 @@ export function UserNav({ user }: { user: User }) {
 
   return (
     <div className="flex items-center gap-2">
-        <NotificationsMenu userId={user.id} />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">

@@ -639,22 +639,15 @@ export const getUpdateById = async (id: string): Promise<Update | undefined> => 
 
 // == NOTIFICATIONS ==
 
-export const getNotifications = async (userId: string): Promise<Notification[]> => {
-    const q = query(
-        collection(db, "notifications"),
-        where("userId", "==", userId),
-        orderBy("createdAt", "desc")
-    );
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
-};
+export const markAllNotificationsAsRead = async (userId: string) => {
+    const q = query(collection(db, "notifications"), where("userId", "==", userId), where("read", "==", false));
+    const snapshot = await getDocs(q);
 
-export const markNotificationsAsRead = async (notificationIds: string[]) => {
-    if (notificationIds.length === 0) return;
+    if (snapshot.empty) return;
+
     const batch = writeBatch(db);
-    notificationIds.forEach(id => {
-        const notifRef = doc(db, 'notifications', id);
-        batch.update(notifRef, { read: true });
+    snapshot.docs.forEach(doc => {
+        batch.update(doc.ref, { read: true });
     });
     await batch.commit();
 };
