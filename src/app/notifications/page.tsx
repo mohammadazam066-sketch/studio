@@ -9,7 +9,7 @@ import { onSnapshot, query, collection, where, orderBy } from 'firebase/firestor
 import { db } from '@/lib/firebase';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Bell, CheckCheck } from 'lucide-react';
+import { Bell, CheckCheck, FileText, Newspaper } from 'lucide-react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -29,6 +29,19 @@ function NotificationListSkeleton() {
             ))}
         </div>
     )
+}
+
+function NotificationIcon({ type }: { type: Notification['type'] }) {
+    switch (type) {
+        case 'quote':
+            return <FileText className="h-5 w-5 text-primary" />;
+        case 'requirement':
+            return <Newspaper className="h-5 w-5 text-primary" />;
+        case 'admin_update':
+            return <Bell className="h-5 w-5 text-primary" />;
+        default:
+            return <Bell className="h-5 w-5 text-primary" />;
+    }
 }
 
 export default function NotificationsPage() {
@@ -91,7 +104,7 @@ export default function NotificationsPage() {
                                         !notif.read && "bg-secondary"
                                     )}>
                                         <div className="p-2 bg-primary/10 rounded-full">
-                                            <Bell className="h-5 w-5 text-primary" />
+                                            <NotificationIcon type={notif.type} />
                                         </div>
                                         <div className="flex-1">
                                             <p className="text-sm">{notif.message}</p>
@@ -99,6 +112,9 @@ export default function NotificationsPage() {
                                                 {notif.createdAt ? formatDistanceToNow(notif.createdAt.toDate(), { addSuffix: true }) : 'Just now'}
                                             </p>
                                         </div>
+                                         {!notif.read && (
+                                            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" title="Unread"></div>
+                                        )}
                                     </div>
                                 </Link>
                             ))}
