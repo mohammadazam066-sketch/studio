@@ -39,60 +39,47 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user && user.phoneNumber) {
-        const userDocRef = doc(db, 'users', user.uid);
-        let userDocSnap = await getDoc(userDocRef);
         const isDesignatedAdmin = adminUids.includes(user.uid);
+        const userDocRef = doc(db, 'users', user.uid);
 
-        // If the user is a designated admin and doesn't have a user document,
-        // create one for them. This is crucial for their first login.
-        if (isDesignatedAdmin && !userDocSnap.exists()) {
-            await setDoc(userDocRef, {
+        if (isDesignatedAdmin) {
+            let adminDocSnap = await getDoc(userDocRef);
+            if (!adminDocSnap.exists()) {
+                await setDoc(userDocRef, {
+                    id: user.uid,
+                    phoneNumber: user.phoneNumber,
+                    role: 'admin',
+                    createdAt: serverTimestamp(),
+                });
+                adminDocSnap = await getDoc(userDocRef);
+            }
+            setCurrentUserAndLog(adminDocSnap.data() as User);
+        } else {
+            const userDocSnap = await getDoc(userDocRef);
+            if (!userDocSnap.exists()) {
+              setCurrentUserAndLog({
                 id: user.uid,
                 phoneNumber: user.phoneNumber,
-                role: 'admin',
-                createdAt: serverTimestamp(),
-            });
-            // Re-fetch the document snapshot after creating it.
-            userDocSnap = await getDoc(userDocRef);
-        }
-
-        if (!userDocSnap.exists()) {
-          // This path is now for non-admin new users who haven't selected a role yet.
-          setCurrentUserAndLog({
-            id: user.uid,
-            phoneNumber: user.phoneNumber,
-          } as User);
-          setLoading(false);
-          return;
-        }
-        
-        const userData = userDocSnap.data() as User;
-        
-        // Ensure the role is 'admin' if the UID matches, overriding what's in the DB if necessary.
-        if (isDesignatedAdmin) {
-            userData.role = 'admin';
-        }
-
-        let userProfile;
-        // Admins might not have a homeowner/shop-owner profile, so this check must be optional.
-        if (userData.role === 'homeowner' || userData.role === 'shop-owner') {
-            const profileCollection = userData.role === 'homeowner' 
-                ? 'homeownerProfiles' 
-                : 'shopOwnerProfiles';
-            
-            const profileDocRef = doc(db, profileCollection, user.uid);
-            const profileDocSnap = await getDoc(profileDocRef);
-            
-            if (profileDocSnap.exists()) {
-                 userProfile = { id: profileDocSnap.id, ...profileDocSnap.data() };
+              } as User);
+            } else {
+                const userData = userDocSnap.data() as User;
+                let userProfile;
+                if (userData.role === 'homeowner' || userData.role === 'shop-owner') {
+                    const profileCollection = userData.role === 'homeowner' 
+                        ? 'homeownerProfiles' 
+                        : 'shopOwnerProfiles';
+                    const profileDocRef = doc(db, profileCollection, user.uid);
+                    const profileDocSnap = await getDoc(profileDocRef);
+                    if (profileDocSnap.exists()) {
+                         userProfile = { id: profileDocSnap.id, ...profileDocSnap.data() };
+                    }
+                }
+                setCurrentUserAndLog({
+                  ...userData,
+                  profile: userProfile,
+                });
             }
         }
-        
-        setCurrentUserAndLog({
-          ...userData,
-          profile: userProfile,
-        });
-
       } else {
         // User is signed out.
         setCurrentUserAndLog(null);
