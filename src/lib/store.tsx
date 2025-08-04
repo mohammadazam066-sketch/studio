@@ -56,24 +56,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
         
         const userData = userDocSnap.data() as Omit<User, 'id' | 'profile'> & { id: string };
+        const isDesignatedAdmin = adminUids.includes(user.uid);
 
-        // ** Temporary Admin Check **
-        if(adminUids.includes(user.uid)) {
+        let userProfile;
+        // The original role of the user, before we override it to admin.
+        const originalRole = userData.role;
+
+        if (isDesignatedAdmin) {
             userData.role = 'admin';
         }
 
-        // Determine profile collection based on role
-        const profileCollection = userData.role === 'admin' 
-          ? 'shopOwnerProfiles' // Or a dedicated admin profile collection
-          : userData.role === 'homeowner' 
-              ? 'homeownerProfiles' 
-              : 'shopOwnerProfiles';
+        // Fetch profile based on the *original* role of the user, not the potentially overridden 'admin' role.
+        if (originalRole === 'homeowner' || originalRole === 'shop-owner') {
+            const profileCollection = originalRole === 'homeowner' 
+                ? 'homeownerProfiles' 
+                : 'shopOwnerProfiles';
+            
+            const profileDocRef = doc(db, profileCollection, user.uid);
+            const profileDocSnap = await getDoc(profileDocRef);
+            
+            if (profileDocSnap.exists()) {
+                 userProfile = { id: profileDocSnap.id, ...profileDocSnap.data() };
+            }
+        }
         
-        const profileDocRef = doc(db, profileCollection, user.uid);
-        let profileDocSnap = await getDoc(profileDocRef);
-        
-        const userProfile = profileDocSnap.exists() ? { id: profileDocSnap.id, ...profileDocSnap.data() } : undefined;
-
         setCurrentUserAndLog({
           ...userData,
           profile: userProfile,
