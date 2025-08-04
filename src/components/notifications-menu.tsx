@@ -50,14 +50,24 @@ export function NotificationsMenu({ userId }: NotificationsMenuProps) {
         const q = query(
             collection(db, "notifications"),
             where("userId", "==", userId),
-            orderBy("createdAt", "desc"),
             limit(20) // Limit to the last 20 notifications to avoid performance issues
         );
         
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const notifs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
+            
+            // Sort notifications on the client side
+            notifs.sort((a, b) => {
+                const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(0);
+                const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(0);
+                return dateB.getTime() - dateA.getTime();
+            });
+
             setNotifications(notifs);
             setHasUnread(notifs.some(n => !n.read));
+            setLoading(false);
+        }, (error) => {
+            console.error("Error in notification snapshot listener:", error);
             setLoading(false);
         });
 
@@ -103,7 +113,7 @@ export function NotificationsMenu({ userId }: NotificationsMenuProps) {
                                 <DropdownMenuItem className="flex-col items-start whitespace-normal cursor-pointer">
                                     <p className="text-sm">{notif.message}</p>
                                     <p className="text-xs text-muted-foreground mt-1">
-                                        {formatDistanceToNow(notif.createdAt.toDate(), { addSuffix: true })}
+                                        {notif.createdAt ? formatDistanceToNow(notif.createdAt.toDate(), { addSuffix: true }) : 'Just now'}
                                     </p>
                                 </DropdownMenuItem>
                             </Link>
