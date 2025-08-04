@@ -161,7 +161,11 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
                                                 mode="single"
                                                 selected={field.value}
                                                 onSelect={field.onChange}
-                                                disabled={(date) => date < new Date() || isSubmitting}
+                                                disabled={(date) => {
+                                                    const today = new Date();
+                                                    today.setHours(0, 0, 0, 0); // Set to the beginning of today
+                                                    return date < today || isSubmitting;
+                                                }}
                                                 initialFocus
                                             />
                                         </PopoverContent>
