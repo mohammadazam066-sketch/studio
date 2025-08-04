@@ -30,7 +30,6 @@ type NavItem = {
     label: string;
     icon: React.ElementType;
     roles: UserRole[];
-    adminOnly?: boolean;
     isNotification?: boolean;
 };
 
@@ -41,8 +40,8 @@ const navItems: NavItem[] = [
     { href: '/shop-owner/my-quotations', label: 'My Quotations', icon: FileText, roles: ['shop-owner'] },
     { href: '/updates', label: 'Updates', icon: Newspaper, roles: ['homeowner', 'shop-owner', 'admin'] },
     { href: '/notifications', label: 'Notifications', icon: Bell, roles: ['homeowner', 'shop-owner'], isNotification: true },
-    { href: '/admin/dashboard', label: 'Admin Panel', icon: ShieldCheck, roles: ['admin'], adminOnly: true },
-    { href: '/admin/users', label: 'Users', icon: Users, roles: ['admin'], adminOnly: true },
+    { href: '/admin/dashboard', label: 'Admin Panel', icon: ShieldCheck, roles: ['admin'] },
+    { href: '/admin/users', label: 'Users', icon: Users, roles: ['admin'] },
 ];
 
 
@@ -50,15 +49,8 @@ export function SidebarNav({ user }: { user: User }) {
     const pathname = usePathname();
     const { logout } = useAuth();
     const [unreadCount, setUnreadCount] = useState(0);
-
-    const isAdmin = user.role === 'admin';
     
-    const userNavItems = navItems.filter(item => {
-        if (item.adminOnly) {
-            return isAdmin;
-        }
-        return item.roles.includes(user.role);
-    });
+    const userNavItems = navItems.filter(item => item.roles.includes(user.role));
     
     useEffect(() => {
         if (!user.id) return;
@@ -76,8 +68,6 @@ export function SidebarNav({ user }: { user: User }) {
         return () => unsubscribe();
     }, [user.id]);
 
-
-    const profileLink = user.role === 'homeowner' ? '/homeowner/profile' : '/shop-owner/profile';
 
     return (
         <>
