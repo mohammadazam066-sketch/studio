@@ -40,44 +40,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user && user.phoneNumber) {
         const isDesignatedAdmin = adminUids.includes(user.uid);
-        const userDocRef = doc(db, 'users', user.uid);
 
         if (isDesignatedAdmin) {
-            let adminDocSnap = await getDoc(userDocRef);
+            const adminDocRef = doc(db, 'users', user.uid);
+            let adminDocSnap = await getDoc(adminDocRef);
             if (!adminDocSnap.exists()) {
-                await setDoc(userDocRef, {
+                await setDoc(adminDocRef, {
                     id: user.uid,
                     phoneNumber: user.phoneNumber,
                     role: 'admin',
                     createdAt: serverTimestamp(),
                 });
-                adminDocSnap = await getDoc(userDocRef);
+                adminDocSnap = await getDoc(adminDocRef);
             }
             setCurrentUserAndLog(adminDocSnap.data() as User);
         } else {
-            const userDocSnap = await getDoc(userDocRef);
-            if (!userDocSnap.exists()) {
-              setCurrentUserAndLog({
-                id: user.uid,
-                phoneNumber: user.phoneNumber,
-              } as User);
-            } else {
+            const userDocSnap = await getDoc(doc(db, 'users', user.uid));
+            if (userDocSnap.exists()) {
                 const userData = userDocSnap.data() as User;
                 let userProfile;
-                if (userData.role === 'homeowner' || userData.role === 'shop-owner') {
-                    const profileCollection = userData.role === 'homeowner' 
-                        ? 'homeownerProfiles' 
-                        : 'shopOwnerProfiles';
-                    const profileDocRef = doc(db, profileCollection, user.uid);
-                    const profileDocSnap = await getDoc(profileDocRef);
-                    if (profileDocSnap.exists()) {
-                         userProfile = { id: profileDocSnap.id, ...profileDocSnap.data() };
-                    }
+
+                const profileCollection = userData.role === 'homeowner' 
+                    ? 'homeownerProfiles' 
+                    : 'shopOwnerProfiles';
+                const profileDocRef = doc(db, profileCollection, user.uid);
+                const profileDocSnap = await getDoc(profileDocRef);
+                if (profileDocSnap.exists()) {
+                     userProfile = { id: profileDocSnap.id, ...profileDocSnap.data() };
                 }
-                setCurrentUserAndLog({
-                  ...userData,
-                  profile: userProfile,
-                });
+
+                setCurrentUserAndLog({ ...userData, profile: userProfile });
             }
         }
       } else {
