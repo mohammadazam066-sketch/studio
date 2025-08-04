@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    const adminUids = ['CbjcQE935XUuBidcYEX3Y7fdh0O2'];
+    const adminUids = ['CbjcQE935XUuBidcYEX3Y7fdh0O2', 'gu8eCopKXDdTpWFwjltteyu8xk32'];
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user && user.phoneNumber) {
         // User is signed in, fetch their data from 'users' and their profile.
