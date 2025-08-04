@@ -7,12 +7,6 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 
-function checkIsAdmin(uid: string): boolean {
-    const adminUids = (process.env.NEXT_PUBLIC_ADMIN_UIDS || "").split(',');
-    return adminUids.includes(uid);
-}
-
-
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, loading } = useAuth();
   const router = useRouter();
@@ -25,14 +19,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
        router.replace('/auth/login');
        return;
     }
-    if (!checkIsAdmin(currentUser.id)) {
+    if (currentUser.role !== 'admin') {
       // If not loading, and user is not an admin, redirect.
       router.replace('/'); 
     }
   }, [currentUser, loading, router]);
 
 
-  if (loading || !currentUser || !checkIsAdmin(currentUser.id)) {
+  if (loading || !currentUser || currentUser.role !== 'admin') {
     // Show a loader while checking auth or before redirecting
     return (
       <div className="flex h-screen w-screen items-center justify-center">
@@ -48,4 +42,3 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </DashboardLayout>
   );
 }
-

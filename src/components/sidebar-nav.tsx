@@ -45,18 +45,13 @@ const navItems: NavItem[] = [
     { href: '/admin/users', label: 'Users', icon: Users, roles: ['admin'], adminOnly: true },
 ];
 
-function checkIsAdmin(uid: string): boolean {
-    const adminUids = process.env.NEXT_PUBLIC_ADMIN_UIDS?.split(',') || [];
-    return adminUids.includes(uid);
-}
-
 
 export function SidebarNav({ user }: { user: User }) {
     const pathname = usePathname();
     const { logout } = useAuth();
     const [unreadCount, setUnreadCount] = useState(0);
 
-    const isAdmin = checkIsAdmin(user.id);
+    const isAdmin = user.role === 'admin';
     
     const userNavItems = navItems.filter(item => {
         if (item.adminOnly) {
