@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/lib/store";
-import type { User } from "@/lib/types";
+import type { User, HomeownerProfile } from "@/lib/types";
 import { LogOut, User as UserIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -48,6 +48,8 @@ export function UserNav({ user }: { user: User }) {
     router.push('/goodbye');
   }
 
+  const homeownerProfile = user.role === 'homeowner' ? user.profile as HomeownerProfile : undefined;
+
   return (
     <div className="flex items-center gap-2">
         <NotificationsMenu userId={user.id} />
@@ -55,7 +57,9 @@ export function UserNav({ user }: { user: User }) {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="relative h-10 w-10 rounded-full">
               <Avatar className="h-10 w-10">
-                {/* Add avatar image if available */}
+                {homeownerProfile?.photoURL && (
+                    <AvatarImage src={homeownerProfile.photoURL} alt={displayName} />
+                )}
                 <AvatarFallback>{getInitials(user.profile?.name, user.phoneNumber)}</AvatarFallback>
               </Avatar>
             </Button>
