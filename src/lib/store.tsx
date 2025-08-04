@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
@@ -516,6 +517,27 @@ export const addUpdate = async (data: { title: string, content: string }, photos
             await updateDoc(updateRef, { imageUrls: urls });
         }
     }
+    
+    // Create notifications for all users
+    const allUsersQuery = query(collection(db, 'users'));
+    const allUsersSnapshot = await getDocs(allUsersQuery);
+    const batch = writeBatch(db);
+
+    allUsersSnapshot.forEach(userDoc => {
+        // Don't notify the author of the update
+        if (userDoc.id === auth.currentUser?.uid) return;
+
+        const notifRef = doc(collection(db, 'notifications'));
+        batch.set(notifRef, {
+            userId: userDoc.id,
+            message: `New community update posted: "${data.title}"`,
+            link: `/updates/${updateRef.id}`,
+            read: false,
+            createdAt: serverTimestamp()
+        });
+    });
+
+    await batch.commit();
 
     return updateRef.id;
 }
