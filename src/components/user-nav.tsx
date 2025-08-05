@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -37,7 +38,15 @@ export function UserNav({ user }: { user: User }) {
     return 'U';
   }
 
-  const profileLink = user.role === 'homeowner' ? '/homeowner/profile' : '/shop-owner/profile';
+  let profileLink = '/';
+  if (user.role === 'homeowner') {
+    profileLink = '/homeowner/profile';
+  } else if (user.role === 'shop-owner') {
+    profileLink = '/shop-owner/profile';
+  } else if (user.role === 'admin') {
+    profileLink = '/admin/profile';
+  }
+
   const displayName = user.profile?.name || user.phoneNumber;
 
   const handleLogout = async () => {
