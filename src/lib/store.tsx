@@ -45,15 +45,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             const adminDocRef = doc(db, 'users', user.uid);
             let adminDocSnap = await getDoc(adminDocRef);
             if (!adminDocSnap.exists()) {
-                await setDoc(adminDocRef, {
+                const adminData = {
                     id: user.uid,
                     phoneNumber: user.phoneNumber,
-                    role: 'admin',
+                    role: 'admin' as UserRole,
                     createdAt: serverTimestamp(),
-                });
-                adminDocSnap = await getDoc(adminDocRef);
+                    profile: {
+                        name: 'Admin',
+                        phoneNumber: user.phoneNumber,
+                    }
+                };
+                await setDoc(adminDocRef, adminData);
+                setCurrentUserAndLog(adminData as User);
+            } else {
+                 setCurrentUserAndLog(adminDocSnap.data() as User);
             }
-            setCurrentUserAndLog(adminDocSnap.data() as User);
         } else {
             const userDocSnap = await getDoc(doc(db, 'users', user.uid));
             if (userDocSnap.exists()) {
