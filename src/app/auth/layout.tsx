@@ -19,6 +19,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         router.replace('/homeowner/dashboard');
       } else if (currentUser.role === 'shop-owner') {
         router.replace('/shop-owner/dashboard');
+      } else if (currentUser.role === 'admin') {
+        router.replace('/admin/dashboard');
       }
     }
   }, [currentUser, loading, router]);
