@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    const adminUids = ['OmP2c8syLshm2F7KXj4cRT9UJsr1'];
+    const adminUids: string[] = [];
     
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user && user.phoneNumber) {
@@ -634,7 +634,7 @@ export const addUpdate = async (data: { title: string, content: string }, photos
         batch.set(notifRef, {
             userId: userDoc.id,
             message: `New community update posted: "${data.title}"`,
-            link: `/updates/${updateRef.id}`,
+            link: `/updates`,
             read: false,
             createdAt: serverTimestamp(),
             type: 'admin_update'
