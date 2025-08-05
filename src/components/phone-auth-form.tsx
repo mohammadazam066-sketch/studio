@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { auth } from '@/lib/firebase';
 import { RecaptchaVerifier, signInWithPhoneNumber, type ConfirmationResult } from 'firebase/auth';
 import { useAuth } from '@/lib/store';
@@ -38,31 +38,32 @@ export function PhoneAuthForm() {
 
   const { handleNewUser } = useAuth();
   const { toast } = useToast();
+  const recaptchaContainerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    // This effect sets up the reCAPTCHA verifier when the component mounts.
-    // It's set to 'normal' to ensure the user can always interact with it.
-    const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-      'size': 'normal',
-      'callback': (response: any) => {
-        // reCAPTCHA solved, allow signInWithPhoneNumber.
-      },
-      'expired-callback': () => {
-         toast({
-            variant: "destructive",
-            title: "reCAPTCHA Expired",
-            description: "Please solve the reCAPTCHA again.",
+
+  const setupRecaptcha = () => {
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+    }
+    if (recaptchaContainerRef.current) {
+        const verifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
+            'size': 'invisible',
+            'callback': () => {
+                // reCAPTCHA solved, allow signInWithPhoneNumber.
+            },
+            'expired-callback': () => {
+                toast({
+                    variant: "destructive",
+                    title: "reCAPTCHA Expired",
+                    description: "Please try sending the OTP again.",
+                });
+            },
         });
-      },
-    });
-    
-    window.recaptchaVerifier = verifier;
-
-    // Cleanup the verifier when the component unmounts
-    return () => {
-      window.recaptchaVerifier?.clear();
-    };
-  }, [toast]);
+        window.recaptchaVerifier = verifier;
+        return verifier;
+    }
+    return undefined;
+  };
 
 
   const onSendOtp = async (e: React.FormEvent) => {
@@ -79,12 +80,12 @@ export function PhoneAuthForm() {
       return;
     }
     
-    const appVerifier = window.recaptchaVerifier;
+    const appVerifier = setupRecaptcha();
     if (!appVerifier) {
          toast({
             variant: "destructive",
             title: "reCAPTCHA Error",
-            description: "reCAPTCHA verifier not initialized. Please refresh the page.",
+            description: "reCAPTCHA verifier could not be initialized. Please refresh the page.",
         });
         setLoading(false);
         return;
@@ -92,12 +93,8 @@ export function PhoneAuthForm() {
 
     const formattedPhone = `+91${phone}`;
     
-    // For test numbers, Firebase recommends not using the app verifier.
-    const verifierForSignIn = phone === FIREBASE_TEST_PHONE_NUMBER_SHORT ? null : appVerifier;
-
     try {
-      // @ts-ignore - The 'null' verifier is valid for test numbers, but TS doesn't know that.
-      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, verifierForSignIn);
+      const confirmationResult = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
       window.confirmationResult = confirmationResult;
       setUiState('otp-input');
       toast({
@@ -109,8 +106,8 @@ export function PhoneAuthForm() {
       let errorMessage = 'Failed to send OTP. Please try again.';
       if (error.code === 'auth/invalid-phone-number') {
         errorMessage = 'The phone number format is invalid. Please check and try again.';
-      } else if (error.code === 'auth/captcha-check-failed') {
-          errorMessage = "reCAPTCHA check failed. Ensure your domain is authorized in the Firebase Console (Authentication > Settings > Authorized domains)."
+      } else if (error.code === 'auth/captcha-check-failed' || error.code === 'auth/web-storage-unsupported') {
+          errorMessage = "reCAPTCHA check failed. Your browser may be blocking it. Please check your browser settings or try a different browser."
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = "You've made too many requests. Please wait a while before trying again."
       } else if (error.code === 'auth/internal-error') {
@@ -120,6 +117,10 @@ export function PhoneAuthForm() {
           variant: 'destructive',
           title: 'OTP Send Error',
           description: errorMessage,
+      });
+      appVerifier.render().then(widgetId => {
+          // @ts-ignore
+          window.grecaptcha.reset(widgetId);
       });
     } finally {
       setLoading(false);
@@ -202,6 +203,9 @@ export function PhoneAuthForm() {
 
   return (
     <>
+      {/* This container is always present but invisible, for reCAPTCHA to use */}
+      <div ref={recaptchaContainerRef}></div>
+
       {uiState === 'phone-input' && (
         <form onSubmit={onSendOtp} className="space-y-4">
           <div className="space-y-2">
@@ -227,8 +231,6 @@ export function PhoneAuthForm() {
               </p>
             )}
           </div>
-          {/* This container is now inside the form to ensure it's visible */}
-          <div id="recaptcha-container" className="flex justify-center"></div>
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? <Loader2 className="animate-spin" /> : 'Send OTP'}
             <ArrowRight className="ml-2" />

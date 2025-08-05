@@ -33,21 +33,35 @@ export default function LoginPage() {
             <TabsTrigger value="login">Login</TabsTrigger>
             <TabsTrigger value="signup">Sign Up</TabsTrigger>
           </TabsList>
-          {/* We only need one content area now, as the form is shared */}
-          <TabsContent value={tab}>
+          
+          <TabsContent value="login">
              <Card className="border-0 shadow-none">
               <CardHeader className="px-0">
-                <CardTitle className="text-xl">{titles[tab]}</CardTitle>
+                <CardTitle className="text-xl">{titles.login}</CardTitle>
                 <CardDescription>
-                  {descriptions[tab]}
+                  {descriptions.login}
                 </CardDescription>
               </CardHeader>
               <CardContent className="px-0">
-                {/* A single PhoneAuthForm is rendered, its key changes to reset state when tab switches */}
-                <PhoneAuthForm key={tab} />
+                <PhoneAuthForm key="login" />
               </CardContent>
             </Card>
           </TabsContent>
+          
+           <TabsContent value="signup">
+             <Card className="border-0 shadow-none">
+              <CardHeader className="px-0">
+                <CardTitle className="text-xl">{titles.signup}</CardTitle>
+                <CardDescription>
+                  {descriptions.signup}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="px-0">
+                <PhoneAuthForm key="signup" />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
         </Tabs>
       </CardContent>
       <CardFooter>
