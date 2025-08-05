@@ -34,12 +34,12 @@ type NavItem = {
 const navItems: NavItem[] = [
     { href: '/homeowner/dashboard', label: 'Dashboard', icon: Home, roles: ['homeowner'] },
     { href: '/shop-owner/dashboard', label: 'Dashboard', icon: Home, roles: ['shop-owner'] },
-    { href: '/admin/dashboard', label: 'Admin Panel', icon: ShieldCheck, roles: ['admin'] },
-    { href: '/admin/users', label: 'Users', icon: Users, roles: ['admin'] },
     { href: '/shop-owner/requirements', label: 'Open Requirements', icon: Eye, roles: ['shop-owner'] },
     { href: '/shop-owner/my-quotations', label: 'My Quotations', icon: FileText, roles: ['shop-owner'] },
     { href: '/updates', label: 'Updates', icon: Newspaper, roles: ['homeowner', 'shop-owner', 'admin'] },
     { href: '/notifications', label: 'Notifications', icon: Bell, roles: ['homeowner', 'shop-owner'], isNotification: true },
+    { href: '/admin/dashboard', label: 'Admin Panel', icon: ShieldCheck, roles: ['admin'] },
+    { href: '/admin/users', label: 'Users', icon: Users, roles: ['admin'] },
 ];
 
 
