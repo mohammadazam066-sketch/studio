@@ -12,6 +12,7 @@ import { Separator } from '@/components/ui/separator';
 import { getUser } from '@/lib/store';
 import type { User as AppUser } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 function ProfileSkeleton() {
     return (
@@ -84,10 +85,13 @@ export default function ShopOwnerProfilePage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <Card>
-        <CardHeader className="text-center">
-            <div className="w-24 h-24 mx-auto rounded-full bg-muted flex items-center justify-center mb-4">
-                <Building className="w-12 h-12 text-muted-foreground" />
-            </div>
+        <CardHeader className="text-center items-center">
+            <Avatar className="w-24 h-24 text-3xl mb-4">
+                {profile.shopIconUrl && <AvatarImage src={profile.shopIconUrl} alt={profile.shopName} />}
+                <AvatarFallback className="bg-muted">
+                    <Building className="w-12 h-12 text-muted-foreground" />
+                </AvatarFallback>
+            </Avatar>
             <CardTitle className="font-headline text-3xl">{profile.shopName}</CardTitle>
             <CardDescription className="text-lg">
                 <User className="inline-block w-4 h-4 mr-1.5 align-middle" />

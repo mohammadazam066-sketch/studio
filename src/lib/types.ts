@@ -19,6 +19,7 @@ export type ShopOwnerProfile = {
   address: string;
   location: string;
   shopPhotos: string[];
+  shopIconUrl?: string;
   createdAt?: Timestamp | Date | string;
 };
 export type HomeownerProfile = {

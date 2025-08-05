@@ -19,7 +19,7 @@ interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
   logout: () => Promise<void>;
-  updateUserProfile: (updatedProfile: Partial<HomeownerProfile | ShopOwnerProfile> & { photosToKeep?: string[] }, newPhotos?: string[]) => Promise<void>;
+  updateUserProfile: (updatedProfile: Partial<HomeownerProfile | ShopOwnerProfile> & { photosToKeep?: string[], newIcon?: string }, newPhotos?: string[]) => Promise<void>;
   handleNewUser: (user: import('firebase/auth').User, role: UserRole) => Promise<void>;
 }
 
@@ -156,12 +156,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }
     
-    const { photosToKeep: _, ...restOfProfileData } = updatedProfileData;
+    const { photosToKeep: _, newIcon: newIconDataUrl, ...restOfProfileData } = updatedProfileData;
 
-    const finalProfileData = {
+    const finalProfileData: Partial<ShopOwnerProfile & HomeownerProfile> = {
       ...restOfProfileData,
     };
     
+    // --- Icon Upload Logic (Shop Owner only) ---
+    if (currentUser.role === 'shop-owner' && newIconDataUrl) {
+        if (currentProfile?.shopIconUrl) {
+            try {
+                const oldIconRef = ref(storage, currentProfile.shopIconUrl);
+                await deleteObject(oldIconRef);
+            } catch (error: any) {
+                if (error.code !== 'storage/object-not-found') {
+                    console.error("Failed to delete old shop icon:", error);
+                }
+            }
+        }
+        const [iconUrl] = await uploadPhotos('shopOwnerProfiles', currentUser.id, [newIconDataUrl], 'icon');
+        finalProfileData.shopIconUrl = iconUrl;
+    }
+
     // Add photo URLs to the correct field based on role
     if(currentUser.role === 'shop-owner') {
         const existingPhotos = updatedProfileData.photosToKeep || [];
@@ -229,6 +245,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             address: '',
             location: '',
             shopPhotos: [],
+            shopIconUrl: '',
             createdAt: serverTimestamp(),
         };
         await setDoc(profileDocRef, profileData);

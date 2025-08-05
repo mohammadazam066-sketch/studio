@@ -14,9 +14,10 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Upload, X } from 'lucide-react';
+import { Loader2, Upload, X, Building } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Label } from '@/components/ui/label';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
@@ -89,6 +90,7 @@ export default function ShopOwnerProfilePage() {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
 
+  const [icon, setIcon] = useState<PhotoState | null>(null);
   const [photos, setPhotos] = useState<PhotoState[]>([]);
   const [existingPhotos, setExistingPhotos] = useState<string[]>([]);
 
@@ -117,6 +119,21 @@ export default function ShopOwnerProfilePage() {
       setExistingPhotos(profile.shopPhotos || []);
     }
   }, [currentUser, form]);
+
+  const handleIconUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setIcon({ file, preview: URL.createObjectURL(file) });
+      e.target.value = '';
+    }
+  };
+
+  const removeIcon = () => {
+    if(icon) {
+        URL.revokeObjectURL(icon.preview);
+    }
+    setIcon(null);
+  }
 
  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -150,7 +167,16 @@ export default function ShopOwnerProfilePage() {
   async function onSubmit(data: ProfileFormValues) {
     setIsSaving(true);
     
-    // Convert new photos to data URLs before sending to the store
+    let newIconDataUrl: string | undefined = undefined;
+    if (icon) {
+      newIconDataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(icon.file);
+      });
+    }
+    
     const newPhotosAsDataUrls = await Promise.all(
         photos.map(photo => {
             return new Promise<string>((resolve, reject) => {
@@ -165,6 +191,7 @@ export default function ShopOwnerProfilePage() {
     const profileUpdateData = {
         ...data,
         photosToKeep: existingPhotos,
+        newIcon: newIconDataUrl
     };
 
     try {
@@ -173,8 +200,8 @@ export default function ShopOwnerProfilePage() {
             title: "Profile Updated",
             description: "Your shop information has been successfully saved.",
         });
-        // Clear staged photos after successful upload
-        setPhotos([]); 
+        setPhotos([]);
+        setIcon(null);
     } catch (error) {
         console.error("Failed to update profile:", error);
         toast({
@@ -190,6 +217,9 @@ export default function ShopOwnerProfilePage() {
   if (authLoading) {
     return <ProfileSkeleton />;
   }
+  
+  const profile = currentUser?.profile as ShopOwnerProfile;
+  const iconPreview = icon?.preview || profile?.shopIconUrl;
 
   return (
     <div className="space-y-6">
@@ -203,72 +233,104 @@ export default function ShopOwnerProfilePage() {
                     <CardHeader>
                         <CardTitle>Shop Details</CardTitle>
                     </CardHeader>
-                    <CardContent className="grid gap-6 md:grid-cols-2">
-                        <FormField
-                            control={form.control}
-                            name="name"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Your Name</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="John Doe" {...field} disabled={isSaving} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="phoneNumber"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>Contact Phone Number</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="e.g., +91 98765 43210" {...field} disabled />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="shopName"
-                            render={({ field }) => (
-                                <FormItem className="md:col-span-2">
-                                <FormLabel>Shop Name</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="e.g., Doe's Hardware & Supplies" {...field} disabled={isSaving} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                          <FormField
-                            control={form.control}
-                            name="location"
-                            render={({ field }) => (
-                                <FormItem>
-                                <FormLabel>City / Area</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="e.g., Bangalore" {...field} disabled={isSaving} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-                         <FormField
-                            control={form.control}
-                            name="address"
-                            render={({ field }) => (
-                                <FormItem  className="md:col-span-2">
-                                <FormLabel>Full Shop Address</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="123 Main St, Jayanagar, Bangalore" {...field} disabled={isSaving} />
-                                </FormControl>
-                                <FormMessage />
-                                </FormItem>
-                            )}
-                        />
+                    <CardContent className="space-y-8">
+                        <div className="flex items-center gap-4">
+                           <div className="relative">
+                             <Avatar className="h-20 w-20">
+                                {iconPreview ? (
+                                    <AvatarImage src={iconPreview} alt={profile?.shopName} />
+                                ) : null}
+                                <AvatarFallback className="text-2xl bg-muted">
+                                    <Building className="w-8 h-8 text-muted-foreground" />
+                                </AvatarFallback>
+                             </Avatar>
+                             {icon && (
+                                <Button
+                                    type="button"
+                                    variant="destructive"
+                                    size="icon"
+                                    className="absolute -top-1 -right-1 h-6 w-6 rounded-full"
+                                    onClick={removeIcon}
+                                    disabled={isSaving}
+                                    >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                             )}
+                           </div>
+                            <div className="flex flex-col gap-2">
+                                <Label htmlFor="icon-upload">Shop Icon (Optional)</Label>
+                                <Input id="icon-upload" type="file" onChange={handleIconUpload} accept="image/png, image/jpeg, image/webp" disabled={isSaving} className="max-w-xs" />
+                            </div>
+                        </div>
+
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Your Name</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="John Doe" {...field} disabled={isSaving} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="phoneNumber"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>Contact Phone Number</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="e.g., +91 98765 43210" {...field} disabled />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="shopName"
+                                render={({ field }) => (
+                                    <FormItem className="md:col-span-2">
+                                    <FormLabel>Shop Name</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="e.g., Doe's Hardware & Supplies" {...field} disabled={isSaving} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="location"
+                                render={({ field }) => (
+                                    <FormItem>
+                                    <FormLabel>City / Area</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="e.g., Bangalore" {...field} disabled={isSaving} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="address"
+                                render={({ field }) => (
+                                    <FormItem  className="md:col-span-2">
+                                    <FormLabel>Full Shop Address</FormLabel>
+                                    <FormControl>
+                                        <Input placeholder="123 Main St, Jayanagar, Bangalore" {...field} disabled={isSaving} />
+                                    </FormControl>
+                                    <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+
 
                         <div className="space-y-2 md:col-span-2">
                             <Label>Shop Photos</Label>
