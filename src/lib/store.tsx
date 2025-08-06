@@ -35,7 +35,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   useEffect(() => {
-    const adminUids: string[] = [];
+    const adminUids: string[] = ['OmP2c8syLshm2F7KXj4cRT9UJsr1'];
     
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user && user.phoneNumber) {
@@ -63,7 +63,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     ...adminDocSnap.data(),
                     role: 'admin', // Always ensure role is admin
                     profile: {
-                        name: 'Admin',
+                        name: adminDocSnap.data().profile?.name || 'Admin',
                         ...(adminDocSnap.data().profile || {}),
                         phoneNumber: user.phoneNumber
                     }
@@ -222,6 +222,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return; 
       }
       
+      const defaultName = `User ${user.phoneNumber.slice(-4)}`;
+
       // Create user document in 'users' collection
       await setDoc(userDocRef, {
         id: user.uid,
@@ -234,7 +236,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const profileCollection = role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
       const profileDocRef = doc(db, profileCollection, user.uid);
       
-      const defaultName = `User ${user.phoneNumber.slice(-4)}`;
   
       if (role === 'shop-owner') {
         const profileData: ShopOwnerProfile = {
@@ -262,13 +263,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
          await setDoc(profileDocRef, profileData);
       }
   
-      // Force a re-check of the auth state to load the new user data
-      const updatedUser = onAuthStateChanged(auth, user => {
-        if(user) {
-            // The main listener will handle the update, no need to call setCurrentUser here.
-        }
-      });
-      // The onAuthChanged listener will handle the state update.
+      // Manually trigger a state refresh to load the new user data
+      const newUserDoc = await getDoc(userDocRef);
+      const newProfileDoc = await getDoc(profileDocRef);
+      if (newUserDoc.exists() && newProfileDoc.exists()) {
+        const userData = newUserDoc.data() as User;
+        const profileData = newProfileDoc.data();
+        setCurrentUserAndLog({ ...userData, profile: profileData });
+      }
   }
 
 

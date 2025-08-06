@@ -118,10 +118,9 @@ export function PhoneAuthForm() {
           title: 'OTP Send Error',
           description: errorMessage,
       });
-      appVerifier.render().then(widgetId => {
-          // @ts-ignore
-          window.grecaptcha.reset(widgetId);
-      });
+      if (window.grecaptcha && appVerifier.widgetId !== undefined) {
+         window.grecaptcha.reset(appVerifier.widgetId);
+      }
     } finally {
       setLoading(false);
     }
