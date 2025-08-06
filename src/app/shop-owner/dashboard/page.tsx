@@ -113,18 +113,18 @@ export default function ShopOwnerDashboard() {
             </div>
 
              <Card>
-                <CardHeader>
-                    <CardTitle>Community Updates</CardTitle>
-                    <CardDescription>Check out the latest news and information from the TradeFlow community.</CardDescription>
-                </CardHeader>
-                <CardFooter>
-                     <Button asChild>
+                <div className="p-4 sm:p-6 flex items-center justify-between">
+                    <div className="space-y-1">
+                        <CardTitle className="text-base sm:text-xl">Community Updates</CardTitle>
+                        <CardDescription className="text-xs sm:text-sm">Check out the latest news from the TradeFlow community.</CardDescription>
+                    </div>
+                     <Button asChild size="sm">
                         <Link href="/updates">
                             <Newspaper className="mr-2 h-4 w-4" />
-                            View All Updates
+                            View
                         </Link>
                     </Button>
-                </CardFooter>
+                </div>
             </Card>
 
             <Separator />
