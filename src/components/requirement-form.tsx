@@ -39,9 +39,8 @@ const steelDetailSchema = z.object({
 });
 
 const hardwareDetailSchema = z.object({
-  itemName: z.string().min(1, "Item name is required."),
-  quantity: z.coerce.number().min(1, "Quantity must be at least 1."),
-  unit: z.string().min(1, "Unit is required."),
+  id: z.string(), // e.g., 'PP Rope'
+  details: z.string().min(1, "Details are required."), // e.g., '5 kg'
 });
 
 
@@ -95,6 +94,12 @@ const sandAndAggregateItems = [
     { id: '200 Feet Aggregate', label: '200 Feet Aggregate' },
     { id: '300 Feet Aggregate', label: '300 Feet Aggregate' },
 ];
+
+const hardwareItems = [
+    { id: 'PP Rope', label: 'PP Rope' },
+    { id: 'Grassmate', label: 'Grassmate' },
+    { id: 'Gate Sheets', label: 'Gate Sheets' },
+]
 
 
 const locations = ["Bidar", "Kalaburagi", "Humnabad", "Basavakalyan", "Zaheerabad"];
@@ -153,11 +158,6 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
   const { fields: steelFields, append: appendSteel, remove: removeSteel } = useFieldArray({
     control,
     name: "steelDetails",
-  });
-
-  const { fields: hardwareFields, append: appendHardware, remove: removeHardware } = useFieldArray({
-    control,
-    name: "hardwareDetails",
   });
 
 
@@ -617,66 +617,77 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                         )}
 
                         {watchedCategory === 'Hardware' && (
-                          <div className="md:col-span-2 space-y-6 border rounded-lg p-4">
-                            <Separator />
-                            <div>
-                                <h3 className="text-lg font-semibold">Hardware Details</h3>
-                                <p className="text-sm text-muted-foreground">Specify the items, quantities, and units you need.</p>
-                            </div>
-                             <div className="space-y-4">
-                                {hardwareFields.map((field, index) => (
-                                    <div key={field.id} className="flex flex-col sm:flex-row items-end gap-3 p-2 border-b">
-                                        <FormField
-                                            control={control}
-                                            name={`hardwareDetails.${index}.itemName`}
-                                            render={({ field }) => (
-                                                <FormItem className="flex-1">
-                                                    <FormLabel>Item Name</FormLabel>
-                                                    <FormControl>
-                                                        <Input {...field} placeholder="e.g., PP Rope" />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <FormField
-                                            control={control}
-                                            name={`hardwareDetails.${index}.quantity`}
-                                            render={({ field }) => (
-                                                <FormItem className="flex-1">
-                                                    <FormLabel>Quantity</FormLabel>
-                                                    <FormControl>
-                                                        <Input type="number" {...field} placeholder="e.g., 5" value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                         <FormField
-                                            control={control}
-                                            name={`hardwareDetails.${index}.unit`}
-                                            render={({ field }) => (
-                                                <FormItem className="flex-1">
-                                                    <FormLabel>Unit Type</FormLabel>
-                                                    <FormControl>
-                                                        <Input {...field} placeholder="e.g., kg, bundle" />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
-                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeHardware(index)} disabled={isSubmitting}>
-                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                    </div>
-                                ))}
-                            </div>
-                            <Button type="button" variant="outline" size="sm" onClick={() => appendHardware({ itemName: '', quantity: 0, unit: '' })}>
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Add Another Item
-                            </Button>
-                            <Separator />
-                          </div>
+                           <div className="md:col-span-2 space-y-6 border rounded-lg p-4">
+                                <Separator />
+                                <div>
+                                    <h3 className="text-lg font-semibold">Hardware Details</h3>
+                                    <p className="text-sm text-muted-foreground">Specify the items and quantities you need.</p>
+                                </div>
+                                <FormField
+                                    control={form.control}
+                                    name="hardwareDetails"
+                                    render={() => (
+                                        <FormItem>
+                                        <div className="mb-4">
+                                            <FormLabel className="text-base">Items</FormLabel>
+                                            <p className="text-sm text-muted-foreground">Select one or more items.</p>
+                                        </div>
+                                        <div className="space-y-4">
+                                        {hardwareItems.map((item) => (
+                                            <FormField
+                                                key={item.id}
+                                                control={form.control}
+                                                name="hardwareDetails"
+                                                render={({ field }) => {
+                                                    const selectedItem = field.value?.find(h => h.id === item.id);
+                                                    return (
+                                                    <FormItem className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-lg border p-3 shadow-sm">
+                                                        <div className="flex items-center space-x-3">
+                                                            <FormControl>
+                                                                <Checkbox
+                                                                checked={field.value?.some(h => h.id === item.id)}
+                                                                onCheckedChange={(checked) => {
+                                                                    const currentItems = getValues("hardwareDetails") || [];
+                                                                    if (checked) {
+                                                                        setValue("hardwareDetails", [...currentItems, { id: item.id, details: '' }]);
+                                                                    } else {
+                                                                        setValue("hardwareDetails", currentItems.filter((h) => h.id !== item.id));
+                                                                    }
+                                                                }}
+                                                                />
+                                                            </FormControl>
+                                                            <FormLabel className="font-normal">{item.label}</FormLabel>
+                                                        </div>
+                                                        {selectedItem && (
+                                                            <div className="mt-2 sm:mt-0 w-full sm:w-auto sm:max-w-xs">
+                                                                <FormControl>
+                                                                    <Input
+                                                                        type="text"
+                                                                        placeholder="e.g., 5 kg, 2 bundles"
+                                                                        value={selectedItem.details}
+                                                                        onChange={(e) => {
+                                                                            const currentItems = getValues("hardwareDetails") || [];
+                                                                            const updatedItems = currentItems.map(h => 
+                                                                                h.id === item.id ? { ...h, details: e.target.value } : h
+                                                                            );
+                                                                            setValue("hardwareDetails", updatedItems);
+                                                                        }}
+                                                                        className="h-9"
+                                                                    />
+                                                                </FormControl>
+                                                            </div>
+                                                        )}
+                                                    </FormItem>
+                                                )}}
+                                            />
+                                        ))}
+                                        </div>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <Separator />
+                           </div>
                         )}
 
 

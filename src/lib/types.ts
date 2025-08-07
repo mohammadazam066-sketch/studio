@@ -43,9 +43,8 @@ export type SteelDetail = {
 }
 
 export type HardwareDetail = {
-  itemName: string;
-  quantity: number;
-  unit: string;
+  id: string; // e.g., 'PP Rope'
+  details: string; // e.g., '5 kg'
 }
 
 export type Requirement = {
