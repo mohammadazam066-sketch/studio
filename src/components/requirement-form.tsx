@@ -137,6 +137,7 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
 
   const watchedCategory = watch("category");
   const watchedSandAndAggregate = watch(["sandAndAggregateDetails", "customSandAndAggregate"]);
+  const watchedHardwareDetails = watch("hardwareDetails");
 
   useEffect(() => {
     if (watchedCategory === 'Sand & Aggregates') {
@@ -155,6 +156,22 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
     }
   }, [watchedSandAndAggregate, watchedCategory, setValue]);
   
+  useEffect(() => {
+    if (watchedCategory === 'Hardware') {
+        const details = watchedHardwareDetails || [];
+        const parts = details
+            .filter(item => item.details && item.details.trim() !== '')
+            .map(item => `${item.id}: ${item.details}`);
+
+        if (parts.length > 0) {
+            const title = parts.join(' and ') + ' required';
+            setValue('title', title);
+        } else {
+            setValue('title', '');
+        }
+    }
+}, [watchedHardwareDetails, watchedCategory, setValue]);
+
   const { fields: steelFields, append: appendSteel, remove: removeSteel } = useFieldArray({
     control,
     name: "steelDetails",
