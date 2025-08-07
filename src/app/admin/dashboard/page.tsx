@@ -160,7 +160,7 @@ export default function AdminDashboardPage() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead>Requirement</TableHead>
-                                        <TableHead>Homeowner ID</TableHead>
+                                        <TableHead>Homeowner</TableHead>
                                         <TableHead>Responses</TableHead>
                                         <TableHead>Details</TableHead>
                                     </TableRow>
@@ -168,13 +168,17 @@ export default function AdminDashboardPage() {
                                 <TableBody>
                                     {openRequirements.map(req => {
                                         const responseCount = req.quotations.length;
+                                        const homeowner = homeowners.find(h => h.id === req.homeownerId);
                                         return (
                                         <TableRow key={req.id} className={responseCount < 2 ? 'bg-destructive/10' : ''}>
                                             <TableCell>
                                                 <div className="font-medium">{req.title}</div>
                                                 <div className="text-sm text-muted-foreground">{req.category}</div>
                                             </TableCell>
-                                            <TableCell>{req.homeownerId}</TableCell>
+                                            <TableCell>
+                                                <div className="font-medium">{homeowner?.profile?.name || req.homeownerName}</div>
+                                                <div className="text-sm text-muted-foreground">{homeowner?.phoneNumber}</div>
+                                            </TableCell>
                                             <TableCell>
                                                 <Badge variant={responseCount < 2 ? 'destructive' : 'secondary'}>{responseCount} response(s)</Badge>
                                             </TableCell>
