@@ -96,9 +96,9 @@ const sandAndAggregateItems = [
 ];
 
 const hardwareItems = [
-    { id: 'PP Rope', label: 'PP Rope' },
-    { id: 'Grassmate', label: 'Grassmate' },
-    { id: 'Gate Sheets', label: 'Gate Sheets' },
+    { id: 'PP Rope', label: 'PP Rope', placeholder: 'e.g., 5 kg' },
+    { id: 'Grassmate', label: 'Grassmate', placeholder: 'e.g., 2 bundles of 100ft Grassmate' },
+    { id: 'Gate Sheets', label: 'Gate Sheets', placeholder: 'e.g., 50 sq. ft Gate Sheets' },
 ]
 
 
@@ -663,7 +663,7 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                                                                 <FormControl>
                                                                     <Input
                                                                         type="text"
-                                                                        placeholder="e.g., 5 kg, 2 bundles"
+                                                                        placeholder={item.placeholder}
                                                                         value={selectedItem.details}
                                                                         onChange={(e) => {
                                                                             const currentItems = getValues("hardwareDetails") || [];
