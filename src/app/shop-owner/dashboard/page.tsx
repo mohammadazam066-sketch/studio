@@ -96,7 +96,7 @@ export default function ShopOwnerDashboard() {
         if (locationFilter === 'all') {
             setFilteredRequirements(openRequirementsToQuote);
         } else {
-            setFilteredRequirements(openRequirementsToQuote.filter(req => req.location.toLowerCase().includes(locationFilter.toLowerCase())));
+            setFilteredRequirements(openRequirementsToQuote.filter(req => req.location === locationFilter));
         }
     }, [locationFilter, openRequirementsToQuote]);
     
@@ -137,7 +137,7 @@ export default function ShopOwnerDashboard() {
                             <Eye className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{filteredRequirements.length}</div>
+                            <div className="text-2xl font-bold">{openRequirementsToQuote.length}</div>
                             <p className="text-xs text-muted-foreground">Opportunities available to quote</p>
                         </CardContent>
                     </Card>
