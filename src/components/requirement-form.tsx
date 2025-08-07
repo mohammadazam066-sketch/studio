@@ -8,7 +8,7 @@ import * as z from 'zod';
 import { addRequirement, updateRequirement, useAuth } from '@/lib/store';
 import { useRouter } from 'next/navigation';
 import { Loader2, Upload, X, PlusCircle, Trash2 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,8 @@ const requirementFormSchema = z.object({
   steelDetails: z.array(steelDetailSchema).optional(),
   steelBrands: z.array(z.string()).optional(),
   flexibleSteelBrand: z.boolean().optional(),
+  sandAndAggregateDetails: z.array(z.string()).optional(),
+  customSandAndAggregate: z.string().optional(),
 });
 
 type RequirementFormValues = z.infer<typeof requirementFormSchema>;
@@ -79,6 +81,15 @@ const steelBrandsList = [
     { id: 'Tirupati TMT', label: 'Tirupati TMT' },
 ];
 
+const sandAndAggregateItems = [
+    { id: '1 Tractor Sand', label: '1 Tractor Sand' },
+    { id: '1/2 Tractor Sand', label: '1/2 Tractor Sand' },
+    { id: '100 Feet Aggregate', label: '100 Feet Aggregate' },
+    { id: '200 Feet Aggregate', label: '200 Feet Aggregate' },
+    { id: '300 Feet Aggregate', label: '300 Feet Aggregate' },
+];
+
+
 const locations = ["Bidar", "Kalaburagi", "Humnabad", "Basavakalyan", "Zaheerabad"];
 
 
@@ -97,19 +108,39 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
       title: existingRequirement?.title || '',
       category: existingRequirement?.category || initialCategory || '',
       location: existingRequirement?.location || '',
-      address: (existingRequirement as any)?.address || '', // Add address field
+      address: (existingRequirement as any)?.address || '',
       description: existingRequirement?.description || '',
       brands: existingRequirement?.brands || [],
       flexibleBrand: existingRequirement?.flexibleBrand || false,
       steelDetails: existingRequirement?.steelDetails?.length ? existingRequirement.steelDetails : [],
       steelBrands: existingRequirement?.steelBrands || [],
       flexibleSteelBrand: existingRequirement?.flexibleSteelBrand || false,
+      sandAndAggregateDetails: existingRequirement?.sandAndAggregateDetails || [],
+      customSandAndAggregate: existingRequirement?.customSandAndAggregate || '',
     },
   });
 
   const { formState: { isSubmitting }, watch, setValue, getValues, control } = form;
 
   const watchedCategory = watch("category");
+  const watchedSandAndAggregate = watch(["sandAndAggregateDetails", "customSandAndAggregate"]);
+
+  useEffect(() => {
+    if (watchedCategory === 'Sand & Aggregates') {
+        const [details, custom] = watchedSandAndAggregate;
+        const parts = [...(details || [])];
+        if (custom) {
+            parts.push(custom);
+        }
+
+        if (parts.length > 0) {
+            const title = parts.join(' and ') + ' required';
+            setValue('title', title);
+        } else {
+             setValue('title', '');
+        }
+    }
+  }, [watchedSandAndAggregate, watchedCategory, setValue]);
   
   const { fields: steelFields, append: appendSteel, remove: removeSteel } = useFieldArray({
     control,
@@ -501,6 +532,75 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                                 <Separator />
                             </div>
                         )}
+                        
+                        {watchedCategory === 'Sand & Aggregates' && (
+                            <div className="md:col-span-2 space-y-6 border rounded-lg p-4">
+                                <Separator />
+                                <div>
+                                    <h3 className="text-lg font-semibold">Sand &amp; Aggregates Details</h3>
+                                    <p className="text-sm text-muted-foreground">Choose the materials you need.</p>
+                                </div>
+                                <FormField
+                                    control={form.control}
+                                    name="sandAndAggregateDetails"
+                                    render={() => (
+                                        <FormItem>
+                                        <div className="space-y-2">
+                                            {sandAndAggregateItems.map((item) => (
+                                                <FormField
+                                                key={item.id}
+                                                control={form.control}
+                                                name="sandAndAggregateDetails"
+                                                render={({ field }) => {
+                                                    return (
+                                                    <FormItem
+                                                        key={item.id}
+                                                        className="flex flex-row items-start space-x-3 space-y-0"
+                                                    >
+                                                        <FormControl>
+                                                        <Checkbox
+                                                            checked={field.value?.includes(item.id)}
+                                                            onCheckedChange={(checked) => {
+                                                            return checked
+                                                                ? field.onChange([...(field.value || []), item.id])
+                                                                : field.onChange(
+                                                                    field.value?.filter(
+                                                                    (value) => value !== item.id
+                                                                    )
+                                                                )
+                                                            }}
+                                                        />
+                                                        </FormControl>
+                                                        <FormLabel className="font-normal">
+                                                        {item.label}
+                                                        </FormLabel>
+                                                    </FormItem>
+                                                    )
+                                                }}
+                                                />
+                                            ))}
+                                        </div>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="customSandAndAggregate"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                        <FormLabel>Custom Entry (Optional)</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="e.g., 50 kg of washed plastering sand" {...field} disabled={isSubmitting} />
+                                        </FormControl>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <Separator />
+                            </div>
+                        )}
 
 
                         <FormField
@@ -579,4 +679,3 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
     
 
     
-

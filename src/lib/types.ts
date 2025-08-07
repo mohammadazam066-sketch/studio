@@ -59,6 +59,8 @@ export type Requirement = {
   steelDetails?: SteelDetail[];
   steelBrands?: string[];
   flexibleSteelBrand?: boolean;
+  sandAndAggregateDetails?: string[];
+  customSandAndAggregate?: string;
 };
 
 export type Quotation = {
