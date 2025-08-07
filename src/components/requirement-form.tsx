@@ -675,7 +675,3 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
     </div>
   );
 }
-
-    
-
-    
