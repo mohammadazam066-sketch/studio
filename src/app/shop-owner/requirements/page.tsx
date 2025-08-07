@@ -14,6 +14,9 @@ import type { Timestamp } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import { Droplets, Tally5 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const locations = ["Bidar", "Kalaburagi", "Humnabad", "Basavakalyan", "Zaheerabad"];
 
 function formatDate(date: Date | string | Timestamp) {
     if (!date) return '';
@@ -50,8 +53,10 @@ function RequirementListSkeleton() {
 
 export default function ShopOwnerOpenRequirementsPage() {
     const { currentUser } = useAuth();
-    const [requirements, setRequirements] = useState<Requirement[]>([]);
+    const [allRequirements, setAllRequirements] = useState<Requirement[]>([]);
+    const [filteredRequirements, setFilteredRequirements] = useState<Requirement[]>([]);
     const [loading, setLoading] = useState(true);
+    const [locationFilter, setLocationFilter] = useState('all');
 
     const fetchData = useCallback(async () => {
         if (!currentUser?.id) return;
@@ -65,7 +70,7 @@ export default function ShopOwnerOpenRequirementsPage() {
         const quotedRequirementIds = new Set(userQuotations.map(q => q.requirementId));
         const requirementsToQuote = openReqs.filter(req => !quotedRequirementIds.has(req.id));
         
-        setRequirements(requirementsToQuote);
+        setAllRequirements(requirementsToQuote);
         setLoading(false);
     }, [currentUser]);
 
@@ -73,19 +78,40 @@ export default function ShopOwnerOpenRequirementsPage() {
         fetchData();
     }, [fetchData]);
 
+    useEffect(() => {
+        if (locationFilter === 'all') {
+            setFilteredRequirements(allRequirements);
+        } else {
+            setFilteredRequirements(allRequirements.filter(req => req.location === locationFilter));
+        }
+    }, [locationFilter, allRequirements]);
+
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold font-headline tracking-tight">Open Requirements</h1>
-                <p className="text-muted-foreground">All available homeowner requirements that you can quote on.</p>
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold font-headline tracking-tight">Open Requirements</h1>
+                    <p className="text-muted-foreground">All available homeowner requirements that you can quote on.</p>
+                </div>
+                 <Select value={locationFilter} onValueChange={setLocationFilter}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                        <SelectValue placeholder="Filter by location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Locations</SelectItem>
+                        {locations.map(loc => (
+                            <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
             
             <div>
                  {loading ? (
                     <RequirementListSkeleton />
-                 ) : requirements.length > 0 ? (
+                 ) : filteredRequirements.length > 0 ? (
                     <div className="space-y-4">
-                        {requirements.map(req => (
+                        {filteredRequirements.map(req => (
                             <Card key={req.id}>
                                 <CardHeader>
                                     <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
@@ -145,7 +171,12 @@ export default function ShopOwnerOpenRequirementsPage() {
                             <Image src="https://placehold.co/100x100.png" width={100} height={100} alt="All caught up" data-ai-hint="celebration happy checklist" className="rounded-full" />
                         </div>
                         <h3 className="text-lg font-medium">All caught up!</h3>
-                        <p className="text-muted-foreground mt-1">There are no new requirements to quote right now. Check back later!</p>
+                         <p className="text-muted-foreground mt-1">
+                            {locationFilter === 'all'
+                                ? "There are no new requirements to quote right now."
+                                : `No new requirements found for ${locationFilter}.`}
+                             Check back later!
+                        </p>
                     </div>
                 )}
             </div>
