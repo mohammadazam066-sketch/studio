@@ -38,6 +38,12 @@ const steelDetailSchema = z.object({
     quantity: z.coerce.number().min(1, "Quantity must be at least 1."),
 });
 
+const hardwareDetailSchema = z.object({
+  itemName: z.string().min(1, "Item name is required."),
+  quantity: z.coerce.number().min(1, "Quantity must be at least 1."),
+  unit: z.string().min(1, "Unit is required."),
+});
+
 
 const requirementFormSchema = z.object({
   title: z.string().min(1, { message: "Title is required." }),
@@ -52,6 +58,7 @@ const requirementFormSchema = z.object({
   flexibleSteelBrand: z.boolean().optional(),
   sandAndAggregateDetails: z.array(z.string()).optional(),
   customSandAndAggregate: z.string().optional(),
+  hardwareDetails: z.array(hardwareDetailSchema).optional(),
 });
 
 type RequirementFormValues = z.infer<typeof requirementFormSchema>;
@@ -117,6 +124,7 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
       flexibleSteelBrand: existingRequirement?.flexibleSteelBrand || false,
       sandAndAggregateDetails: existingRequirement?.sandAndAggregateDetails || [],
       customSandAndAggregate: existingRequirement?.customSandAndAggregate || '',
+      hardwareDetails: existingRequirement?.hardwareDetails || [],
     },
   });
 
@@ -145,6 +153,11 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
   const { fields: steelFields, append: appendSteel, remove: removeSteel } = useFieldArray({
     control,
     name: "steelDetails",
+  });
+
+  const { fields: hardwareFields, append: appendHardware, remove: removeHardware } = useFieldArray({
+    control,
+    name: "hardwareDetails",
   });
 
 
@@ -601,6 +614,69 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                                 />
                                 <Separator />
                             </div>
+                        )}
+
+                        {watchedCategory === 'Hardware' && (
+                          <div className="md:col-span-2 space-y-6 border rounded-lg p-4">
+                            <Separator />
+                            <div>
+                                <h3 className="text-lg font-semibold">Hardware Details</h3>
+                                <p className="text-sm text-muted-foreground">Specify the items, quantities, and units you need.</p>
+                            </div>
+                             <div className="space-y-4">
+                                {hardwareFields.map((field, index) => (
+                                    <div key={field.id} className="flex flex-col sm:flex-row items-end gap-3 p-2 border-b">
+                                        <FormField
+                                            control={control}
+                                            name={`hardwareDetails.${index}.itemName`}
+                                            render={({ field }) => (
+                                                <FormItem className="flex-1">
+                                                    <FormLabel>Item Name</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} placeholder="e.g., PP Rope" />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={control}
+                                            name={`hardwareDetails.${index}.quantity`}
+                                            render={({ field }) => (
+                                                <FormItem className="flex-1">
+                                                    <FormLabel>Quantity</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="number" {...field} placeholder="e.g., 5" value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : Number(e.target.value))} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                         <FormField
+                                            control={control}
+                                            name={`hardwareDetails.${index}.unit`}
+                                            render={({ field }) => (
+                                                <FormItem className="flex-1">
+                                                    <FormLabel>Unit Type</FormLabel>
+                                                    <FormControl>
+                                                        <Input {...field} placeholder="e.g., kg, bundle" />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <Button type="button" variant="ghost" size="icon" onClick={() => removeHardware(index)} disabled={isSubmitting}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                            <Button type="button" variant="outline" size="sm" onClick={() => appendHardware({ itemName: '', quantity: 0, unit: '' })}>
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Add Another Item
+                            </Button>
+                            <Separator />
+                          </div>
                         )}
 
 

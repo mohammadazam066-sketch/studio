@@ -42,6 +42,12 @@ export type SteelDetail = {
   quantity: number;
 }
 
+export type HardwareDetail = {
+  itemName: string;
+  quantity: number;
+  unit: string;
+}
+
 export type Requirement = {
   id: string;
   homeownerId: string;
@@ -61,6 +67,7 @@ export type Requirement = {
   flexibleSteelBrand?: boolean;
   sandAndAggregateDetails?: string[];
   customSandAndAggregate?: string;
+  hardwareDetails?: HardwareDetail[];
 };
 
 export type Quotation = {
