@@ -16,6 +16,7 @@ const categories = [
     { id: 'Bricks & Blocks', label: 'Bricks & Blocks', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/tradeflow-tiu5k.firebasestorage.app/o/bricks.jpg%2Fbrick.jpg?alt=media&token=42de071d-491d-4f0a-bc6c-bbbb76766b64', imageHint: 'brick wall' },
     { id: 'Sand & Aggregates', label: 'Sand & Aggregates', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/tradeflow-tiu5k.firebasestorage.app/o/sand.jpg%2FChatGPT%20Image%20Jul%2022%2C%202025%2C%2010_37_50%20PM.png?alt=media&token=98f572d2-ab7d-4201-af85-b64266ddb39e', imageHint: 'sand pile' },
     { id: 'Electrical', label: 'Electrical', imageUrl: 'https://firebasestorage.googleapis.com/v0/b/tradeflow-tiu5k.firebasestorage.app/o/electricals.jpg%2Felectric%20.jpg?alt=media&token=4d9031d0-a6f2-416a-8be7-bc86033ea3d7', imageHint: 'electrical wires' },
+    { id: 'Hardware', label: 'Hardware', imageUrl: 'https://placehold.co/200x200.png', imageHint: 'nuts bolts' },
 ];
 
 function CategoryGridSkeleton() {
@@ -67,7 +68,7 @@ export function MaterialCategoryGrid({ role }: MaterialCategoryGridProps) {
     }
 
     return (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {categories.map((category) => (
                 <Link href={getLinkHref(category.id)} key={category.id} className="group">
                     <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:scale-[1.02]">

@@ -267,6 +267,7 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                                             <SelectItem value="Steel">Steel (TMT Bars)</SelectItem>
                                             <SelectItem value="Bricks & Blocks">Bricks & Blocks</SelectItem>
                                             <SelectItem value="Sand & Aggregates">Sand & Aggregates</SelectItem>
+                                            <SelectItem value="Hardware">Hardware</SelectItem>
                                             <SelectItem value="Plumbing">Plumbing & Sanitaryware</SelectItem>
                                             <SelectItem value="Electrical">Electrical Supplies</SelectItem>
                                             <SelectItem value="Paints & Finishes">Paints & Finishes</SelectItem>
