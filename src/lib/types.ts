@@ -60,6 +60,7 @@ export type Requirement = {
   createdAt: Timestamp | Date | string;
   status: 'Open' | 'Purchased';
   purchaseId?: string; // Link to the purchase document
+  quotationId?: string; // Link to the winning quotation document
   brands?: BrandSelection[];
   flexibleBrand?: boolean;
   steelDetails?: SteelDetail[];

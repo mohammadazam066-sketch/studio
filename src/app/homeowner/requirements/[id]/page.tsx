@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Calendar, Wrench, FileText, CheckCircle, Edit, Trash2, Droplets, Tally5, Star } from 'lucide-react';
+import { MapPin, Calendar, Wrench, FileText, CheckCircle, Edit, Trash2, Droplets, Tally5, Star, Award } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEffect, useState, useCallback } from 'react';
 import type { Requirement, Quotation, Review, HomeownerProfile } from '@/lib/types';
@@ -38,6 +38,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 function formatDate(date: Date | string | Timestamp) {
     if (!date) return '';
@@ -230,7 +231,6 @@ export default function RequirementDetailPage() {
     if (requirement && selectedQuote) {
         try {
             const purchaseRef = await createPurchase(requirement, selectedQuote);
-            setRequirement(prev => prev ? { ...prev, status: 'Purchased', purchaseId: purchaseRef.id } : undefined);
             
             toast({
               title: "Purchase Confirmed!",
@@ -280,18 +280,23 @@ export default function RequirementDetailPage() {
         return;
     }
     
+    if (!currentUser || !currentUser.profile?.name) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not submit review due to missing user information.' });
+        return;
+    }
+    
     try {
-        if (editingReview) {
+        if (editingReview && selectedQuote) {
             // Update existing review
             await updateReview(editingReview.id, { rating, comment });
             toast({ title: 'Review Updated!', description: 'Your feedback has been updated.' });
         } else {
-             if (!requirement?.purchaseId || !selectedQuote?.shopOwnerId || !currentUser?.id || !currentUser.profile?.name) {
-                toast({ variant: 'destructive', title: 'Error', description: 'Could not submit review due to missing information.' });
+             if (!requirement?.purchaseId || !selectedQuote?.shopOwnerId) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not submit review due to missing purchase information.' });
                 return;
             }
             // Add new review
-            const photoURL = (currentUser.profile as HomeownerProfile)?.photoURL;
+            const photoURL = (currentUser.profile as HomeownerProfile)?.photoURL || `https://placehold.co/100x100.png`;
             const reviewData = {
                 shopOwnerId: selectedQuote.shopOwnerId,
                 customerId: currentUser.id,
@@ -299,7 +304,7 @@ export default function RequirementDetailPage() {
                 purchaseId: requirement.purchaseId,
                 rating: rating,
                 comment: comment,
-                ...(photoURL && { customerPhotoURL: photoURL }),
+                customerPhotoURL: photoURL,
             };
             await addReview(reviewData);
             toast({ title: 'Review Submitted!', description: 'Thank you for your feedback.', className: 'bg-accent text-accent-foreground border-accent' });
@@ -336,9 +341,8 @@ export default function RequirementDetailPage() {
     return null; // Should have been redirected by the fetch logic
   }
   
-  const winningQuote = requirement.status === 'Purchased'
-    ? relatedQuotations.find(q => q.id === (requirement as any)?.quotationId) // Heuristic if not directly on purchase
-    : null;
+  const isPurchased = requirement.status === 'Purchased';
+  const winningQuotationId = requirement.quotationId;
 
 
   return (
@@ -351,8 +355,8 @@ export default function RequirementDetailPage() {
               <Badge variant="secondary" className="mb-2">{requirement.category}</Badge>
               <CardTitle className="font-headline text-2xl">{requirement.title}</CardTitle>
             </div>
-            <div className={`text-sm font-medium flex items-center gap-2 ${requirement.status === 'Purchased' ? 'text-accent' : 'text-primary'}`}>
-                <span className={`h-2 w-2 rounded-full ${requirement.status === 'Purchased' ? 'bg-accent' : 'bg-primary'}`}></span>
+            <div className={`text-sm font-medium flex items-center gap-2 ${isPurchased ? 'text-accent' : 'text-primary'}`}>
+                <span className={`h-2 w-2 rounded-full ${isPurchased ? 'bg-accent' : 'bg-primary'}`}></span>
                 {requirement.status}
             </div>
           </div>
@@ -436,8 +440,16 @@ export default function RequirementDetailPage() {
           <div className="space-y-4">
             {relatedQuotations.map(quote => {
                  const existingReview = existingReviews[quote.shopOwnerId];
+                 const isWinningQuote = isPurchased && quote.id === winningQuotationId;
+
                  return (
-              <Card key={quote.id} className="transition-shadow hover:shadow-md">
+              <Card key={quote.id} className={cn("transition-shadow hover:shadow-md", isWinningQuote && "border-2 border-accent shadow-lg")}>
+                 {isWinningQuote && (
+                    <div className="bg-accent text-accent-foreground text-xs font-bold p-2 text-center flex items-center justify-center gap-2">
+                        <Award className="w-4 h-4"/>
+                        You purchased this quotation.
+                    </div>
+                 )}
                 <CardHeader>
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                     <Link href={`/homeowner/profile/${quote.shopOwnerId}`} className="hover:underline group">
@@ -468,19 +480,21 @@ export default function RequirementDetailPage() {
                   </div>
                 </CardContent>
                 <CardFooter className="flex flex-col sm:flex-row items-center gap-2">
-                  <Button 
-                    className="w-full bg-accent hover:bg-accent/90 text-accent-foreground disabled:bg-gray-400"
-                    onClick={() => handlePurchaseClick(quote)}
-                    disabled={requirement.status === 'Purchased'}
-                  >
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    {requirement.status === 'Purchased' ? 'Purchased' : 'Mark as Purchased'}
-                  </Button>
-                  {requirement.status === 'Purchased' && (
+                  {!isPurchased && (
                     <Button 
-                        variant="outline" 
+                        className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+                        onClick={() => handlePurchaseClick(quote)}
+                    >
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Mark as Purchased
+                    </Button>
+                  )}
+                  {isPurchased && (
+                    <Button 
+                        variant={isWinningQuote ? "default" : "secondary"} 
                         className="w-full" 
                         onClick={() => openReviewDialog(quote, existingReview)}
+                        disabled={!isWinningQuote}
                     >
                         {existingReview ? 'Edit Review' : 'Leave a Review'}
                     </Button>

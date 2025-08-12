@@ -468,13 +468,9 @@ export const getOpenRequirementsCountByCategory = async (): Promise<Record<strin
 };
 
 
-export const updateRequirementStatus = async (id: string, status: 'Open' | 'Purchased', purchaseId?: string) => {
+export const updateRequirementStatus = async (id: string, status: 'Open' | 'Purchased', data: Partial<Requirement> = {}) => {
     const requirementRef = doc(db, 'requirements', id);
-    const updateData: { status: typeof status, purchaseId?: string } = { status };
-    if (purchaseId) {
-        updateData.purchaseId = purchaseId;
-    }
-    await updateDoc(requirementRef, updateData);
+    await updateDoc(requirementRef, { ...data, status });
 };
 
 
@@ -771,7 +767,10 @@ export const createPurchase = async (requirement: Requirement, quotation: Quotat
         createdAt: serverTimestamp(),
     });
     
-    await updateRequirementStatus(requirement.id, 'Purchased', purchaseRef.id);
+    await updateRequirementStatus(requirement.id, 'Purchased', { 
+        purchaseId: purchaseRef.id,
+        quotationId: quotation.id,
+     });
 
     // Create notification for shop owner about the purchase
     await addDoc(collection(db, 'notifications'), {
@@ -856,14 +855,10 @@ export const updateReview = async (reviewId: string, data: { rating: number; com
 
 
 export const getReviewsByShopOwner = async (shopOwnerId: string): Promise<Review[]> => {
-    const q = query(
-        collection(db, 'reviews'),
-        where('shopOwnerId', '==', shopOwnerId)
-    );
+    const q = query(collection(db, 'reviews'), where('shopOwnerId', '==', shopOwnerId));
     const querySnapshot = await getDocs(q);
     const reviews = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review));
-
-    // Manually sort by date client-side
+    
     return reviews.sort((a, b) => {
         const dateA = (a.createdAt as any)?.toDate ? (a.createdAt as any).toDate() : new Date();
         const dateB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate() : new Date();
