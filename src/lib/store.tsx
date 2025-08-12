@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
@@ -829,17 +828,28 @@ export const addReview = async (reviewData: Omit<Review, 'id' | 'createdAt'>) =>
       createdAt: serverTimestamp()
     };
     
+    // Ensure customerPhotoURL is not undefined
+    if (reviewPayload.customerPhotoURL === undefined) {
+      delete reviewPayload.customerPhotoURL;
+    }
+
     return await addDoc(collection(db, 'reviews'), reviewPayload);
 }
 
 export const getReviewsByShopOwner = async (shopOwnerId: string): Promise<Review[]> => {
     const q = query(
         collection(db, 'reviews'),
-        where('shopOwnerId', '==', shopOwnerId),
-        orderBy('createdAt', 'desc')
+        where('shopOwnerId', '==', shopOwnerId)
     );
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review));
+    const reviews = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review));
+
+    // Manually sort by date client-side
+    return reviews.sort((a, b) => {
+        const dateA = (a.createdAt as any)?.toDate ? (a.createdAt as any).toDate() : new Date();
+        const dateB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate() : new Date();
+        return dateB.getTime() - dateA.getTime();
+    });
 }
 
 export const getReviewByPurchase = async (purchaseId: string, customerId: string, shopOwnerId: string): Promise<Review | undefined> => {
@@ -856,3 +866,5 @@ export const getReviewByPurchase = async (purchaseId: string, customerId: string
     }
     return undefined;
 }
+
+    
