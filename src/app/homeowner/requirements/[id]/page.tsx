@@ -480,7 +480,7 @@ export default function RequirementDetailPage() {
                   </div>
                 </CardContent>
                 <CardFooter className="flex flex-col sm:flex-row items-center gap-2">
-                  {!isPurchased && (
+                  {!isPurchased ? (
                     <Button 
                         className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
                         onClick={() => handlePurchaseClick(quote)}
@@ -488,15 +488,14 @@ export default function RequirementDetailPage() {
                         <CheckCircle className="mr-2 h-4 w-4" />
                         Mark as Purchased
                     </Button>
-                  )}
-                  {isPurchased && (
+                  ) : (
                     <Button 
                         variant={isWinningQuote ? "default" : "secondary"} 
                         className="w-full" 
                         onClick={() => openReviewDialog(quote, existingReview)}
                         disabled={!isWinningQuote}
                     >
-                        {isWinningQuote && existingReview ? 'Edit Review' : isWinningQuote ? 'Leave a Review' : 'Review'}
+                        {isWinningQuote ? (existingReview ? 'Edit Review' : 'Leave a Review') : 'Review'}
                     </Button>
                   )}
                 </CardFooter>
@@ -596,7 +595,3 @@ export default function RequirementDetailPage() {
     </div>
   );
 }
-
-    
-
-    
