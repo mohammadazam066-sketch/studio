@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
@@ -835,6 +836,24 @@ export const addReview = async (reviewData: Omit<Review, 'id' | 'createdAt'>) =>
 
     return await addDoc(collection(db, 'reviews'), reviewPayload);
 }
+
+export const updateReview = async (reviewId: string, data: { rating: number; comment: string }) => {
+    if (!auth.currentUser) throw new Error("Not authenticated");
+    
+    const reviewRef = doc(db, 'reviews', reviewId);
+    
+    // Optional: Check if the current user is the author of the review before updating
+    const reviewSnap = await getDoc(reviewRef);
+    if (!reviewSnap.exists() || reviewSnap.data().customerId !== auth.currentUser.uid) {
+        throw new Error("You are not authorized to edit this review.");
+    }
+    
+    return await updateDoc(reviewRef, {
+        rating: data.rating,
+        comment: data.comment,
+    });
+}
+
 
 export const getReviewsByShopOwner = async (shopOwnerId: string): Promise<Review[]> => {
     const q = query(

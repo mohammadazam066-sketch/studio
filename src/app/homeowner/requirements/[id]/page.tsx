@@ -1,7 +1,7 @@
 
 'use client';
 
-import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, deleteRequirement, createPurchase, useAuth, getReviewByPurchase, addReview, getReviewsByShopOwner } from '@/lib/store';
+import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, deleteRequirement, createPurchase, useAuth, getReviewByPurchase, addReview, getReviewsByShopOwner, updateReview } from '@/lib/store';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -147,6 +147,7 @@ export default function RequirementDetailPage() {
   const [relatedQuotations, setRelatedQuotations] = useState<QuotationWithReviewData[]>([]);
   const [selectedQuote, setSelectedQuote] = useState<Quotation | null>(null);
   const [existingReviews, setExistingReviews] = useState<Record<string, Review>>({});
+  const [editingReview, setEditingReview] = useState<Review | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
@@ -278,40 +279,51 @@ export default function RequirementDetailPage() {
         toast({ variant: 'destructive', title: 'Rating Required', description: 'Please select a star rating.' });
         return;
     }
-    if (!requirement?.purchaseId || !selectedQuote?.shopOwnerId || !currentUser?.id || !currentUser.profile?.name) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not submit review due to missing information.' });
-        return;
-    }
     
     try {
-        const photoURL = (currentUser.profile as HomeownerProfile)?.photoURL;
+        if (editingReview) {
+            // Update existing review
+            await updateReview(editingReview.id, { rating, comment });
+            toast({ title: 'Review Updated!', description: 'Your feedback has been updated.' });
+        } else {
+             if (!requirement?.purchaseId || !selectedQuote?.shopOwnerId || !currentUser?.id || !currentUser.profile?.name) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not submit review due to missing information.' });
+                return;
+            }
+            // Add new review
+            const photoURL = (currentUser.profile as HomeownerProfile)?.photoURL;
+            const reviewData = {
+                shopOwnerId: selectedQuote.shopOwnerId,
+                customerId: currentUser.id,
+                customerName: currentUser.profile.name,
+                purchaseId: requirement.purchaseId,
+                rating: rating,
+                comment: comment,
+                ...(photoURL && { customerPhotoURL: photoURL }),
+            };
+            await addReview(reviewData);
+            toast({ title: 'Review Submitted!', description: 'Thank you for your feedback.', className: 'bg-accent text-accent-foreground border-accent' });
+        }
 
-        const reviewData = {
-            shopOwnerId: selectedQuote.shopOwnerId,
-            customerId: currentUser.id,
-            customerName: currentUser.profile.name,
-            purchaseId: requirement.purchaseId,
-            rating: rating,
-            comment: comment,
-            ...(photoURL && { customerPhotoURL: photoURL }),
-        };
-
-        await addReview(reviewData);
-
-        toast({ title: 'Review Submitted!', description: 'Thank you for your feedback.', className: 'bg-accent text-accent-foreground border-accent' });
         setReviewDialogOpen(false);
-        fetchData(); // Refresh to show that the review has been submitted
+        fetchData(); // Refresh to show the latest review status
     } catch (error) {
         console.error("Review submission error:", error);
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to submit your review.' });
     }
   }
 
-
-  const openReviewDialog = (quote: Quotation) => {
-    setRating(0);
-    setComment('');
+  const openReviewDialog = (quote: Quotation, review?: Review) => {
     setSelectedQuote(quote);
+    if (review) {
+        setEditingReview(review);
+        setRating(review.rating);
+        setComment(review.comment);
+    } else {
+        setEditingReview(null);
+        setRating(0);
+        setComment('');
+    }
     setReviewDialogOpen(true);
   }
 
@@ -468,10 +480,9 @@ export default function RequirementDetailPage() {
                     <Button 
                         variant="outline" 
                         className="w-full" 
-                        disabled={!!existingReview} 
-                        onClick={() => openReviewDialog(quote)}
+                        onClick={() => openReviewDialog(quote, existingReview)}
                     >
-                        {existingReview ? 'Review Submitted' : 'Leave a Review'}
+                        {existingReview ? 'Edit Review' : 'Leave a Review'}
                     </Button>
                   )}
                 </CardFooter>
@@ -511,7 +522,7 @@ export default function RequirementDetailPage() {
         <Dialog open={isReviewDialogOpen} onOpenChange={setReviewDialogOpen}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Review {selectedQuote?.shopName}</DialogTitle>
+                    <DialogTitle>{editingReview ? 'Edit Your' : 'Leave a'} Review for {selectedQuote?.shopName}</DialogTitle>
                     <DialogDescription>
                         Share your experience to help other homeowners.
                     </DialogDescription>
@@ -548,7 +559,7 @@ export default function RequirementDetailPage() {
                     <DialogClose asChild>
                         <Button type="button" variant="secondary">Cancel</Button>
                     </DialogClose>
-                    <Button onClick={handleReviewSubmit}>Submit Review</Button>
+                    <Button onClick={handleReviewSubmit}>{editingReview ? 'Update Review' : 'Submit Review'}</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
