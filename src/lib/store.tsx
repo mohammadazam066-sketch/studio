@@ -843,11 +843,17 @@ export const addReview = async (reviewData: Omit<Review, 'id' | 'createdAt'>) =>
 export const getReviewsByShopOwner = async (shopOwnerId: string): Promise<Review[]> => {
     const q = query(
         collection(db, 'reviews'),
-        where('shopOwnerId', '==', shopOwnerId),
-        orderBy('createdAt', 'desc')
+        where('shopOwnerId', '==', shopOwnerId)
     );
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review));
+    const reviews = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review));
+    
+    // Sort manually on the client-side to avoid needing a composite index
+    return reviews.sort((a, b) => {
+        const dateA = (a.createdAt as any)?.toDate ? (a.createdAt as any).toDate() : new Date(a.createdAt as string);
+        const dateB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate() : new Date(b.createdAt as string);
+        return dateB.getTime() - dateA.getTime();
+    });
 }
 
 export const getReviewByPurchase = async (purchaseId: string, customerId: string, shopOwnerId: string): Promise<Review | undefined> => {
