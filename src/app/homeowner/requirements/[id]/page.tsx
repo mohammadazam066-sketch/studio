@@ -2,7 +2,7 @@
 
 'use client';
 
-import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, deleteRequirement, createPurchase, useAuth, getReviewByPurchase, addReview } from '@/lib/store';
+import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, deleteRequirement, createPurchase, useAuth, getReviewByPurchase, addReview, getReviewsByShopOwner } from '@/lib/store';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,6 +44,32 @@ function formatDate(date: Date | string | Timestamp) {
     if (!date) return '';
     const dateObj = (date as Timestamp)?.toDate ? (date as Timestamp).toDate() : new Date(date as string);
     return format(dateObj, 'PPP');
+}
+
+const StarRating = ({ rating, size = "md", reviewCount }: { rating: number; size?: 'sm' | 'md' | 'lg', reviewCount?: number }) => {
+    const starClasses = {
+        sm: "w-4 h-4",
+        md: "w-5 h-5",
+        lg: "w-6 h-6",
+    };
+    return (
+        <div className="flex items-center gap-1">
+            {[...Array(5)].map((_, i) => (
+                <Star
+                    key={i}
+                    className={`${starClasses[size]} ${i < Math.round(rating) ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
+                />
+            ))}
+            {reviewCount !== undefined && (
+                 <span className="text-muted-foreground text-xs ml-1">({reviewCount})</span>
+            )}
+        </div>
+    );
+};
+
+type QuotationWithReviewData = Quotation & {
+    averageRating: number;
+    reviewCount: number;
 }
 
 function PageSkeleton() {
@@ -119,7 +145,7 @@ export default function RequirementDetailPage() {
   const { currentUser } = useAuth();
   
   const [requirement, setRequirement] = useState<Requirement | undefined>(undefined);
-  const [relatedQuotations, setRelatedQuotations] = useState<Quotation[]>([]);
+  const [relatedQuotations, setRelatedQuotations] = useState<QuotationWithReviewData[]>([]);
   const [selectedQuote, setSelectedQuote] = useState<Quotation | null>(null);
   const [existingReviews, setExistingReviews] = useState<Record<string, Review>>({});
 
@@ -148,7 +174,20 @@ export default function RequirementDetailPage() {
         setRequirement(reqData);
 
         const quotesData = await getQuotationsForRequirement(id);
-        setRelatedQuotations(quotesData);
+        
+        const quotesWithReviewData = await Promise.all(
+            quotesData.map(async (quote) => {
+                const reviews = await getReviewsByShopOwner(quote.shopOwnerId);
+                const reviewCount = reviews.length;
+                const averageRating = reviewCount > 0
+                    ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviewCount
+                    : 0;
+                return { ...quote, averageRating, reviewCount };
+            })
+        );
+        
+        setRelatedQuotations(quotesWithReviewData);
+
 
         if (reqData.status === 'Purchased' && reqData.purchaseId && currentUser?.id) {
             const reviewsData: Record<string, Review> = {};
@@ -243,15 +282,21 @@ export default function RequirementDetailPage() {
     if (!requirement?.purchaseId || !selectedQuote?.shopOwnerId || !currentUser) return;
     
     try {
-        await addReview({
+        const reviewData = {
             shopOwnerId: selectedQuote.shopOwnerId,
             customerId: currentUser.id,
             customerName: currentUser.profile?.name || "Anonymous",
-            customerPhotoURL: (currentUser.profile as HomeownerProfile)?.photoURL,
             purchaseId: requirement.purchaseId,
             rating: rating,
             comment: comment,
-        });
+        };
+        
+        const photoURL = (currentUser.profile as HomeownerProfile)?.photoURL;
+        if (photoURL) {
+            reviewData['customerPhotoURL'] = photoURL;
+        }
+
+        await addReview(reviewData);
 
         toast({ title: 'Review Submitted!', description: 'Thank you for your feedback.', className: 'bg-accent text-accent-foreground border-accent' });
         setReviewDialogOpen(false);
@@ -261,6 +306,7 @@ export default function RequirementDetailPage() {
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to submit your review.' });
     }
   }
+
 
   const openReviewDialog = (quote: Quotation) => {
     setRating(0);
@@ -385,6 +431,13 @@ export default function RequirementDetailPage() {
                     <Link href={`/homeowner/profile/${quote.shopOwnerId}`} className="hover:underline group">
                         <CardTitle className="text-lg group-hover:text-primary">{quote.shopName}</CardTitle>
                         <CardDescription>{quote.shopOwnerName}</CardDescription>
+                         {quote.reviewCount > 0 ? (
+                            <div className="pt-1">
+                                <StarRating rating={quote.averageRating} reviewCount={quote.reviewCount} size="sm" />
+                            </div>
+                        ) : (
+                            <p className="text-xs text-muted-foreground pt-1">No reviews yet</p>
+                        )}
                     </Link>
                     <div className="flex items-center text-lg font-semibold text-primary">
                         <span className="font-sans mr-1">Rs</span>
