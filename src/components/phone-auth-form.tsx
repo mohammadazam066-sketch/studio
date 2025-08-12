@@ -285,7 +285,7 @@ export function PhoneAuthForm() {
                 >
                     I have read and agree to the{' '}
                     <Link href="/legal/terms" target="_blank" className="underline hover:text-primary">
-                        Terms &amp; Conditions and Privacy Policy
+                        Terms & Conditions and Privacy Policy
                     </Link>.
                 </label>
             </div>
