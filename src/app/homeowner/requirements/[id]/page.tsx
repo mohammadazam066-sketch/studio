@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Calendar, Wrench, FileText, CheckCircle, Edit, Trash2, Droplets, Tally5, Star, Award } from 'lucide-react';
+import { MapPin, Calendar, Wrench, FileText, CheckCircle, Edit, Trash2, Droplets, Tally5, Star, Award, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEffect, useState, useCallback } from 'react';
 import type { Requirement, Quotation, Review, HomeownerProfile } from '@/lib/types';
@@ -285,26 +285,31 @@ export default function RequirementDetailPage() {
         return;
     }
     
+    if (!selectedQuote) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No quote selected for review.' });
+        return;
+    }
+
     try {
-        if (editingReview && selectedQuote) {
+        if (editingReview) {
             // Update existing review
             await updateReview(editingReview.id, { rating, comment });
             toast({ title: 'Review Updated!', description: 'Your feedback has been updated.' });
         } else {
-             if (!requirement?.purchaseId || !selectedQuote?.shopOwnerId) {
+             if (!requirement?.purchaseId) {
                 toast({ variant: 'destructive', title: 'Error', description: 'Could not submit review due to missing purchase information.' });
                 return;
             }
             // Add new review
-            const photoURL = (currentUser.profile as HomeownerProfile)?.photoURL || `https://placehold.co/100x100.png`;
+            const profile = currentUser.profile as HomeownerProfile;
             const reviewData = {
                 shopOwnerId: selectedQuote.shopOwnerId,
                 customerId: currentUser.id,
-                customerName: currentUser.profile.name,
+                customerName: profile.name,
                 purchaseId: requirement.purchaseId,
                 rating: rating,
                 comment: comment,
-                customerPhotoURL: photoURL,
+                customerPhotoURL: profile.photoURL || `https://placehold.co/100x100.png`
             };
             await addReview(reviewData);
             toast({ title: 'Review Submitted!', description: 'Thank you for your feedback.', className: 'bg-accent text-accent-foreground border-accent' });
@@ -441,13 +446,20 @@ export default function RequirementDetailPage() {
             {relatedQuotations.map(quote => {
                  const existingReview = existingReviews[quote.shopOwnerId];
                  const isWinningQuote = isPurchased && quote.id === winningQuotationId;
+                 const isNotSelected = isPurchased && !isWinningQuote;
 
                  return (
-              <Card key={quote.id} className={cn("transition-shadow hover:shadow-md", isWinningQuote && "border-2 border-accent shadow-lg")}>
+              <Card key={quote.id} className={cn("transition-shadow hover:shadow-md", isWinningQuote && "border-2 border-accent shadow-lg", isNotSelected && "bg-muted/50")}>
                  {isWinningQuote && (
-                    <div className="bg-accent text-accent-foreground text-xs font-bold p-2 text-center flex items-center justify-center gap-2">
+                    <div className="bg-accent text-accent-foreground text-xs font-bold p-2 text-center flex items-center justify-center gap-2 rounded-t-lg">
                         <Award className="w-4 h-4"/>
                         You purchased this quotation.
+                    </div>
+                 )}
+                 {isNotSelected && (
+                    <div className="bg-secondary text-secondary-foreground text-xs font-bold p-2 text-center flex items-center justify-center gap-2 rounded-t-lg">
+                        <XCircle className="w-4 h-4"/>
+                        Not Selected
                     </div>
                  )}
                 <CardHeader>
@@ -489,14 +501,15 @@ export default function RequirementDetailPage() {
                         Mark as Purchased
                     </Button>
                   ) : (
-                    <Button 
-                        variant={isWinningQuote ? "default" : "secondary"} 
-                        className="w-full" 
-                        onClick={() => openReviewDialog(quote, existingReview)}
-                        disabled={!isWinningQuote}
-                    >
-                        {isWinningQuote ? (existingReview ? 'Edit Review' : 'Leave a Review') : 'Review'}
-                    </Button>
+                     isWinningQuote && (
+                        <Button 
+                            variant="default"
+                            className="w-full" 
+                            onClick={() => openReviewDialog(quote, existingReview)}
+                        >
+                            {existingReview ? 'Edit Review' : 'Leave a Review'}
+                        </Button>
+                    )
                   )}
                 </CardFooter>
               </Card>

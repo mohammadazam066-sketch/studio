@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import type { Timestamp } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Edit, FileText, User } from "lucide-react";
+import { Edit, FileText, User, CheckCircle, XCircle } from "lucide-react";
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -93,9 +93,24 @@ export default function MyQuotationsPage() {
             quotes = allQuotations.filter(q => q.requirement?.status === 'Purchased' && q.requirement.quotationId === q.id);
         } else if (filter === 'pending') {
             quotes = allQuotations.filter(q => q.requirement?.status !== 'Purchased');
+        } else if (filter === 'not-selected') {
+            quotes = allQuotations.filter(q => q.requirement?.status === 'Purchased' && q.requirement.quotationId !== q.id);
         }
         setFilteredQuotations(quotes);
     }, [filter, allQuotations]);
+
+    const getStatus = (quote: QuotationWithRequirement): { text: string; variant: "default" | "secondary" | "destructive"; icon?: React.ElementType } => {
+        const isPurchased = quote.requirement?.status === 'Purchased';
+        
+        if (isPurchased) {
+            if (quote.requirement?.quotationId === quote.id) {
+                return { text: "Accepted", variant: 'default', icon: CheckCircle };
+            } else {
+                return { text: "Not Selected", variant: 'destructive', icon: XCircle };
+            }
+        }
+        return { text: "Pending Review", variant: 'secondary' };
+    };
 
     return (
         <div className="space-y-6">
@@ -105,10 +120,11 @@ export default function MyQuotationsPage() {
             </div>
 
             <Tabs defaultValue={filter} onValueChange={(value) => router.push(`/shop-owner/my-quotations?filter=${value}`)}>
-                <TabsList>
+                <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="all">All</TabsTrigger>
-                    <TabsTrigger value="accepted">Accepted</TabsTrigger>
                     <TabsTrigger value="pending">Pending</TabsTrigger>
+                    <TabsTrigger value="accepted">Accepted</TabsTrigger>
+                    <TabsTrigger value="not-selected">Not Selected</TabsTrigger>
                 </TabsList>
             </Tabs>
             
@@ -118,8 +134,8 @@ export default function MyQuotationsPage() {
                  ) : filteredQuotations.length > 0 ? (
                     <div className="space-y-4">
                         {filteredQuotations.map(quote => {
-                            const isPurchased = quote.requirement?.status === 'Purchased';
-                            const isWinningQuote = isPurchased && quote.requirement?.quotationId === quote.id;
+                            const status = getStatus(quote);
+                             const isEditable = quote.requirement?.status !== 'Purchased';
 
                             return (
                             <Card key={quote.id}>
@@ -131,8 +147,9 @@ export default function MyQuotationsPage() {
                                                 For {quote.requirement?.homeownerName} &bull; Submitted on {formatDate(quote.createdAt)}
                                             </CardDescription>
                                         </div>
-                                        <Badge variant={isWinningQuote ? 'default' : 'secondary'} className={isWinningQuote ? 'bg-accent text-accent-foreground' : ''}>
-                                            {isWinningQuote ? "Accepted" : "Pending Review"}
+                                        <Badge variant={status.variant} className={status.variant === 'default' ? 'bg-accent text-accent-foreground' : ''}>
+                                            {status.icon && <status.icon className="mr-1.5 h-3.5 w-3.5" />}
+                                            {status.text}
                                         </Badge>
                                     </div>
                                 </CardHeader>
@@ -150,14 +167,14 @@ export default function MyQuotationsPage() {
                                             <Button asChild variant="link" className="p-0 h-auto">
                                                 <Link href={`/shop-owner/homeowner-profile/${quote.requirement.homeownerId}`}>
                                                     <User className="mr-2 h-4 w-4" />
-                                                    View {isWinningQuote ? `${quote.requirement.homeownerName}'s Contact` : "Homeowner's Profile"}
+                                                    View {status.text === 'Accepted' ? `${quote.requirement.homeownerName}'s Contact` : "Homeowner's Profile"}
                                                 </Link>
                                             </Button>
                                         </div>
                                     )}
                                 </CardContent>
                                 <CardFooter>
-                                    {!isPurchased && (
+                                    {isEditable && (
                                          <Button asChild variant="outline" size="sm">
                                             <Link href={`/shop-owner/my-quotations/edit/${quote.id}`}>
                                                 <Edit className="mr-2 h-4 w-4" /> Edit Quote
@@ -177,7 +194,7 @@ export default function MyQuotationsPage() {
                         <p className="text-muted-foreground mt-1">
                             {filter === 'all'
                                 ? "You haven't submitted any quotations yet."
-                                : `You have no ${filter} quotations.`}
+                                : `You have no ${filter.replace('-', ' ')} quotations.`}
                         </p>
                     </div>
                 )}
