@@ -90,7 +90,7 @@ export default function MyQuotationsPage() {
     useEffect(() => {
         let quotes = allQuotations;
         if (filter === 'accepted') {
-            quotes = allQuotations.filter(q => q.requirement?.status === 'Purchased');
+            quotes = allQuotations.filter(q => q.requirement?.status === 'Purchased' && q.requirement.quotationId === q.id);
         } else if (filter === 'pending') {
             quotes = allQuotations.filter(q => q.requirement?.status !== 'Purchased');
         }
@@ -119,6 +119,8 @@ export default function MyQuotationsPage() {
                     <div className="space-y-4">
                         {filteredQuotations.map(quote => {
                             const isPurchased = quote.requirement?.status === 'Purchased';
+                            const isWinningQuote = isPurchased && quote.requirement?.quotationId === quote.id;
+
                             return (
                             <Card key={quote.id}>
                                 <CardHeader>
@@ -129,8 +131,8 @@ export default function MyQuotationsPage() {
                                                 For {quote.requirement?.homeownerName} &bull; Submitted on {formatDate(quote.createdAt)}
                                             </CardDescription>
                                         </div>
-                                        <Badge variant={isPurchased ? 'default' : 'secondary'} className={isPurchased ? 'bg-accent text-accent-foreground' : ''}>
-                                            {isPurchased ? "Accepted" : "Pending Review"}
+                                        <Badge variant={isWinningQuote ? 'default' : 'secondary'} className={isWinningQuote ? 'bg-accent text-accent-foreground' : ''}>
+                                            {isWinningQuote ? "Accepted" : "Pending Review"}
                                         </Badge>
                                     </div>
                                 </CardHeader>
@@ -148,7 +150,7 @@ export default function MyQuotationsPage() {
                                             <Button asChild variant="link" className="p-0 h-auto">
                                                 <Link href={`/shop-owner/homeowner-profile/${quote.requirement.homeownerId}`}>
                                                     <User className="mr-2 h-4 w-4" />
-                                                    View {isPurchased ? `${quote.requirement.homeownerName}'s Contact` : "Homeowner's Profile"}
+                                                    View {isWinningQuote ? `${quote.requirement.homeownerName}'s Contact` : "Homeowner's Profile"}
                                                 </Link>
                                             </Button>
                                         </div>
@@ -183,3 +185,5 @@ export default function MyQuotationsPage() {
         </div>
     );
 }
+
+    

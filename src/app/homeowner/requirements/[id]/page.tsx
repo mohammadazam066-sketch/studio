@@ -152,7 +152,7 @@ export default function RequirementDetailPage() {
 
   const [loading, setLoading] = useState(true);
   const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
-  const [isDeleteDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isReviewDialogOpen, setReviewDialogOpen] = useState(false);
 
   const [rating, setRating] = useState(0);
@@ -270,7 +270,7 @@ export default function RequirementDetailPage() {
             description: "Failed to delete the requirement. Please try again.",
         });
     } finally {
-        // setIsDeleteDialogOpen(false);  Fix: There wasn't a state variable "setIsDeleteDialogOpen" being used
+        setIsDeleteDialogOpen(false);
     }
   }
 
@@ -426,7 +426,7 @@ export default function RequirementDetailPage() {
                 <Edit className="mr-2 h-4 w-4" /> Edit
               </Link>
             </Button>
-            <Button variant="destructive" onClick={() => console.log("Delete clicked")}>
+            <Button variant="destructive" onClick={() => setIsDeleteDialogOpen(true)}>
               <Trash2 className="mr-2 h-4 w-4" /> Delete
             </Button>
           </CardFooter>
@@ -496,7 +496,7 @@ export default function RequirementDetailPage() {
                         onClick={() => openReviewDialog(quote, existingReview)}
                         disabled={!isWinningQuote}
                     >
-                        {existingReview ? 'Edit Review' : 'Leave a Review'}
+                        {isWinningQuote && existingReview ? 'Edit Review' : isWinningQuote ? 'Leave a Review' : 'Review'}
                     </Button>
                   )}
                 </CardFooter>
@@ -530,6 +530,22 @@ export default function RequirementDetailPage() {
       </AlertDialog>
 
        {/* Delete Confirmation Dialog */}
+       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this requirement.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteRequirement} variant="destructive">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       
 
       {/* Review Dialog */}
@@ -580,5 +596,7 @@ export default function RequirementDetailPage() {
     </div>
   );
 }
+
+    
 
     
