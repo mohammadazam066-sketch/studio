@@ -824,36 +824,22 @@ export const addReview = async (reviewData: Omit<Review, 'id' | 'createdAt'>) =>
     if (!auth.currentUser) throw new Error("Not authenticated");
     if (auth.currentUser.uid !== reviewData.customerId) throw new Error("Cannot post review for another user.");
     
-    const reviewPayload: Omit<Review, 'id' | 'createdAt' | 'customerPhotoURL'> & { customerPhotoURL?: string } = {
+    const reviewPayload = {
       ...reviewData,
-    };
-
-    if (!reviewData.customerPhotoURL) {
-      delete reviewPayload.customerPhotoURL;
-    }
-    
-    const review = {
-        ...reviewPayload,
-        createdAt: serverTimestamp()
+      createdAt: serverTimestamp()
     };
     
-    return await addDoc(collection(db, 'reviews'), review);
+    return await addDoc(collection(db, 'reviews'), reviewPayload);
 }
 
 export const getReviewsByShopOwner = async (shopOwnerId: string): Promise<Review[]> => {
     const q = query(
         collection(db, 'reviews'),
-        where('shopOwnerId', '==', shopOwnerId)
+        where('shopOwnerId', '==', shopOwnerId),
+        orderBy('createdAt', 'desc')
     );
     const querySnapshot = await getDocs(q);
-    const reviews = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review));
-    
-    // Sort manually on the client-side to avoid needing a composite index
-    return reviews.sort((a, b) => {
-        const dateA = (a.createdAt as any)?.toDate ? (a.createdAt as any).toDate() : new Date(a.createdAt as string);
-        const dateB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate() : new Date(b.createdAt as string);
-        return dateB.getTime() - dateA.getTime();
-    });
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review));
 }
 
 export const getReviewByPurchase = async (purchaseId: string, customerId: string, shopOwnerId: string): Promise<Review | undefined> => {

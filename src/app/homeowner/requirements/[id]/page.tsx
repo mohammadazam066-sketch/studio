@@ -282,19 +282,17 @@ export default function RequirementDetailPage() {
     if (!requirement?.purchaseId || !selectedQuote?.shopOwnerId || !currentUser) return;
     
     try {
+        const photoURL = (currentUser.profile as HomeownerProfile)?.photoURL || `https://placehold.co/100x100.png`;
+
         const reviewData = {
             shopOwnerId: selectedQuote.shopOwnerId,
             customerId: currentUser.id,
             customerName: currentUser.profile?.name || "Anonymous",
+            customerPhotoURL: photoURL,
             purchaseId: requirement.purchaseId,
             rating: rating,
             comment: comment,
         };
-        
-        const photoURL = (currentUser.profile as HomeownerProfile)?.photoURL;
-        if (photoURL) {
-            reviewData['customerPhotoURL'] = photoURL;
-        }
 
         await addReview(reviewData);
 

@@ -70,7 +70,7 @@ export function UserNav({ user }: { user: User }) {
                     <AvatarImage src={profilePhoto} alt={displayName} />
                 )}
                 <AvatarFallback>
-                  {user.role === 'shop-owner' 
+                  {user.role === 'shop-owner' && !profilePhoto
                     ? <Building className="w-5 h-5" /> 
                     : getInitials(user.profile?.name, user.phoneNumber)
                   }
