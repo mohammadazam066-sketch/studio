@@ -824,8 +824,16 @@ export const addReview = async (reviewData: Omit<Review, 'id' | 'createdAt'>) =>
     if (!auth.currentUser) throw new Error("Not authenticated");
     if (auth.currentUser.uid !== reviewData.customerId) throw new Error("Cannot post review for another user.");
     
+    const reviewPayload: Omit<Review, 'id' | 'createdAt' | 'customerPhotoURL'> & { customerPhotoURL?: string } = {
+      ...reviewData,
+    };
+
+    if (!reviewData.customerPhotoURL) {
+      delete reviewPayload.customerPhotoURL;
+    }
+    
     const review = {
-        ...reviewData,
+        ...reviewPayload,
         createdAt: serverTimestamp()
     };
     

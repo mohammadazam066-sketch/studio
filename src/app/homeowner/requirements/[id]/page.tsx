@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, Calendar, Wrench, FileText, CheckCircle, Edit, Trash2, Droplets, Tally5, Star } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEffect, useState, useCallback } from 'react';
-import type { Requirement, Quotation, Review } from '@/lib/types';
+import type { Requirement, Quotation, Review, HomeownerProfile } from '@/lib/types';
 import type { Timestamp } from 'firebase/firestore';
 import {
   AlertDialog,
@@ -247,7 +247,7 @@ export default function RequirementDetailPage() {
             shopOwnerId: selectedQuote.shopOwnerId,
             customerId: currentUser.id,
             customerName: currentUser.profile?.name || "Anonymous",
-            customerPhotoURL: (currentUser.profile as any)?.photoURL || undefined,
+            customerPhotoURL: (currentUser.profile as HomeownerProfile)?.photoURL,
             purchaseId: requirement.purchaseId,
             rating: rating,
             comment: comment,
