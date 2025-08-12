@@ -842,12 +842,12 @@ export const getReviewsByShopOwner = async (shopOwnerId: string): Promise<Review
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review));
 }
 
-export const getReviewByPurchase = async (purchaseId: string, customerId: string): Promise<Review | undefined> => {
+export const getReviewByPurchase = async (purchaseId: string, customerId: string, shopOwnerId: string): Promise<Review | undefined> => {
     const q = query(
         collection(db, 'reviews'),
         where('purchaseId', '==', purchaseId),
         where('customerId', '==', customerId),
-        orderBy('createdAt', 'desc')
+        where('shopOwnerId', '==', shopOwnerId)
     );
     const querySnapshot = await getDocs(q);
     if (!querySnapshot.empty) {

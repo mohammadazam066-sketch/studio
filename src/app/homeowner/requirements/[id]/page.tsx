@@ -121,7 +121,8 @@ export default function RequirementDetailPage() {
   const [requirement, setRequirement] = useState<Requirement | undefined>(undefined);
   const [relatedQuotations, setRelatedQuotations] = useState<Quotation[]>([]);
   const [selectedQuote, setSelectedQuote] = useState<Quotation | null>(null);
-  const [existingReview, setExistingReview] = useState<Review | undefined>(undefined);
+  const [existingReviews, setExistingReviews] = useState<Record<string, Review>>({});
+
   const [loading, setLoading] = useState(true);
   const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -150,8 +151,14 @@ export default function RequirementDetailPage() {
         setRelatedQuotations(quotesData);
 
         if (reqData.status === 'Purchased' && reqData.purchaseId && currentUser?.id) {
-            const reviewData = await getReviewByPurchase(reqData.purchaseId, currentUser.id);
-            setExistingReview(reviewData);
+            const reviewsData: Record<string, Review> = {};
+            for (const quote of quotesData) {
+                const reviewData = await getReviewByPurchase(reqData.purchaseId, currentUser.id, quote.shopOwnerId);
+                if (reviewData) {
+                    reviewsData[quote.shopOwnerId] = reviewData;
+                }
+            }
+            setExistingReviews(reviewsData);
         }
 
     } catch (error) {
@@ -253,6 +260,13 @@ export default function RequirementDetailPage() {
         console.error("Review submission error:", error);
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to submit your review.' });
     }
+  }
+
+  const openReviewDialog = (quote: Quotation) => {
+    setRating(0);
+    setComment('');
+    setSelectedQuote(quote);
+    setReviewDialogOpen(true);
   }
 
 
@@ -362,7 +376,9 @@ export default function RequirementDetailPage() {
         <h2 className="text-xl font-bold font-headline mb-4">Quotations Received</h2>
         {relatedQuotations.length > 0 ? (
           <div className="space-y-4">
-            {relatedQuotations.map(quote => (
+            {relatedQuotations.map(quote => {
+                 const existingReview = existingReviews[quote.shopOwnerId];
+                 return (
               <Card key={quote.id} className="transition-shadow hover:shadow-md">
                 <CardHeader>
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
@@ -396,59 +412,18 @@ export default function RequirementDetailPage() {
                     {requirement.status === 'Purchased' ? 'Purchased' : 'Mark as Purchased'}
                   </Button>
                   {requirement.status === 'Purchased' && (
-                    <Dialog open={isReviewDialogOpen} onOpenChange={setReviewDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" className="w-full" disabled={!!existingReview} onClick={() => setSelectedQuote(quote)}>
-                                {existingReview ? 'Review Submitted' : 'Leave a Review'}
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent>
-                            <DialogHeader>
-                                <DialogTitle>Review {quote.shopName}</DialogTitle>
-                                <DialogDescription>
-                                    Share your experience to help other homeowners.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <div className="py-4 space-y-4">
-                               <div className="space-y-2">
-                                 <Label>Rating</Label>
-                                 <div className="flex gap-1">
-                                    {[...Array(5)].map((_, i) => (
-                                        <Star
-                                            key={i}
-                                            className={`h-8 w-8 cursor-pointer transition-colors ${
-                                                (hoverRating || rating) > i ? 'text-amber-400 fill-amber-400' : 'text-gray-300'
-                                            }`}
-                                            onMouseEnter={() => setHoverRating(i + 1)}
-                                            onMouseLeave={() => setHoverRating(0)}
-                                            onClick={() => setRating(i + 1)}
-                                        />
-                                    ))}
-                                 </div>
-                               </div>
-                               <div className="space-y-2">
-                                 <Label htmlFor="comment">Comment</Label>
-                                 <Textarea 
-                                    id="comment"
-                                    placeholder="Tell us about your experience..."
-                                    value={comment}
-                                    onChange={(e) => setComment(e.target.value)}
-                                    rows={4}
-                                 />
-                               </div>
-                            </div>
-                            <DialogFooter>
-                                <DialogClose asChild>
-                                  <Button type="button" variant="secondary">Cancel</Button>
-                                </DialogClose>
-                                <Button onClick={handleReviewSubmit}>Submit Review</Button>
-                            </DialogFooter>
-                        </DialogContent>
-                    </Dialog>
+                    <Button 
+                        variant="outline" 
+                        className="w-full" 
+                        disabled={!!existingReview} 
+                        onClick={() => openReviewDialog(quote)}
+                    >
+                        {existingReview ? 'Review Submitted' : 'Leave a Review'}
+                    </Button>
                   )}
                 </CardFooter>
               </Card>
-            ))}
+            )})}
           </div>
         ) : (
           <div className="text-center py-10 border-2 border-dashed rounded-lg">
@@ -493,6 +468,52 @@ export default function RequirementDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Review Dialog */}
+        <Dialog open={isReviewDialogOpen} onOpenChange={setReviewDialogOpen}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>Review {selectedQuote?.shopName}</DialogTitle>
+                    <DialogDescription>
+                        Share your experience to help other homeowners.
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="py-4 space-y-4">
+                    <div className="space-y-2">
+                        <Label>Rating</Label>
+                        <div className="flex gap-1">
+                        {[...Array(5)].map((_, i) => (
+                            <Star
+                                key={i}
+                                className={`h-8 w-8 cursor-pointer transition-colors ${
+                                    (hoverRating || rating) > i ? 'text-amber-400 fill-amber-400' : 'text-gray-300'
+                                }`}
+                                onMouseEnter={() => setHoverRating(i + 1)}
+                                onMouseLeave={() => setHoverRating(0)}
+                                onClick={() => setRating(i + 1)}
+                            />
+                        ))}
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="comment">Comment</Label>
+                        <Textarea 
+                        id="comment"
+                        placeholder="Tell us about your experience..."
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                        rows={4}
+                        />
+                    </div>
+                </div>
+                <DialogFooter>
+                    <DialogClose asChild>
+                        <Button type="button" variant="secondary">Cancel</Button>
+                    </DialogClose>
+                    <Button onClick={handleReviewSubmit}>Submit Review</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     </div>
   );
 }
