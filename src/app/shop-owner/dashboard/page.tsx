@@ -1,22 +1,23 @@
 
-
 'use client';
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { Eye, FileText, CheckCircle, Clock, Droplets, Tally5, Newspaper } from "lucide-react";
-import { useAuth, getOpenRequirements, getQuotationsByShopOwner } from "@/lib/store";
+import { Eye, FileText, CheckCircle, Clock, Droplets, Tally5, Newspaper, Star } from "lucide-react";
+import { useAuth, getOpenRequirements, getQuotationsByShopOwner, getReviewsByShopOwner } from "@/lib/store";
 import { useEffect, useState, useCallback } from "react";
-import type { Requirement, QuotationWithRequirement } from "@/lib/types";
+import type { Requirement, QuotationWithRequirement, Review } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 import type { Timestamp } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import { MaterialCategoryGrid } from "@/components/material-category-grid";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { StarRating } from "@/components/ui/star-rating";
 
 function formatDate(date: Date | string | Timestamp) {
     if (!date) return '';
@@ -58,6 +59,7 @@ export default function ShopOwnerDashboard() {
     const [openRequirementsToQuote, setOpenRequirementsToQuote] = useState<Requirement[]>([]);
     const [filteredRequirements, setFilteredRequirements] = useState<Requirement[]>([]);
     const [myQuotations, setMyQuotations] = useState<QuotationWithRequirement[]>([]);
+    const [reviews, setReviews] = useState<Review[]>([]);
     const [loading, setLoading] = useState(true);
     const [locationFilter, setLocationFilter] = useState('all');
 
@@ -66,9 +68,10 @@ export default function ShopOwnerDashboard() {
         setLoading(true);
 
         try {
-            const [openReqs, userQuotations] = await Promise.all([
+            const [openReqs, userQuotations, userReviews] = await Promise.all([
                 getOpenRequirements(),
-                getQuotationsByShopOwner(currentUser.id)
+                getQuotationsByShopOwner(currentUser.id),
+                getReviewsByShopOwner(currentUser.id),
             ]);
             
             // Filter out requirements the shop owner has already quoted on
@@ -79,6 +82,7 @@ export default function ShopOwnerDashboard() {
 
             setOpenRequirementsToQuote(availableReqs);
             setMyQuotations(userQuotations);
+            setReviews(userReviews);
 
         } catch (error) {
             console.error("Failed to fetch dashboard data:", error);
@@ -180,6 +184,56 @@ export default function ShopOwnerDashboard() {
                  </Link>
             </div>
             
+             <Card>
+                <CardHeader>
+                    <CardTitle>Recent Customer Reviews</CardTitle>
+                    <CardDescription>Latest feedback from your customers.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    {loading ? (
+                        <div className="space-y-4">
+                            {[...Array(2)].map((_, i) => (
+                                <div key={i} className="flex gap-4">
+                                    <Skeleton className="h-10 w-10 rounded-full" />
+                                    <div className="space-y-2 flex-1">
+                                        <Skeleton className="h-4 w-1/2" />
+                                        <Skeleton className="h-4 w-full" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : reviews.length > 0 ? (
+                        <div className="space-y-6">
+                            {reviews.slice(0, 3).map(review => (
+                                <div key={review.id} className="flex gap-4">
+                                    <Avatar>
+                                        {review.customerPhotoURL && <AvatarImage src={review.customerPhotoURL} alt={review.customerName} />}
+                                        <AvatarFallback>{review.customerName.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <div className="flex-1">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="font-semibold text-sm">{review.customerName}</p>
+                                             <p className="text-xs text-muted-foreground">{formatDistanceToNow(review.createdAt.toDate(), { addSuffix: true })}</p>
+                                        </div>
+                                        <StarRating rating={review.rating} size="sm" />
+                                    </div>
+                                    <p className="text-sm text-muted-foreground mt-2">{review.comment}</p>
+                                    </div>
+                                </div>
+                            ))}
+                             {reviews.length > 3 && (
+                                <Button asChild variant="secondary" size="sm" className="w-full">
+                                    <Link href="/shop-owner/profile">View All {reviews.length} Reviews</Link>
+                                </Button>
+                            )}
+                        </div>
+                    ) : (
+                        <p className="text-muted-foreground text-center py-4">You have not received any reviews yet.</p>
+                    )}
+                </CardContent>
+            </Card>
+
              <div className="space-y-4">
                 <h2 className="text-xl font-bold font-headline">Browse by Category</h2>
                 {currentUser && <MaterialCategoryGrid role={currentUser.role} />}
@@ -276,3 +330,5 @@ export default function ShopOwnerDashboard() {
         </div>
     );
 }
+
+    
