@@ -1,18 +1,19 @@
 
 'use client';
 
-import { getProfile } from '@/lib/store';
+import { getProfile, getReviewsByShopOwner } from '@/lib/store';
 import { useParams } from 'next/navigation';
 import Image from 'next/image';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { MapPin, Building, Mail, Phone, User } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { MapPin, Building, Mail, Phone, User, Star } from 'lucide-react';
 import { useEffect, useState, useCallback } from 'react';
-import type { ShopOwnerProfile } from '@/lib/types';
+import type { ShopOwnerProfile, Review } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import { getUser } from '@/lib/store';
 import type { User as AppUser } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { format } from 'date-fns';
 
 function ProfileSkeleton() {
     return (
@@ -50,24 +51,53 @@ function ProfileSkeleton() {
     )
 }
 
+const StarRating = ({ rating, size = "md" }: { rating: number; size?: 'sm' | 'md' | 'lg' }) => {
+    const starClasses = {
+        sm: "w-4 h-4",
+        md: "w-5 h-5",
+        lg: "w-6 h-6",
+    };
+    return (
+        <div className="flex items-center gap-0.5">
+            {[...Array(5)].map((_, i) => (
+                <Star
+                    key={i}
+                    className={`${starClasses[size]} ${i < Math.round(rating) ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
+                />
+            ))}
+        </div>
+    );
+};
+
 export default function ShopOwnerProfilePage() {
   const params = useParams();
   const { id } = params;
 
   const [profile, setProfile] = useState<ShopOwnerProfile | undefined>(undefined);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchProfileData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
-    const profileData = await getProfile(id as string);
+    const [profileData, reviewsData] = await Promise.all([
+        getProfile(id as string),
+        getReviewsByShopOwner(id as string)
+    ]);
+    
     setProfile(profileData);
+    setReviews(reviewsData);
     setLoading(false);
   }, [id]);
 
   useEffect(() => {
     fetchProfileData();
   }, [fetchProfileData]);
+  
+  const averageRating = reviews.length > 0
+    ? reviews.reduce((acc, review) => acc + review.rating, 0) / reviews.length
+    : 0;
+
 
   if (loading) {
     return <ProfileSkeleton />;
@@ -97,6 +127,12 @@ export default function ShopOwnerProfilePage() {
                 <User className="inline-block w-4 h-4 mr-1.5 align-middle" />
                 {profile.name}
             </CardDescription>
+            {reviews.length > 0 && (
+                <div className="flex items-center gap-2 pt-2">
+                    <StarRating rating={averageRating} />
+                    <span className="text-muted-foreground text-sm">({averageRating.toFixed(1)} from {reviews.length} reviews)</span>
+                </div>
+            )}
         </CardHeader>
         <CardContent className="space-y-6">
             <Separator />
@@ -136,6 +172,40 @@ export default function ShopOwnerProfilePage() {
             </div>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+            <CardTitle>Customer Reviews</CardTitle>
+            <CardDescription>See what others are saying about {profile.shopName}.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            {reviews.length > 0 ? (
+                <div className="space-y-6">
+                    {reviews.map(review => (
+                        <div key={review.id} className="flex gap-4">
+                            <Avatar>
+                                {review.customerPhotoURL && <AvatarImage src={review.customerPhotoURL} alt={review.customerName} />}
+                                <AvatarFallback>{review.customerName.charAt(0)}</AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1">
+                               <div className="flex justify-between items-center">
+                                 <div>
+                                    <p className="font-semibold">{review.customerName}</p>
+                                    <p className="text-xs text-muted-foreground">{format(review.createdAt.toDate(), 'PPP')}</p>
+                                 </div>
+                                 <StarRating rating={review.rating} size="sm" />
+                               </div>
+                               <p className="text-sm text-muted-foreground mt-2">{review.comment}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ): (
+                <p className="text-muted-foreground text-center py-4">No reviews yet.</p>
+            )}
+        </CardContent>
+      </Card>
+
     </div>
   );
 }

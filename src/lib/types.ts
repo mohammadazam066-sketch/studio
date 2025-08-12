@@ -59,6 +59,7 @@ export type Requirement = {
   description: string;
   createdAt: Timestamp | Date | string;
   status: 'Open' | 'Purchased';
+  purchaseId?: string; // Link to the purchase document
   brands?: BrandSelection[];
   flexibleBrand?: boolean;
   steelDetails?: SteelDetail[];
@@ -126,3 +127,15 @@ export type Notification = {
     read: boolean;
     type: 'quote' | 'admin_update' | 'requirement' | 'purchase';
 };
+
+export type Review = {
+    id: string;
+    shopOwnerId: string;
+    customerId: string; // homeowner's ID
+    customerName: string;
+    customerPhotoURL?: string;
+    purchaseId: string;
+    rating: number; // 1-5
+    comment: string;
+    createdAt: Timestamp;
+}

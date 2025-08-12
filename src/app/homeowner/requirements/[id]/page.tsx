@@ -2,16 +2,16 @@
 
 'use client';
 
-import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, deleteRequirement, createPurchase } from '@/lib/store';
+import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, deleteRequirement, createPurchase, useAuth, getReviewByPurchase, addReview } from '@/lib/store';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Calendar, Wrench, FileText, CheckCircle, Edit, Trash2, Droplets, Tally5 } from 'lucide-react';
+import { MapPin, Calendar, Wrench, FileText, CheckCircle, Edit, Trash2, Droplets, Tally5, Star } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEffect, useState, useCallback } from 'react';
-import type { Requirement, Quotation } from '@/lib/types';
+import type { Requirement, Quotation, Review } from '@/lib/types';
 import type { Timestamp } from 'firebase/firestore';
 import {
   AlertDialog,
@@ -23,10 +23,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 
 function formatDate(date: Date | string | Timestamp) {
     if (!date) return '';
@@ -104,13 +116,20 @@ export default function RequirementDetailPage() {
   const { id } = params;
   
   const { toast } = useToast();
+  const { currentUser } = useAuth();
   
   const [requirement, setRequirement] = useState<Requirement | undefined>(undefined);
   const [relatedQuotations, setRelatedQuotations] = useState<Quotation[]>([]);
   const [selectedQuote, setSelectedQuote] = useState<Quotation | null>(null);
+  const [existingReview, setExistingReview] = useState<Review | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isReviewDialogOpen, setReviewDialogOpen] = useState(false);
+
+  const [rating, setRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [comment, setComment] = useState('');
 
   const fetchData = useCallback(async () => {
     if (typeof id !== 'string') return;
@@ -130,13 +149,18 @@ export default function RequirementDetailPage() {
         const quotesData = await getQuotationsForRequirement(id);
         setRelatedQuotations(quotesData);
 
+        if (reqData.status === 'Purchased' && reqData.purchaseId && currentUser?.id) {
+            const reviewData = await getReviewByPurchase(reqData.purchaseId, currentUser.id);
+            setExistingReview(reviewData);
+        }
+
     } catch (error) {
         console.error("Error fetching requirement details:", error);
         toast({ variant: 'destructive', title: 'Error', description: 'Failed to load requirement details.' });
     } finally {
         setLoading(false);
     }
-  }, [id, router, toast]);
+  }, [id, router, toast, currentUser?.id]);
 
 
   useEffect(() => {
@@ -159,9 +183,8 @@ export default function RequirementDetailPage() {
   const confirmPurchase = async () => {
     if (requirement && selectedQuote) {
         try {
-            await updateRequirementStatus(requirement.id, 'Purchased');
-            await createPurchase(requirement, selectedQuote);
-            setRequirement(prev => prev ? { ...prev, status: 'Purchased' } : undefined);
+            const purchaseRef = await createPurchase(requirement, selectedQuote);
+            setRequirement(prev => prev ? { ...prev, status: 'Purchased', purchaseId: purchaseRef.id } : undefined);
             
             toast({
               title: "Purchase Confirmed!",
@@ -169,6 +192,9 @@ export default function RequirementDetailPage() {
               variant: 'default',
               className: 'bg-accent text-accent-foreground border-accent'
             });
+            
+            // Refresh data to get the new purchaseId and check for reviews
+            fetchData();
 
         } catch (error) {
            toast({ variant: 'destructive', title: 'Error', description: 'Failed to update purchase status.' });
@@ -202,6 +228,33 @@ export default function RequirementDetailPage() {
     }
   }
 
+  const handleReviewSubmit = async () => {
+    if (!rating) {
+        toast({ variant: 'destructive', title: 'Rating Required', description: 'Please select a star rating.' });
+        return;
+    }
+    if (!requirement?.purchaseId || !selectedQuote?.shopOwnerId || !currentUser) return;
+    
+    try {
+        await addReview({
+            shopOwnerId: selectedQuote.shopOwnerId,
+            customerId: currentUser.id,
+            customerName: currentUser.profile?.name || "Anonymous",
+            customerPhotoURL: (currentUser.profile as any)?.photoURL || undefined,
+            purchaseId: requirement.purchaseId,
+            rating: rating,
+            comment: comment,
+        });
+
+        toast({ title: 'Review Submitted!', description: 'Thank you for your feedback.', className: 'bg-accent text-accent-foreground border-accent' });
+        setReviewDialogOpen(false);
+        fetchData(); // Refresh to show that the review has been submitted
+    } catch (error) {
+        console.error("Review submission error:", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Failed to submit your review.' });
+    }
+  }
+
 
   if (loading) {
     return <PageSkeleton />;
@@ -210,6 +263,11 @@ export default function RequirementDetailPage() {
   if (!requirement) {
     return null; // Should have been redirected by the fetch logic
   }
+  
+  const winningQuote = requirement.status === 'Purchased'
+    ? relatedQuotations.find(q => q.id === (requirement as any)?.quotationId) // Heuristic if not directly on purchase
+    : null;
+
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -328,7 +386,7 @@ export default function RequirementDetailPage() {
                     <p className="text-muted-foreground">Expected by: {formatDate(quote.deliveryDate)}</p>
                   </div>
                 </CardContent>
-                <CardFooter>
+                <CardFooter className="flex flex-col sm:flex-row items-center gap-2">
                   <Button 
                     className="w-full bg-accent hover:bg-accent/90 text-accent-foreground disabled:bg-gray-400"
                     onClick={() => handlePurchaseClick(quote)}
@@ -337,6 +395,57 @@ export default function RequirementDetailPage() {
                     <CheckCircle className="mr-2 h-4 w-4" />
                     {requirement.status === 'Purchased' ? 'Purchased' : 'Mark as Purchased'}
                   </Button>
+                  {requirement.status === 'Purchased' && (
+                    <Dialog open={isReviewDialogOpen} onOpenChange={setReviewDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline" className="w-full" disabled={!!existingReview} onClick={() => setSelectedQuote(quote)}>
+                                {existingReview ? 'Review Submitted' : 'Leave a Review'}
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Review {quote.shopName}</DialogTitle>
+                                <DialogDescription>
+                                    Share your experience to help other homeowners.
+                                </DialogDescription>
+                            </DialogHeader>
+                            <div className="py-4 space-y-4">
+                               <div className="space-y-2">
+                                 <Label>Rating</Label>
+                                 <div className="flex gap-1">
+                                    {[...Array(5)].map((_, i) => (
+                                        <Star
+                                            key={i}
+                                            className={`h-8 w-8 cursor-pointer transition-colors ${
+                                                (hoverRating || rating) > i ? 'text-amber-400 fill-amber-400' : 'text-gray-300'
+                                            }`}
+                                            onMouseEnter={() => setHoverRating(i + 1)}
+                                            onMouseLeave={() => setHoverRating(0)}
+                                            onClick={() => setRating(i + 1)}
+                                        />
+                                    ))}
+                                 </div>
+                               </div>
+                               <div className="space-y-2">
+                                 <Label htmlFor="comment">Comment</Label>
+                                 <Textarea 
+                                    id="comment"
+                                    placeholder="Tell us about your experience..."
+                                    value={comment}
+                                    onChange={(e) => setComment(e.target.value)}
+                                    rows={4}
+                                 />
+                               </div>
+                            </div>
+                            <DialogFooter>
+                                <DialogClose asChild>
+                                  <Button type="button" variant="secondary">Cancel</Button>
+                                </DialogClose>
+                                <Button onClick={handleReviewSubmit}>Submit Review</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                  )}
                 </CardFooter>
               </Card>
             ))}

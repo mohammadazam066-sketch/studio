@@ -3,7 +3,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import type { User, UserRole, HomeownerProfile, ShopOwnerProfile, Requirement, Quotation, Update, QuotationWithRequirement, Purchase, PurchaseWithDetails, Notification } from './types';
+import type { User, UserRole, HomeownerProfile, ShopOwnerProfile, Requirement, Quotation, Update, QuotationWithRequirement, Purchase, PurchaseWithDetails, Notification, Review } from './types';
 import { db, storage, auth } from './firebase';
 import { 
     doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, 
@@ -468,10 +468,15 @@ export const getOpenRequirementsCountByCategory = async (): Promise<Record<strin
 };
 
 
-export const updateRequirementStatus = async (id: string, status: 'Open' | 'Purchased') => {
+export const updateRequirementStatus = async (id: string, status: 'Open' | 'Purchased', purchaseId?: string) => {
     const requirementRef = doc(db, 'requirements', id);
-    await updateDoc(requirementRef, { status });
-}
+    const updateData: { status: typeof status, purchaseId?: string } = { status };
+    if (purchaseId) {
+        updateData.purchaseId = purchaseId;
+    }
+    await updateDoc(requirementRef, updateData);
+};
+
 
 // == QUOTATIONS ==
 
@@ -760,11 +765,13 @@ export const createPurchase = async (requirement: Requirement, quotation: Quotat
         quotationId: quotation.id,
         amount: quotation.amount,
         material: requirement.title,
-        status: requirement.status,
+        status: 'Purchased',
         homeownerName: requirement.homeownerName,
         shopOwnerName: quotation.shopOwnerName,
         createdAt: serverTimestamp(),
     });
+    
+    await updateRequirementStatus(requirement.id, 'Purchased', purchaseRef.id);
 
     // Create notification for shop owner about the purchase
     await addDoc(collection(db, 'notifications'), {
@@ -810,3 +817,42 @@ export const getPurchaseById = async (id: string): Promise<PurchaseWithDetails |
         shopOwner
     };
 };
+
+// == REVIEWS ==
+
+export const addReview = async (reviewData: Omit<Review, 'id' | 'createdAt'>) => {
+    if (!auth.currentUser) throw new Error("Not authenticated");
+    if (auth.currentUser.uid !== reviewData.customerId) throw new Error("Cannot post review for another user.");
+    
+    const review = {
+        ...reviewData,
+        createdAt: serverTimestamp()
+    };
+    
+    return await addDoc(collection(db, 'reviews'), review);
+}
+
+export const getReviewsByShopOwner = async (shopOwnerId: string): Promise<Review[]> => {
+    const q = query(
+        collection(db, 'reviews'),
+        where('shopOwnerId', '==', shopOwnerId),
+        orderBy('createdAt', 'desc')
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Review));
+}
+
+export const getReviewByPurchase = async (purchaseId: string, customerId: string): Promise<Review | undefined> => {
+    const q = query(
+        collection(db, 'reviews'),
+        where('purchaseId', '==', purchaseId),
+        where('customerId', '==', customerId),
+        orderBy('createdAt', 'desc')
+    );
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+        const doc = querySnapshot.docs[0];
+        return { id: doc.id, ...doc.data() } as Review;
+    }
+    return undefined;
+}
