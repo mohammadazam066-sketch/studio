@@ -5,7 +5,7 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { useAuth, getQuotationsByShopOwner, getRequirementById } from "@/lib/store";
+import { useAuth, getQuotationsByShopOwner } from "@/lib/store";
 import { useEffect, useState, useCallback } from "react";
 import type { Requirement, Quotation } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
@@ -72,14 +72,8 @@ export default function MyQuotationsPage() {
         setLoading(true);
         const userQuotations = await getQuotationsByShopOwner(currentUser.id);
         
-        const quotationsWithRequirements = await Promise.all(
-            userQuotations.map(async (quote) => {
-                const requirement = await getRequirementById(quote.requirementId);
-                return { ...quote, requirement };
-            })
-        );
-        
-        setAllQuotations(quotationsWithRequirements);
+        // Requirement data is already attached in getQuotationsByShopOwner
+        setAllQuotations(userQuotations);
         setLoading(false);
     }, [currentUser]);
 
@@ -162,12 +156,12 @@ export default function MyQuotationsPage() {
                                         <FileText className="w-4 h-4 mt-1 text-muted-foreground flex-shrink-0" />
                                         <p className="text-muted-foreground">{quote.terms}</p>
                                     </div>
-                                    {quote.requirement?.homeownerId && (
+                                    {quote.requirement?.homeownerId && status.text === 'Accepted' && (
                                         <div className="pt-2">
                                             <Button asChild variant="link" className="p-0 h-auto">
                                                 <Link href={`/shop-owner/homeowner-profile/${quote.requirement.homeownerId}`}>
                                                     <User className="mr-2 h-4 w-4" />
-                                                    View {status.text === 'Accepted' ? `${quote.requirement.homeownerName}'s Contact` : "Homeowner's Profile"}
+                                                    View {quote.requirement.homeownerName}'s Contact
                                                 </Link>
                                             </Button>
                                         </div>
