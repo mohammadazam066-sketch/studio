@@ -93,9 +93,11 @@ export default function HomePage() {
       </main>
       <footer className="py-6 text-center text-muted-foreground text-sm">
         <p>© {new Date().getFullYear()} TradeFlow. All rights reserved.</p>
-        <p className="mt-2">
-          Contact Support: <a href="mailto:tradeflow.kart@gmali.com" className="underline hover:text-primary">tradeflow.kart@gmali.com</a>
-        </p>
+        <div className="mt-2 space-x-4">
+             <Link href="/legal/terms" className="underline hover:text-primary">Terms & Privacy</Link>
+             <span>&bull;</span>
+             <a href="mailto:tradeflow.kart@gmali.com" className="underline hover:text-primary">Contact Support</a>
+        </div>
       </footer>
     </div>
   );
