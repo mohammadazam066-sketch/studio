@@ -6,7 +6,7 @@ import {
   Firestore
 } from "firebase/firestore";
 import { getStorage, FirebaseStorage } from "firebase/storage";
-import { getAuth, Auth } from "firebase/auth";
+import { getAuth, Auth, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -29,7 +29,14 @@ if (getApps().length === 0) {
   app = getApp();
 }
 
-auth = getAuth(app);
+if (typeof window !== 'undefined') {
+    auth = initializeAuth(app, {
+        persistence: indexedDBLocalPersistence,
+    });
+} else {
+    auth = getAuth(app);
+}
+
 storage = getStorage(app);
 db = getFirestore(app);
 
