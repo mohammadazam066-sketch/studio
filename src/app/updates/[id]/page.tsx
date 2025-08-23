@@ -2,7 +2,7 @@
 
 'use client';
 
-import { getUpdateById, deleteUpdate } from '@/lib/store';
+import { getUpdateById, deleteUpdate, useAuth } from '@/lib/store';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -71,6 +71,7 @@ export default function UpdateDetailPage() {
   const { id } = params;
   
   const { toast } = useToast();
+  const { currentUser } = useAuth();
   
   const [update, setUpdate] = useState<Update | undefined>(undefined);
   const [loading, setLoading] = useState(true);
@@ -130,6 +131,8 @@ export default function UpdateDetailPage() {
         </div>
     );
   }
+  
+  const isAuthor = currentUser?.id === update.authorId;
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
@@ -140,18 +143,20 @@ export default function UpdateDetailPage() {
             Back to All Updates
           </Link>
         </Button>
-        <div className="flex gap-2">
-            <Button asChild variant="outline" size="sm">
-                <Link href={`/updates/edit/${update.id}`}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit
-                </Link>
-            </Button>
-            <Button variant="destructive" size="sm" onClick={() => setIsDeleteDialogOpen(true)}>
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-            </Button>
-        </div>
+        {isAuthor && (
+            <div className="flex gap-2">
+                <Button asChild variant="outline" size="sm">
+                    <Link href={`/updates/edit/${update.id}`}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit
+                    </Link>
+                </Button>
+                <Button variant="destructive" size="sm" onClick={() => setIsDeleteDialogOpen(true)}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                </Button>
+            </div>
+        )}
       </div>
       <Card>
         <CardHeader>
