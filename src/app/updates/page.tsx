@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { UpdatesFeed } from '@/components/updates-feed';
@@ -32,7 +33,7 @@ export default function UpdatesPage() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border rounded-lg bg-background">
                 <div>
                     <h1 className="text-2xl font-bold font-headline tracking-tight">Community Updates</h1>
-                    <p className="text-muted-foreground">Latest news and knowledge from the TradeFlow community.</p>
+                    <p className="text-muted-foreground">Community Updates</p>
                 </div>
                 <div className="flex gap-2">
                      {currentUser ? (
