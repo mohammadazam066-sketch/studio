@@ -36,7 +36,7 @@ export default function TermsAndConditionsPage() {
 
                 <h4 className="font-semibold text-foreground/90">1. Introduction</h4>
                 <p>
-                    Welcome to kanstruction (“we”, “our”, “us”). By accessing or using the kanstruction app or website (“tradeflow”), you agree to these Terms & Conditions (“Terms”). If you do not agree, do not use the Platform.
+                    Welcome to kanstruction (“we”, “our”, “us”). By accessing or using the kanstruction app or website, you agree to these Terms & Conditions (“Terms”). If you do not agree, do not use the Platform.
                 </p>
                 
                 <h4 className="font-semibold text-foreground/90">2. Nature of the Platform</h4>
@@ -129,7 +129,7 @@ export default function TermsAndConditionsPage() {
 
                 <h4 className="font-semibold text-foreground/90">Contact Us:</h4>
                 <p>
-                    For any questions or to request account deletion, email: <a href="mailto:kanstruction.kart@gmail.com" className="underline">kanstruction.kart@gmail.com</a>
+                    For any questions or to request account deletion, email: <a href="mailto:tradeflow.kart@gmail.com" className="underline">tradeflow.kart@gmail.com</a>
                 </p>
             </div>
           </ScrollArea>

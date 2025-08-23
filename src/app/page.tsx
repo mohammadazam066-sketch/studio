@@ -96,7 +96,7 @@ export default function HomePage() {
         <div className="mt-2 space-x-4">
              <Link href="/legal/terms" className="underline hover:text-primary">Terms & Privacy</Link>
              <span>&bull;</span>
-             <a href="mailto:kanstruction.kart@gmail.com" className="underline hover:text-primary">Contact Support</a>
+             <a href="mailto:tradeflow.kart@gmail.com" className="underline hover:text-primary">Contact Support</a>
         </div>
       </footer>
     </div>

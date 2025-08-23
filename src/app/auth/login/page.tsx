@@ -66,7 +66,7 @@ export default function LoginPage() {
       </CardContent>
       <CardFooter>
         <p className="text-xs text-muted-foreground text-center w-full">
-          Need help? Contact <a href="mailto:kanstruction.kart@gmail.com" className="underline hover:text-primary">kanstruction.kart@gmail.com</a>
+          Need help? Contact <a href="mailto:tradeflow.kart@gmail.com" className="underline hover:text-primary">tradeflow.kart@gmail.com</a>
         </p>
       </CardFooter>
     </Card>
