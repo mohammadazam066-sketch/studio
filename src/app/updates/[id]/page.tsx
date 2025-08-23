@@ -133,6 +133,7 @@ export default function UpdateDetailPage() {
   }
   
   const isAuthor = currentUser?.id === update.authorId;
+  const isAdmin = currentUser?.role === 'admin';
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
@@ -143,14 +144,16 @@ export default function UpdateDetailPage() {
             Back to All Updates
           </Link>
         </Button>
-        {isAuthor && (
+        {(isAuthor || isAdmin) && (
             <div className="flex gap-2">
-                <Button asChild variant="outline" size="sm">
-                    <Link href={`/updates/edit/${update.id}`}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Edit
-                    </Link>
-                </Button>
+                {isAuthor && (
+                    <Button asChild variant="outline" size="sm">
+                        <Link href={`/updates/edit/${update.id}`}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                        </Link>
+                    </Button>
+                )}
                 <Button variant="destructive" size="sm" onClick={() => setIsDeleteDialogOpen(true)}>
                     <Trash2 className="mr-2 h-4 w-4" />
                     Delete
@@ -198,7 +201,7 @@ export default function UpdateDetailPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete your post and all its images.
+              This action cannot be undone. This will permanently delete this post and all its images.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
