@@ -50,7 +50,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <section className="py-12 sm:py-20">
             <h1 className="text-3xl sm:text-5xl lg:text-6xl font-headline font-bold text-primary tracking-tighter">
-              Welcome to TradeFlow
+              Welcome to kanstruction
             </h1>
             <p className="mt-4 max-w-3xl mx-auto text-base sm:text-lg text-muted-foreground">
               Connecting homeowners with trusted local material suppliers and construction professionals.
@@ -92,11 +92,11 @@ export default function HomePage() {
         </div>
       </main>
       <footer className="py-6 text-center text-muted-foreground text-sm">
-        <p>© {new Date().getFullYear()} TradeFlow. All rights reserved.</p>
+        <p>© {new Date().getFullYear()} kanstruction. All rights reserved.</p>
         <div className="mt-2 space-x-4">
              <Link href="/legal/terms" className="underline hover:text-primary">Terms & Privacy</Link>
              <span>&bull;</span>
-             <a href="mailto:tradeflow.kart@gmali.com" className="underline hover:text-primary">Contact Support</a>
+             <a href="mailto:kanstruction.kart@gmail.com" className="underline hover:text-primary">Contact Support</a>
         </div>
       </footer>
     </div>

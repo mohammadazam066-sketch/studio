@@ -5,7 +5,7 @@ import { AuthProvider } from '@/lib/store';
 import React from 'react';
 
 export const metadata: Metadata = {
-  title: 'TradeFlow',
+  title: 'kanstruction',
   description: 'Connecting homeowners with trusted local material suppliers and construction professionals.',
 };
 

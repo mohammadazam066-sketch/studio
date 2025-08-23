@@ -30,21 +30,21 @@ export default function TermsAndConditionsPage() {
         <CardContent>
           <ScrollArea className="h-[70vh] pr-6">
             <div className="prose prose-sm dark:prose-invert max-w-none text-muted-foreground space-y-4">
-                <h3 className="font-semibold text-foreground">TRADEFLOW — TERMS & CONDITIONS</h3>
+                <h3 className="font-semibold text-foreground">kanstruction — TERMS & CONDITIONS</h3>
                 
                 <p className="text-xs">Effective Date: 23-07-2025</p>
 
                 <h4 className="font-semibold text-foreground/90">1. Introduction</h4>
                 <p>
-                    Welcome to TradeFlow (“we”, “our”, “us”). By accessing or using the TradeFlow app or website (“tradeflow”), you agree to these Terms & Conditions (“Terms”). If you do not agree, do not use the Platform.
+                    Welcome to kanstruction (“we”, “our”, “us”). By accessing or using the kanstruction app or website (“tradeflow”), you agree to these Terms & Conditions (“Terms”). If you do not agree, do not use the Platform.
                 </p>
                 
                 <h4 className="font-semibold text-foreground/90">2. Nature of the Platform</h4>
                 <p>
-                    TradeFlow is a neutral online marketplace that connects homeowners, contractors, and shop owners for the purpose of buying and selling construction materials such as cement, steel, bricks, electrical items, and more.
+                    kanstruction is a neutral online marketplace that connects homeowners, contractors, and shop owners for the purpose of buying and selling construction materials such as cement, steel, bricks, electrical items, and more.
                 </p>
                 <p>
-                    TradeFlow does not own, stock, transport, or sell any goods. It is solely a digital facilitator.
+                    kanstruction does not own, stock, transport, or sell any goods. It is solely a digital facilitator.
                 </p>
 
                 <h4 className="font-semibold text-foreground/90">3. User Responsibilities</h4>
@@ -54,13 +54,13 @@ export default function TermsAndConditionsPage() {
                 
                 <h4 className="font-semibold text-foreground/90">4. Payments & Delivery</h4>
                 <p>All pricing, payment terms, delivery, and returns are solely agreed upon between the buyer and the seller.</p>
-                <p>TradeFlow does not handle payment collection, refunds, or delivery.</p>
+                <p>kanstruction does not handle payment collection, refunds, or delivery.</p>
                 <p>Any disputes must be resolved directly between the parties involved.</p>
 
                 <h4 className="font-semibold text-foreground/90">5. Limitation of Liability</h4>
                 <div>
                     <p>
-                        TradeFlow, its owners, employees, or partners will not be liable for any loss, damage, dispute, or claim arising out of:
+                        kanstruction, its owners, employees, or partners will not be liable for any loss, damage, dispute, or claim arising out of:
                     </p>
                     <ul className="list-disc pl-5 mt-2 space-y-1">
                         <li>Transactions conducted through the Platform.</li>
@@ -68,13 +68,13 @@ export default function TermsAndConditionsPage() {
                         <li>Any misuse of the Platform by buyers or sellers.</li>
                     </ul>
                     <p>
-                        You agree to indemnify and hold harmless TradeFlow from any claims arising out of your use of the Platform.
+                        You agree to indemnify and hold harmless kanstruction from any claims arising out of your use of the Platform.
                     </p>
                 </div>
                 
                 <h4 className="font-semibold text-foreground/90">6. Termination</h4>
                 <p>
-                    TradeFlow may suspend or terminate your access at any time for violation of these Terms or misuse of the Platform.
+                    kanstruction may suspend or terminate your access at any time for violation of these Terms or misuse of the Platform.
                 </p>
 
                 <h4 className="font-semibold text-foreground/90">7. Governing Law</h4>
@@ -84,12 +84,12 @@ export default function TermsAndConditionsPage() {
 
                 <h4 className="font-semibold text-foreground/90">8. Updates</h4>
                 <p>
-                    TradeFlow may update these Terms at any time. Continued use of the Platform means you accept the new Terms.
+                    kanstruction may update these Terms at any time. Continued use of the Platform means you accept the new Terms.
                 </p>
                 
                 <div className="border-t my-6"></div>
 
-                <h3 className="font-semibold text-foreground">TRADEFLOW — PRIVACY POLICY</h3>
+                <h3 className="font-semibold text-foreground">kanstruction — PRIVACY POLICY</h3>
 
                 <p className="text-xs">Effective Date: 23-07-2025</p>
 
@@ -124,12 +124,12 @@ export default function TermsAndConditionsPage() {
 
                 <h3 className="font-semibold text-foreground">Legal Disclaimer</h3>
                 <p>
-                    <strong>Disclaimer:</strong> TradeFlow is only a digital marketplace connecting buyers and sellers. TradeFlow does not own, deliver, or sell any materials directly and is not responsible for payment disputes, delivery delays, or product issues.
+                    <strong>Disclaimer:</strong> kanstruction is only a digital marketplace connecting buyers and sellers. kanstruction does not own, deliver, or sell any materials directly and is not responsible for payment disputes, delivery delays, or product issues.
                 </p>
 
                 <h4 className="font-semibold text-foreground/90">Contact Us:</h4>
                 <p>
-                    For any questions or to request account deletion, email: <a href="mailto:tradeflow.kart@gmail.com" className="underline">tradeflow.kart@gmail.com</a>
+                    For any questions or to request account deletion, email: <a href="mailto:kanstruction.kart@gmail.com" className="underline">kanstruction.kart@gmail.com</a>
                 </p>
             </div>
           </ScrollArea>

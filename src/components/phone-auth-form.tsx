@@ -181,7 +181,7 @@ export function PhoneAuthForm() {
     
     try {
         await handleNewUser(user, role);
-        toast({ title: "Registration complete! Welcome to TradeFlow." });
+        toast({ title: "Registration complete! Welcome to kanstruction." });
         // The main layout effect will handle redirecting the user.
     } catch (error) {
         console.error("Failed to create user profile:", error);

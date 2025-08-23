@@ -14,7 +14,7 @@ export default function GoodbyePage() {
                 <Logo />
             </div>
             <div className="space-y-4">
-                <h1 className="text-4xl md:text-5xl font-bold font-headline">Thank You, Visit Again!</h1>
+                <h1 className="text-4xl md:text-5xl font-bold font-headline">Thank You for using kanstruction!</h1>
                 <p className="text-lg text-muted-foreground">You have been successfully logged out.</p>
                 <div className="pt-6">
                     <Button asChild>
