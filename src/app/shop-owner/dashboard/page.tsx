@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -120,7 +121,7 @@ export default function ShopOwnerDashboard() {
                 <div className="p-4 sm:p-6 flex items-center justify-between">
                     <div className="space-y-1">
                         <CardTitle className="text-base sm:text-xl">Community Updates</CardTitle>
-                        <CardDescription className="text-xs sm:text-sm">Check out the latest news from the TradeFlow community.</CardDescription>
+                        <CardDescription className="text-xs sm:text-sm">Latest posts and insights from the community.</CardDescription>
                     </div>
                      <Button asChild size="sm">
                         <Link href="/updates">
