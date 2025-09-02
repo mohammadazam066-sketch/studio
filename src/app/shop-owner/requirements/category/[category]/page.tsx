@@ -14,7 +14,7 @@ import type { Timestamp } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 import Image from "next/image";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Droplets, Tally5 } from "lucide-react";
+import { ArrowLeft, Droplets, Tally5, Zap } from "lucide-react";
 
 function formatDate(date: Date | string | Timestamp) {
     if (!date) return '';
@@ -135,6 +135,22 @@ export default function ShopOwnerCategoryRequirementsPage() {
                                             </ul>
                                             {req.steelBrands && req.steelBrands.length > 0 && (
                                                 <p className="text-xs text-muted-foreground mt-2">Preferred Brands: {req.steelBrands.join(', ')}</p>
+                                            )}
+                                        </div>
+                                    )}
+                                    {req.electricalDetails && req.electricalDetails.length > 0 && (
+                                        <div className="mt-4 pt-4 border-t">
+                                            <h4 className="text-sm font-semibold mb-2">Electrical Details:</h4>
+                                            <ul className="space-y-1">
+                                                {req.electricalDetails.map(detail => (
+                                                    <li key={detail.id} className="text-sm text-muted-foreground flex items-center gap-2">
+                                                        <Zap className="w-4 h-4 text-primary/70" />
+                                                        <span>{detail.id}: <strong>{detail.quantity || 'N/A'} pcs</strong></span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                            {req.electricalBrands && req.electricalBrands.length > 0 && (
+                                                <p className="text-xs text-muted-foreground mt-2">Preferred Brands: {req.electricalBrands.join(', ')}</p>
                                             )}
                                         </div>
                                     )}

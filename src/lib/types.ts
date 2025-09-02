@@ -47,6 +47,11 @@ export type HardwareDetail = {
   details: string; // e.g., '5 kg'
 }
 
+export type ElectricalDetail = {
+    id: string;
+    quantity: number;
+}
+
 export type Requirement = {
   id: string;
   homeownerId: string;
@@ -69,6 +74,9 @@ export type Requirement = {
   sandAndAggregateDetails?: string[];
   customSandAndAggregate?: string;
   hardwareDetails?: HardwareDetail[];
+  electricalDetails?: ElectricalDetail[];
+  electricalBrands?: string[];
+  flexibleElectricalBrand?: boolean;
 };
 
 export type Quotation = {

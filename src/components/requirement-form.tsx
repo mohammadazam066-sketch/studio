@@ -43,6 +43,11 @@ const hardwareDetailSchema = z.object({
   details: z.string().min(1, "Details are required."), // e.g., '5 kg'
 });
 
+const electricalDetailSchema = z.object({
+  id: z.string(),
+  quantity: z.coerce.number().min(1, "Quantity must be at least 1."),
+});
+
 
 const requirementFormSchema = z.object({
   title: z.string().min(1, { message: "Title is required." }),
@@ -58,6 +63,9 @@ const requirementFormSchema = z.object({
   sandAndAggregateDetails: z.array(z.string()).optional(),
   customSandAndAggregate: z.string().optional(),
   hardwareDetails: z.array(hardwareDetailSchema).optional(),
+  electricalDetails: z.array(electricalDetailSchema).optional(),
+  electricalBrands: z.array(z.string()).optional(),
+  flexibleElectricalBrand: z.boolean().optional(),
 });
 
 type RequirementFormValues = z.infer<typeof requirementFormSchema>;
@@ -101,6 +109,25 @@ const hardwareItems = [
     { id: 'Gate Sheets', label: 'Gate Sheets', placeholder: 'e.g., 50 sq. ft Gate Sheets' },
 ]
 
+const electricalItems = [
+    { id: 'Ceiling Fan', label: 'Ceiling Fan', placeholder: 'Quantity' },
+    { id: 'Tubelight', label: 'Tubelight', placeholder: 'Quantity' },
+    { id: '1sqmm Wire', label: '1sqmm Wire', placeholder: 'Bundles' },
+    { id: 'Electrical Pipe', label: 'Electrical Pipe', placeholder: 'Bundles' },
+    { id: 'LED Bulb', label: 'LED Bulb', placeholder: 'Quantity' },
+];
+
+const electricalBrandsList = [
+    { id: 'Surya Light', label: 'Surya Light' },
+    { id: 'Finolex Wire', label: 'Finolex Wire' },
+    { id: 'Maro Wire', label: 'Maro Wire' },
+    { id: 'Gowri Ceiling Fan', label: 'Gowri Ceiling Fan' },
+    { id: 'Eagle Fan', label: 'Eagle Fan' },
+    { id: 'Bajaj Fan', label: 'Bajaj Fan' },
+    { id: 'Polycab Pipe', label: 'Polycab Pipe' },
+    { id: 'Sudhakar Pipe', label: 'Sudhakar Pipe' },
+];
+
 
 const locations = ["Bidar", "Kalaburagi", "Humnabad", "Basavakalyan", "Zaheerabad"];
 
@@ -130,6 +157,9 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
       sandAndAggregateDetails: existingRequirement?.sandAndAggregateDetails || [],
       customSandAndAggregate: existingRequirement?.customSandAndAggregate || '',
       hardwareDetails: existingRequirement?.hardwareDetails || [],
+      electricalDetails: existingRequirement?.electricalDetails || [],
+      electricalBrands: existingRequirement?.electricalBrands || [],
+      flexibleElectricalBrand: existingRequirement?.flexibleElectricalBrand || false,
     },
   });
 
@@ -175,6 +205,11 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
   const { fields: steelFields, append: appendSteel, remove: removeSteel } = useFieldArray({
     control,
     name: "steelDetails",
+  });
+
+  const { fields: electricalFields, append: appendElectrical, remove: removeElectrical } = useFieldArray({
+    control,
+    name: "electricalDetails",
   });
 
 
@@ -705,6 +740,135 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                                 />
                                 <Separator />
                            </div>
+                        )}
+
+                        {watchedCategory === 'Electrical' && (
+                            <div className="md:col-span-2 space-y-6 border rounded-lg p-4">
+                                <Separator />
+                                <div>
+                                    <h3 className="text-lg font-semibold">Electrical Details</h3>
+                                    <p className="text-sm text-muted-foreground">Specify the items and quantities you need.</p>
+                                </div>
+                                <div className="space-y-4">
+                                    {electricalItems.map((item, index) => (
+                                         <FormField
+                                            key={item.id}
+                                            control={form.control}
+                                            name="electricalDetails"
+                                            render={({ field }) => {
+                                                const selectedItem = field.value?.find(b => b.id === item.id);
+                                                return (
+                                                <FormItem className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-lg border p-3 shadow-sm">
+                                                    <div className="flex items-center space-x-3">
+                                                        <FormControl>
+                                                            <Checkbox
+                                                            checked={field.value?.some(b => b.id === item.id)}
+                                                            onCheckedChange={(checked) => {
+                                                                const currentItems = getValues("electricalDetails") || [];
+                                                                if (checked) {
+                                                                    setValue("electricalDetails", [...currentItems, { id: item.id, quantity: 0 }]);
+                                                                } else {
+                                                                    setValue("electricalDetails", currentItems.filter((b) => b.id !== item.id));
+                                                                }
+                                                            }}
+                                                            />
+                                                        </FormControl>
+                                                        <FormLabel className="font-normal">{item.label}</FormLabel>
+                                                    </div>
+                                                    {selectedItem && (
+                                                        <div className="mt-2 sm:mt-0 w-full sm:w-auto sm:max-w-[150px]">
+                                                            <FormControl>
+                                                                <Input
+                                                                    type="number"
+                                                                    placeholder={item.placeholder}
+                                                                    value={selectedItem.quantity ?? ''}
+                                                                    onChange={(e) => {
+                                                                        const currentItems = getValues("electricalDetails") || [];
+                                                                        const updatedItems = currentItems.map(b => 
+                                                                            b.id === item.id ? { ...b, quantity: e.target.value === '' ? undefined : Number(e.target.value) } : b
+                                                                        );
+                                                                        setValue("electricalDetails", updatedItems);
+                                                                    }}
+                                                                    className="h-9"
+                                                                />
+                                                            </FormControl>
+                                                        </div>
+                                                    )}
+                                                </FormItem>
+                                            )}}
+                                        />
+                                    ))}
+                                </div>
+                                <FormField
+                                    control={form.control}
+                                    name="electricalBrands"
+                                    render={() => (
+                                        <FormItem className="pt-4">
+                                        <div className="mb-4">
+                                            <FormLabel className="text-base">Preferred Brands</FormLabel>
+                                            <p className="text-sm text-muted-foreground">Select one or more brands if you have a preference.</p>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {electricalBrandsList.map((item) => (
+                                                <FormField
+                                                key={item.id}
+                                                control={form.control}
+                                                name="electricalBrands"
+                                                render={({ field }) => {
+                                                    return (
+                                                    <FormItem
+                                                        key={item.id}
+                                                        className="flex flex-row items-start space-x-3 space-y-0"
+                                                    >
+                                                        <FormControl>
+                                                        <Checkbox
+                                                            checked={field.value?.includes(item.id)}
+                                                            onCheckedChange={(checked) => {
+                                                            return checked
+                                                                ? field.onChange([...(field.value || []), item.id])
+                                                                : field.onChange(
+                                                                    field.value?.filter(
+                                                                    (value) => value !== item.id
+                                                                    )
+                                                                )
+                                                            }}
+                                                        />
+                                                        </FormControl>
+                                                        <FormLabel className="font-normal">
+                                                        {item.label}
+                                                        </FormLabel>
+                                                    </FormItem>
+                                                    )
+                                                }}
+                                                />
+                                            ))}
+                                        </div>
+                                        <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="flexibleElectricalBrand"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm mt-4">
+                                        <div className="space-y-0.5">
+                                            <FormLabel>Flexible Brand</FormLabel>
+                                             <p className="text-sm text-muted-foreground">
+                                                I am open to alternative brands.
+                                            </p>
+                                        </div>
+                                        <FormControl>
+                                            <Switch
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
+                                            />
+                                        </FormControl>
+                                        </FormItem>
+                                    )}
+                                />
+                                <Separator />
+                            </div>
                         )}
 
 

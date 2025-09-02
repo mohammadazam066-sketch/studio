@@ -17,7 +17,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronsUpDown, FileText, Calendar, Wallet, User as UserIcon, Phone, Droplets, Tally5 } from 'lucide-react';
+import { ChevronsUpDown, FileText, Calendar, Wallet, User as UserIcon, Phone, Droplets, Tally5, Zap } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -213,7 +213,18 @@ export default function AdminDashboardPage() {
                                                                             )}
                                                                         </div>
                                                                     )}
-                                                                    {(!req.brands || req.brands.length === 0) && (!req.steelDetails || req.steelDetails.length === 0) && (
+                                                                    {req.electricalDetails && req.electricalDetails.length > 0 && (
+                                                                         <div className="space-y-1">
+                                                                            <h5 className="font-medium">Electrical Details:</h5>
+                                                                            {req.electricalDetails.map(detail => (
+                                                                                <p key={detail.id} className="flex items-center gap-1.5 text-muted-foreground"><Zap className="w-3 h-3 text-primary/70" /> {detail.id}: <strong>{detail.quantity || 'N/A'} pcs</strong></p>
+                                                                            ))}
+                                                                             {req.electricalBrands && req.electricalBrands.length > 0 && (
+                                                                                <p className="text-xs text-muted-foreground pt-1">Preferred: {req.electricalBrands.join(', ')}</p>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+                                                                    {(!req.brands || req.brands.length === 0) && (!req.steelDetails || req.steelDetails.length === 0) && (!req.electricalDetails || req.electricalDetails.length === 0) && (
                                                                         <p className="text-muted-foreground">No specific brand or size details provided.</p>
                                                                     )}
                                                                 </div>

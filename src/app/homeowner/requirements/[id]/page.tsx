@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, deleteRequirement, createPurchase, useAuth, getReviewByPurchase, addReview, getReviewsByShopOwner, updateReview } from '@/lib/store';
@@ -7,7 +8,7 @@ import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Calendar, Wrench, FileText, CheckCircle, Edit, Trash2, Droplets, Tally5, Star, Award, XCircle } from 'lucide-react';
+import { MapPin, Calendar, Wrench, FileText, CheckCircle, Edit, Trash2, Droplets, Tally5, Star, Award, XCircle, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEffect, useState, useCallback } from 'react';
 import type { Requirement, Quotation, Review, HomeownerProfile } from '@/lib/types';
@@ -410,6 +411,28 @@ export default function RequirementDetailPage() {
                 )}
                 {requirement.flexibleSteelBrand && (
                     <p className="text-xs text-muted-foreground mt-2 text-center">User is open to alternative brands for steel.</p>
+                )}
+                <Separator className="my-4" />
+            </div>
+          )}
+
+          {requirement.electricalDetails && requirement.electricalDetails.length > 0 && (
+            <div className="mb-6">
+                <Separator className="my-4" />
+                <h4 className="text-base font-semibold mb-3">Electrical Details</h4>
+                <div className="space-y-2">
+                    {requirement.electricalDetails.map(detail => (
+                        <div key={detail.id} className="flex items-center justify-between text-sm p-2 bg-muted/50 rounded-md">
+                            <span className="text-muted-foreground">{detail.id}</span>
+                            <span className="font-medium">{detail.quantity} pcs</span>
+                        </div>
+                    ))}
+                </div>
+                 {requirement.electricalBrands && requirement.electricalBrands.length > 0 && (
+                    <p className="text-sm text-muted-foreground mt-2">Preferred Brands: {requirement.electricalBrands.join(', ')}</p>
+                )}
+                {requirement.flexibleElectricalBrand && (
+                    <p className="text-xs text-muted-foreground mt-2 text-center">User is open to alternative brands for electrical items.</p>
                 )}
                 <Separator className="my-4" />
             </div>

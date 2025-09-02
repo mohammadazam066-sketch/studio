@@ -5,7 +5,7 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { Eye, FileText, CheckCircle, Clock, Droplets, Tally5, Newspaper, Star } from "lucide-react";
+import { Eye, FileText, CheckCircle, Clock, Droplets, Tally5, Newspaper, Star, Zap } from "lucide-react";
 import { useAuth, getOpenRequirements, getQuotationsByShopOwner, getReviewsByShopOwner } from "@/lib/store";
 import { useEffect, useState, useCallback } from "react";
 import type { Requirement, QuotationWithRequirement, Review } from "@/lib/types";
@@ -299,6 +299,22 @@ export default function ShopOwnerDashboard() {
                                             </ul>
                                             {req.steelBrands && req.steelBrands.length > 0 && (
                                                 <p className="text-xs text-muted-foreground mt-2">Preferred Brands: {req.steelBrands.join(', ')}</p>
+                                            )}
+                                        </div>
+                                    )}
+                                     {req.electricalDetails && req.electricalDetails.length > 0 && (
+                                        <div className="mt-4 pt-4 border-t">
+                                            <h4 className="text-sm font-semibold mb-2">Electrical Details:</h4>
+                                            <ul className="space-y-1">
+                                                {req.electricalDetails.map(detail => (
+                                                    <li key={detail.id} className="text-sm text-muted-foreground flex items-center gap-2">
+                                                        <Zap className="w-4 h-4 text-primary/70" />
+                                                        <span>{detail.id}: <strong>{detail.quantity || 'N/A'} pcs</strong></span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                            {req.electricalBrands && req.electricalBrands.length > 0 && (
+                                                <p className="text-xs text-muted-foreground mt-2">Preferred Brands: {req.electricalBrands.join(', ')}</p>
                                             )}
                                         </div>
                                     )}
