@@ -94,7 +94,7 @@ export default function HomePage() {
       <footer className="py-6 text-center text-muted-foreground text-sm">
         <p>© {new Date().getFullYear()} kanstruction. All rights reserved.</p>
         <div className="mt-2 space-x-4">
-             <Link href="/legal/terms" className="underline hover:text-primary">Terms & Privacy</Link>
+             <a href="https://sites.google.com/view/tradeflowkart/home" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">Terms & Privacy</a>
              <span>&bull;</span>
              <a href="mailto:tradeflow.kart@gmail.com" className="underline hover:text-primary">Contact Support</a>
         </div>

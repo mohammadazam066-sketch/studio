@@ -284,9 +284,9 @@ export function PhoneAuthForm() {
                     className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
                     I have read and agree to the{' '}
-                    <Link href="/legal/terms" target="_blank" className="underline hover:text-primary">
+                    <a href="https://sites.google.com/view/tradeflowkart/home" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">
                         Terms & Conditions and Privacy Policy
-                    </Link>.
+                    </a>.
                 </label>
             </div>
             <Button type="submit" className="w-full" disabled={loading || !agreedToTerms}>
