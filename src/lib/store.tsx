@@ -11,7 +11,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 import { logoutUser } from './auth';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, deleteUser } from 'firebase/auth';
 
 // --- AUTH CONTEXT & PROVIDER ---
 
@@ -881,4 +881,39 @@ export const getReviewByPurchase = async (purchaseId: string, customerId: string
     return undefined;
 }
 
+// == USER ACCOUNT ==
+
+export const deleteUserAccount = async () => {
+    const user = auth.currentUser;
+    if (!user) throw new Error("User not authenticated");
+
+    const userDocRef = doc(db, "users", user.uid);
+    const userDocSnap = await getDoc(userDocRef);
+    if (!userDocSnap.exists()) throw new Error("User data not found in Firestore.");
     
+    const userData = userDocSnap.data();
+    const role = userData.role;
+
+    const profileCollection = role === 'homeowner' 
+        ? 'homeownerProfiles' 
+        : role === 'shop-owner'
+        ? 'shopOwnerProfiles'
+        : null;
+
+    // Delete Firestore documents
+    const batch = writeBatch(db);
+    batch.delete(userDocRef);
+    if (profileCollection) {
+        const profileDocRef = doc(db, profileCollection, user.uid);
+        batch.delete(profileDocRef);
+    }
+    
+    // Note: Deleting associated content (requirements, quotes, reviews, photos)
+    // is a complex operation ideally suited for a Firebase Cloud Function to ensure atomicity.
+    // This client-side implementation will only delete the core user and profile documents.
+
+    await batch.commit();
+
+    // Finally, delete the user from Firebase Authentication
+    await deleteUser(user);
+};
