@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Home, Store, UserPlus } from 'lucide-react';
+import { Home, Store, UserPlus, Download } from 'lucide-react';
 import { Logo } from '@/components/logo';
 import { useAuth } from '@/lib/store';
 import { useRouter } from 'next/navigation';
@@ -59,12 +59,18 @@ export default function HomePage() {
               Find the right materials for your site, post your exact needs with photos, and get competitive local quotes directly in one place—saving your time and money.
             </p>
 
-            <div className="mt-8 flex justify-center">
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button asChild size="lg">
                 <Link href="/auth/login">
                   <UserPlus className="mr-2" />
                   Get Started for Free
                 </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <a href="https://warehouse.appilix.com/uploads/app-apk-68cd1413ac0a6-1758270483.apk" target="_blank" rel="noopener noreferrer">
+                  <Download className="mr-2" />
+                  Download the App
+                </a>
               </Button>
             </div>
 
