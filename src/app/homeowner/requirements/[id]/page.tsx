@@ -501,7 +501,7 @@ export default function RequirementDetailPage() {
                      <div className="flex flex-col items-end">
                         <div className="flex items-center text-lg font-semibold text-primary">
                             <IndianRupee className="w-4 h-4 mr-0.5" />
-                            {quote.totalAmount.toLocaleString('en-IN')}
+                            {(quote.totalAmount || 0).toLocaleString('en-IN')}
                         </div>
                         <span className="text-xs text-muted-foreground">Total Amount</span>
                     </div>
@@ -567,7 +567,7 @@ export default function RequirementDetailPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Purchase</AlertDialogTitle>
             <AlertDialogDescription>
-              You are about to mark the quotation from <span className="font-bold">{selectedQuote?.shopOwnerName}</span> for a total of <span className="font-bold">Rs {selectedQuote?.totalAmount.toFixed(2)}</span> as purchased. This will create a permanent purchase record.
+              You are about to mark the quotation from <span className="font-bold">{selectedQuote?.shopOwnerName}</span> for a total of <span className="font-bold">Rs {(selectedQuote?.totalAmount || 0).toFixed(2)}</span> as purchased. This will create a permanent purchase record.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
