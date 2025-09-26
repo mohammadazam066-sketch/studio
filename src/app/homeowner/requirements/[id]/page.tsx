@@ -511,7 +511,7 @@ export default function RequirementDetailPage() {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                         <div className="flex items-baseline gap-2">
                             <span className="text-muted-foreground">Materials:</span>
-                            <span className="font-semibold flex items-center"><IndianRupee className="w-3 h-3 mr-0.5" />{quote.materialAmount.toLocaleString('en-IN')}</span>
+                            <span className="font-semibold flex items-center"><IndianRupee className="w-3 h-3 mr-0.5" />{(quote.materialAmount || 0).toLocaleString('en-IN')}</span>
                         </div>
                          <div className="flex items-baseline gap-2">
                             <span className="text-muted-foreground">Transport:</span>
@@ -646,3 +646,4 @@ export default function RequirementDetailPage() {
     </div>
   );
 }
+
