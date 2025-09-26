@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import type { Timestamp } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Edit, FileText, User, CheckCircle, XCircle } from "lucide-react";
+import { Edit, FileText, User, CheckCircle, XCircle, IndianRupee } from "lucide-react";
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -149,8 +149,9 @@ export default function MyQuotationsPage() {
                                 </CardHeader>
                                 <CardContent className="space-y-3">
                                    <div className="flex items-center text-lg font-semibold text-primary">
-                                        <span className="font-sans mr-1.5">Rs</span>
-                                        {quote.amount.toFixed(2)}
+                                        <IndianRupee className="w-4 h-4 mr-0.5" />
+                                        {quote.totalAmount.toLocaleString('en-IN')}
+                                        <span className="text-xs text-muted-foreground ml-2 font-normal">(Total Amount)</span>
                                     </div>
                                     <div className="flex items-start gap-3 text-sm">
                                         <FileText className="w-4 h-4 mt-1 text-muted-foreground flex-shrink-0" />

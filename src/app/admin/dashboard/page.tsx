@@ -17,7 +17,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronsUpDown, FileText, Calendar, Wallet, User as UserIcon, Phone, Droplets, Tally5, Zap } from 'lucide-react';
+import { ChevronsUpDown, FileText, Calendar, Wallet, User as UserIcon, Phone, Droplets, Tally5, Zap, IndianRupee } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -240,7 +240,7 @@ export default function AdminDashboardPage() {
                                                                                 <p className="text-muted-foreground">{quote.shopOwnerName}</p>
                                                                                 <Separator className="my-1.5" />
                                                                                 <div className="space-y-1">
-                                                                                     <p className="flex items-center gap-1.5"><Wallet className="w-3 h-3" /> <span className="font-mono">Rs {quote.amount.toFixed(2)}</span></p>
+                                                                                     <p className="flex items-center gap-1.5"><IndianRupee className="w-3 h-3" /> <span className="font-mono">{quote.totalAmount.toLocaleString('en-IN')}</span></p>
                                                                                      <p className="flex items-center gap-1.5"><Calendar className="w-3 h-3" /> {formatShortDate(quote.deliveryDate)}</p>
                                                                                      {quote.terms && <p className="flex items-start gap-1.5"><FileText className="w-3 h-3 mt-0.5" /> {quote.terms}</p>}
                                                                                 </div>

@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -6,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { addQuotation, updateQuotation, useAuth } from '@/lib/store';
 import { useRouter } from 'next/navigation';
-import { CalendarIcon, Loader2 } from 'lucide-react';
+import { CalendarIcon, Loader2, IndianRupee } from 'lucide-react';
 import { format } from 'date-fns';
 
 import { Button } from '@/components/ui/button';
@@ -19,13 +20,15 @@ import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import type { Requirement, Quotation } from '@/lib/types';
+import { useEffect } from 'react';
 
 const quotationFormSchema = z.object({
-  amount: z.coerce.number().positive({ message: "Amount must be greater than 0." }),
-  terms: z.string().optional(),
+  materialAmount: z.coerce.number().min(0, "Amount must be zero or more."),
+  transportationCharges: z.coerce.number().min(0).optional(),
   deliveryDate: z.date({
     required_error: "An expected delivery date is required.",
   }),
+  terms: z.string().optional(),
 });
 
 type QuotationFormValues = z.infer<typeof quotationFormSchema>;
@@ -48,13 +51,18 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
     const form = useForm<QuotationFormValues>({
         resolver: zodResolver(quotationFormSchema),
         defaultValues: {
-            amount: existingQuotation?.amount || undefined,
+            materialAmount: existingQuotation?.materialAmount || undefined,
+            transportationCharges: existingQuotation?.transportationCharges || undefined,
             terms: existingQuotation?.terms || '',
             deliveryDate: defaultDeliveryDate,
         }
     });
     
-    const {formState: { isSubmitting }} = form;
+    const {formState: { isSubmitting }, watch} = form;
+
+    const materialAmount = watch('materialAmount') || 0;
+    const transportationCharges = watch('transportationCharges') || 0;
+    const totalAmount = materialAmount + transportationCharges;
     
     const title = existingQuotation ? 'Edit Your Quotation' : 'Submit Your Quotation';
     const description = existingQuotation ? 'Update the details of your quotation below.' : 'Fill out the form to send your quotation to the homeowner.';
@@ -67,12 +75,15 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
             return;
         }
 
+        const submissionData = {
+          ...data,
+          totalAmount: (data.materialAmount || 0) + (data.transportationCharges || 0),
+        };
+
         try {
             if (existingQuotation) {
                 // Update existing quotation
-                await updateQuotation(existingQuotation.id, {
-                    ...data,
-                });
+                await updateQuotation(existingQuotation.id, submissionData);
                  toast({
                     title: 'Quotation Updated!',
                     description: 'Your changes have been saved.',
@@ -81,7 +92,7 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
             } else {
                 // Add new quotation
                  await addQuotation({
-                    ...data,
+                    ...submissionData,
                     requirementId: requirement.id,
                 });
                 toast({
@@ -110,26 +121,57 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
                     <CardContent className="space-y-4">
                         <FormField
                             control={form.control}
-                            name="amount"
+                            name="materialAmount"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Quotation Amount (Rs)</FormLabel>
+                                    <FormLabel>Material Amount (Rs)</FormLabel>
                                     <FormControl>
                                         <Input
                                             type="number"
-                                            placeholder="e.g., 50000"
+                                            placeholder="e.g., 45000"
                                             {...field}
                                             value={field.value ?? ''}
                                             disabled={isSubmitting}
                                         />
                                     </FormControl>
-                                    <FormDescription>
-                                        Please check the numbers again before submitting.
+                                    <FormMessage />
+                                </FormItem>
+                            )}
+                        />
+                         <FormField
+                            control={form.control}
+                            name="transportationCharges"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Transportation Charges (Rs)</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            type="number"
+                                            placeholder="e.g., 500"
+                                            {...field}
+                                            value={field.value ?? ''}
+                                            disabled={isSubmitting}
+                                        />
+                                    </FormControl>
+                                     <FormDescription>
+                                        Enter 0 if transport is free.
                                     </FormDescription>
                                     <FormMessage />
                                 </FormItem>
                             )}
                         />
+
+                        <div className="p-4 bg-muted/80 rounded-lg">
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm font-semibold">Total Quotation Amount (Rs)</span>
+                                <span className="text-lg font-bold flex items-center">
+                                    <IndianRupee className="w-4 h-4 mr-1"/>
+                                    {totalAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                            </div>
+                        </div>
+
+
                          <FormField
                             control={form.control}
                             name="deliveryDate"

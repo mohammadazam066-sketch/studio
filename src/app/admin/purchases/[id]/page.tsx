@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { getPurchaseById } from '@/lib/store';
@@ -11,7 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, User, Phone, Home, Store, FileText, Calendar, Wallet, MapPin, Building } from 'lucide-react';
+import { ArrowLeft, User, Phone, Home, Store, FileText, Calendar, Wallet, MapPin, Building, IndianRupee } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
@@ -185,10 +186,15 @@ export default function PurchaseDetailPage() {
                 {quotation ? (
                     <CardContent className="space-y-4 text-sm">
                         <div className="flex justify-between items-baseline p-3 bg-secondary rounded-lg">
-                            <span className="font-semibold">Quoted Amount</span>
-                            <span className="text-xl font-bold text-primary">Rs {quotation.amount.toFixed(2)}</span>
+                            <span className="font-semibold">Total Quoted Amount</span>
+                            <span className="text-xl font-bold text-primary flex items-center"><IndianRupee className="w-4 h-4 mr-1" /> {quotation.totalAmount.toLocaleString('en-IN')}</span>
                         </div>
-                        <div className="space-y-2">
+                        <div className="space-y-2 text-muted-foreground">
+                            <div className="flex justify-between"><span>Material Amount:</span> <span className="font-medium text-foreground">Rs {quotation.materialAmount.toLocaleString('en-IN')}</span></div>
+                            <div className="flex justify-between"><span>Transportation:</span> <span className="font-medium text-foreground">Rs {(quotation.transportationCharges || 0).toLocaleString('en-IN')}</span></div>
+                        </div>
+                        <Separator />
+                        <div className="space-y-2 pt-2">
                              <p className="flex items-start gap-2"><FileText className="w-4 h-4 mt-1 flex-shrink-0" /> <strong>Terms:</strong> <span className="text-muted-foreground">{quotation.terms || 'N/A'}</span></p>
                              <p className="flex items-center gap-2"><Calendar className="w-4 h-4" /> <strong>Delivery by:</strong> <span className="text-muted-foreground">{formatDate(quotation.deliveryDate)}</span></p>
                         </div>

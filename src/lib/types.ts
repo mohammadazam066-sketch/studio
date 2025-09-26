@@ -85,7 +85,9 @@ export type Quotation = {
   shopOwnerId: string;
   shopOwnerName: string;
   shopName: string;
-  amount: number;
+  materialAmount: number;
+  transportationCharges?: number;
+  totalAmount: number;
   terms: string;
   deliveryDate: Timestamp | Date | string;
   createdAt: Timestamp | Date | string;

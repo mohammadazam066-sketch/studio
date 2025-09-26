@@ -8,7 +8,7 @@ import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Calendar, Wrench, FileText, CheckCircle, Edit, Trash2, Droplets, Tally5, Star, Award, XCircle, Zap } from 'lucide-react';
+import { MapPin, Calendar, Wrench, FileText, CheckCircle, Edit, Trash2, Droplets, Tally5, Star, Award, XCircle, Zap, IndianRupee, Truck } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEffect, useState, useCallback } from 'react';
 import type { Requirement, Quotation, Review, HomeownerProfile } from '@/lib/types';
@@ -498,13 +498,28 @@ export default function RequirementDetailPage() {
                             <p className="text-xs text-muted-foreground pt-1">No reviews yet</p>
                         )}
                     </Link>
-                    <div className="flex items-center text-lg font-semibold text-primary">
-                        <span className="font-sans mr-1">Rs</span>
-                        {quote.amount.toFixed(2)}
+                     <div className="flex flex-col items-end">
+                        <div className="flex items-center text-lg font-semibold text-primary">
+                            <IndianRupee className="w-4 h-4 mr-0.5" />
+                            {quote.totalAmount.toLocaleString('en-IN')}
+                        </div>
+                        <span className="text-xs text-muted-foreground">Total Amount</span>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="flex items-baseline gap-2">
+                            <span className="text-muted-foreground">Materials:</span>
+                            <span className="font-semibold flex items-center"><IndianRupee className="w-3 h-3 mr-0.5" />{quote.materialAmount.toLocaleString('en-IN')}</span>
+                        </div>
+                         <div className="flex items-baseline gap-2">
+                            <span className="text-muted-foreground">Transport:</span>
+                            <span className="font-semibold flex items-center"><IndianRupee className="w-3 h-3 mr-0.5" />{(quote.transportationCharges || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                    </div>
+                    <Separator />
+
                   <div className="flex items-start gap-3 text-sm">
                     <FileText className="w-4 h-4 mt-1 text-muted-foreground flex-shrink-0" />
                     <p className="text-muted-foreground">{quote.terms}</p>
@@ -552,7 +567,7 @@ export default function RequirementDetailPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Purchase</AlertDialogTitle>
             <AlertDialogDescription>
-              You are about to mark the quotation from <span className="font-bold">{selectedQuote?.shopOwnerName}</span> for <span className="font-bold">Rs{selectedQuote?.amount.toFixed(2)}</span> as purchased. This will create a permanent purchase record.
+              You are about to mark the quotation from <span className="font-bold">{selectedQuote?.shopOwnerName}</span> for a total of <span className="font-bold">Rs {selectedQuote?.totalAmount.toFixed(2)}</span> as purchased. This will create a permanent purchase record.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

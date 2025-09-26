@@ -486,9 +486,13 @@ export const addQuotation = async (data) => {
     const requirementSnap = await getDoc(doc(db, 'requirements', data.requirementId));
     const requirement = requirementSnap.data() as Requirement;
 
+    const { materialAmount, transportationCharges, ...restData } = data;
 
     const quotationData = {
-        ...data,
+        ...restData,
+        materialAmount: materialAmount || 0,
+        transportationCharges: transportationCharges || 0,
+        totalAmount: (materialAmount || 0) + (transportationCharges || 0),
         shopOwnerId: auth.currentUser.uid,
         shopOwnerName: profileData?.name || 'Anonymous',
         shopName: profileData?.shopName || 'Unnamed Shop',
@@ -511,7 +515,14 @@ export const addQuotation = async (data) => {
 
 export const updateQuotation = async (id: string, data) => {
     const quotationRef = doc(db, 'quotations', id);
-    await updateDoc(quotationRef, data);
+    const { materialAmount, transportationCharges, ...restData } = data;
+    const submissionData = {
+        ...restData,
+        materialAmount: materialAmount || 0,
+        transportationCharges: transportationCharges || 0,
+        totalAmount: (materialAmount || 0) + (transportationCharges || 0),
+    };
+    await updateDoc(quotationRef, submissionData);
 }
 
 export const getQuotationById = async (id: string): Promise<Quotation | undefined> => {
@@ -665,7 +676,7 @@ export const updateUpdate = async (id: string, data: { title: string; content: s
             await deleteObject(photoRef);
         } catch (error: any) {
             if (error.code !== 'storage/object-not-found') {
-                console.error("Failed to delete old photo:", error);
+                console.error("Failed to delete post image:", error);
             }
         }
     }));
@@ -759,7 +770,7 @@ export const createPurchase = async (requirement: Requirement, quotation: Quotat
         homeownerId: requirement.homeownerId,
         shopOwnerId: quotation.shopOwnerId,
         quotationId: quotation.id,
-        amount: quotation.amount,
+        amount: quotation.totalAmount,
         material: requirement.title,
         status: 'Purchased',
         homeownerName: requirement.homeownerName,
