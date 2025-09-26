@@ -18,6 +18,7 @@ import { MaterialCategoryGrid } from "@/components/material-category-grid";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { GettingStartedGuide } from "@/components/getting-started-guide";
 
 
 function formatDate(date: Date | string | Timestamp) {
@@ -202,6 +203,8 @@ export default function HomeownerDashboard() {
                  </div>
                  {loading ? (
                     <RequirementListSkeleton />
+                 ) : requirements.length === 0 ? (
+                    <GettingStartedGuide />
                  ) : displayRequirements.length > 0 ? (
                     <div className="space-y-4">
                         {displayRequirements.map(req => (
@@ -290,11 +293,9 @@ export default function HomeownerDashboard() {
                         <div className="mx-auto w-24 h-24 mb-4">
                             <Image src="https://placehold.co/100x100.png" width={100} height={100} alt="No requirements" data-ai-hint="empty box document" className="rounded-full" />
                         </div>
-                        <h3 className="text-lg font-medium">No requirements yet</h3>
+                        <h3 className="text-lg font-medium">No requirements found</h3>
                         <p className="text-muted-foreground mt-1">
-                            {locationFilter === 'all' && statusFilter === 'all'
-                                ? "Click the button above to post your first material requirement."
-                                : `No requirements found matching your filters.`}
+                            No requirements found matching your filters.
                         </p>
                     </div>
                 )}
