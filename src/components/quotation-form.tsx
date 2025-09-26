@@ -62,7 +62,7 @@ export function QuotationForm({ requirement, existingQuotation }: QuotationFormP
 
     const materialAmount = watch('materialAmount') || 0;
     const transportationCharges = watch('transportationCharges') || 0;
-    const totalAmount = materialAmount + transportationCharges;
+    const totalAmount = (Number(materialAmount) || 0) + (Number(transportationCharges) || 0);
     
     const title = existingQuotation ? 'Edit Your Quotation' : 'Submit Your Quotation';
     const description = existingQuotation ? 'Update the details of your quotation below.' : 'Fill out the form to send your quotation to the homeowner.';
