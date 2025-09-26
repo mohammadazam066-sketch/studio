@@ -47,7 +47,7 @@ export default function HomePage() {
           </Button>
       </header>
       <main className="flex-grow">
-        <section className="bg-secondary/50 py-20 sm:py-28 text-center">
+        <section className="bg-secondary/50 py-12 sm:py-20 text-center">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-headline font-bold text-primary tracking-tighter">
                   Welcome to kanstruction
@@ -73,7 +73,7 @@ export default function HomePage() {
             </div>
         </section>
 
-        <section className="py-16 sm:py-24">
+        <section className="py-12 sm:py-16">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                  <div className="text-center mb-12">
                     <h2 className="text-3xl font-bold font-headline">How It Works</h2>
