@@ -50,7 +50,7 @@ export default function HomePage() {
         <section className="bg-secondary/50 py-20 sm:py-28 text-center">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-headline font-bold text-primary tracking-tighter">
-                  Build Your Vision, Simplified
+                  Welcome to kanstruction
                 </h1>
                 <p className="mt-4 max-w-3xl mx-auto text-lg sm:text-xl text-muted-foreground">
                     Connecting homeowners with trusted local material suppliers. Find the right materials, post your needs with photos, and get competitive local quotes—all in one place.
