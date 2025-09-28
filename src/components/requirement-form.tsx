@@ -386,7 +386,7 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                                 <Separator />
                                 <div>
                                     <h3 className="text-lg font-semibold">Cement Details</h3>
-                                    <p className="text-sm text-muted-foreground">Specify the brands and quantities you need.</p>
+                                    <p className="text-sm text-muted-foreground">Specify the brands you prefer.</p>
                                 </div>
                                 <FormField
                                     control={form.control}
@@ -394,62 +394,37 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                                     render={() => (
                                         <FormItem>
                                         <div className="mb-4">
-                                            <FormLabel className="text-base">Brands</FormLabel>
+                                            <FormLabel className="text-base">Preferred Brands</FormLabel>
                                             <p className="text-sm text-muted-foreground">Select one or more brands.</p>
                                         </div>
-                                        <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
                                         {cementBrands.map((brand) => (
                                             <FormField
                                                 key={brand.id}
                                                 control={form.control}
                                                 name="brands"
                                                 render={({ field }) => {
-                                                    const selectedBrand = field.value?.find(b => b.id === brand.id);
                                                     return (
-                                                    <FormItem className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-lg border p-3 shadow-sm">
-                                                        <div className="flex items-center space-x-3">
-                                                            <FormControl>
-                                                                <Checkbox
-                                                                checked={field.value?.some(b => b.id === brand.id)}
-                                                                onCheckedChange={(checked) => {
-                                                                    const currentBrands = getValues("brands") || [];
-                                                                    if (checked) {
-                                                                        setValue("brands", [...currentBrands, { id: brand.id, quantity: undefined }]);
-                                                                    } else {
-                                                                        setValue("brands", currentBrands.filter((b) => b.id !== brand.id));
-                                                                    }
-                                                                }}
-                                                                />
-                                                            </FormControl>
-                                                            <FormLabel className="font-normal">{brand.label}</FormLabel>
-                                                        </div>
-                                                        {selectedBrand && (
-                                                            <div className="mt-2 sm:mt-0 w-full sm:w-auto sm:max-w-[150px]">
-                                                                <FormControl>
-                                                                    <Input
-                                                                        type="number"
-                                                                        placeholder="Quantity (optional)"
-                                                                        value={selectedBrand.quantity ?? ''}
-                                                                        onChange={(e) => {
-                                                                            const currentBrands = getValues("brands") || [];
-                                                                            const updatedBrands = currentBrands.map(b => 
-                                                                                b.id === brand.id ? { ...b, quantity: e.target.value === '' ? undefined : Number(e.target.value) } : b
-                                                                            );
-                                                                            setValue("brands", updatedBrands);
-                                                                        }}
-                                                                        className="h-9"
-                                                                    />
-                                                                </FormControl>
-                                                            </div>
-                                                        )}
+                                                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                                                        <FormControl>
+                                                            <Checkbox
+                                                            checked={field.value?.some(b => b.id === brand.id)}
+                                                            onCheckedChange={(checked) => {
+                                                                const currentBrands = getValues("brands") || [];
+                                                                if (checked) {
+                                                                    setValue("brands", [...currentBrands, { id: brand.id }]);
+                                                                } else {
+                                                                    setValue("brands", currentBrands.filter((b) => b.id !== brand.id));
+                                                                }
+                                                            }}
+                                                            />
+                                                        </FormControl>
+                                                        <FormLabel className="font-normal">{brand.label}</FormLabel>
                                                     </FormItem>
                                                 )}}
                                             />
                                         ))}
                                         </div>
-                                        <FormDescription className="pt-2">
-                                            Please check the numbers again before submitting.
-                                        </FormDescription>
                                         <FormMessage />
                                         </FormItem>
                                     )}
@@ -513,7 +488,7 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                                                                 {...field}
                                                                 placeholder="e.g., 100"
                                                                 value={field.value ?? ''}
-                                                                onChange={e => field.onChange(parseInt(e.target.value, 10) || undefined)}
+                                                                onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))}
                                                             />
                                                         </FormControl>
                                                         <FormMessage />
