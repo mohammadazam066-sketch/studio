@@ -667,7 +667,8 @@ export const addUpdate = async (data: { title: string, content: string }, photos
     });
     
     if (photosDataUrls.length > 0) {
-        const urls = await uploadPhotos('updates', auth.currentUser.uid, photosDataUrls, updateRef.id);
+        // Use a public path for update images
+        const urls = await uploadPhotos('updates', 'public', photosDataUrls, updateRef.id);
         if (urls.length > 0) {
             await updateDoc(updateRef, { imageUrls: urls });
         }
@@ -721,7 +722,7 @@ export const updateUpdate = async (id: string, data: { title: string; content: s
     
     let newPhotoUrls: string[] = [];
     if (newPhotosDataUrls.length > 0) {
-        newPhotoUrls = await uploadPhotos('updates', auth.currentUser.uid, newPhotosDataUrls, id);
+        newPhotoUrls = await uploadPhotos('updates', 'public', newPhotosDataUrls, id);
     }
     
     const finalPhotos = [...remainingExistingPhotos, ...newPhotoUrls];
