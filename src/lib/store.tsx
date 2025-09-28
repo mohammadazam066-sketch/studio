@@ -338,7 +338,13 @@ export const useAuth = () => {
 const uploadPhotos = async (collectionName: string, userId: string, photosDataUrls: string[], documentId?: string): Promise<string[]> => {
     const urls = await Promise.all(
         photosDataUrls.map(async (dataUrl) => {
-            const path = `${collectionName}/${userId}/${documentId ? `${documentId}/` : ''}${Date.now()}-${Math.random()}`;
+            let path;
+            if (collectionName === 'updates') {
+                 // Store all update images in a single public folder
+                path = `updates/images/${Date.now()}-${Math.random()}`;
+            } else {
+                path = `${collectionName}/${userId}/${documentId ? `${documentId}/` : ''}${Date.now()}-${Math.random()}`;
+            }
             const photoRef = ref(storage, path);
             await uploadString(photoRef, dataUrl, 'data_url');
             return getDownloadURL(photoRef);
@@ -904,3 +910,6 @@ export const getReviewByPurchase = async (purchaseId: string, customerId: string
 
     
 
+
+
+    
