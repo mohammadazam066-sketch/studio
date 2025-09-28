@@ -12,10 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import type { Timestamp } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Edit, FileText, User, CheckCircle, XCircle, IndianRupee } from "lucide-react";
+import { Edit, FileText, User, CheckCircle, XCircle, IndianRupee, ChevronsUpDown, Droplets, Tally5, Zap } from "lucide-react";
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Separator } from "@/components/ui/separator";
 
 
 function formatDate(date: Date | string | Timestamp) {
@@ -130,15 +132,16 @@ export default function MyQuotationsPage() {
                         {filteredQuotations.map(quote => {
                             const status = getStatus(quote);
                              const isEditable = quote.requirement?.status !== 'Purchased';
+                             const req = quote.requirement;
 
                             return (
                             <Card key={quote.id}>
                                 <CardHeader>
                                     <div className="flex flex-col sm:flex-row justify-between items-start gap-2">
                                         <div>
-                                            <CardTitle className="text-lg">Quote for: {quote.requirement?.title || 'N/A'}</CardTitle>
+                                            <CardTitle className="text-lg">Quote for: {req?.title || 'N/A'}</CardTitle>
                                             <CardDescription>
-                                                For {quote.requirement?.homeownerName} &bull; Submitted on {formatDate(quote.createdAt)}
+                                                For {req?.homeownerName} &bull; Submitted on {formatDate(quote.createdAt)}
                                             </CardDescription>
                                         </div>
                                         <Badge variant={status.variant} className={status.variant === 'default' ? 'bg-accent text-accent-foreground' : ''}>
@@ -157,12 +160,73 @@ export default function MyQuotationsPage() {
                                         <FileText className="w-4 h-4 mt-1 text-muted-foreground flex-shrink-0" />
                                         <p className="text-muted-foreground">{quote.terms}</p>
                                     </div>
-                                    {quote.requirement?.homeownerId && status.text === 'Accepted' && (
+                                    
+                                     <Collapsible>
+                                        <CollapsibleTrigger asChild>
+                                            <Button variant="link" className="p-0 h-auto text-sm">
+                                               View Requirement Details <ChevronsUpDown className="h-4 w-4 ml-1" />
+                                            </Button>
+                                        </CollapsibleTrigger>
+                                        <CollapsibleContent>
+                                            {req ? (
+                                                 <div className="p-4 mt-2 bg-muted rounded-md space-y-4 text-sm">
+                                                    <p className="text-muted-foreground">{req.description}</p>
+                                                    
+                                                     {req.brands && req.brands.length > 0 && (
+                                                        <div className="pt-2 border-t">
+                                                            <h4 className="font-semibold mb-2">Cement Details:</h4>
+                                                            <ul className="space-y-1 list-disc pl-5">
+                                                                {req.brands.map(brand => (
+                                                                    <li key={brand.id} className="text-muted-foreground">
+                                                                        {brand.id}: <strong>{brand.quantity || 'N/A'} bags</strong>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+                                                    {req.steelDetails && req.steelDetails.length > 0 && (
+                                                        <div className="pt-2 border-t">
+                                                            <h4 className="font-semibold mb-2">Steel Details:</h4>
+                                                            <ul className="space-y-1 list-disc pl-5">
+                                                                {req.steelDetails.map(detail => (
+                                                                    <li key={detail.size} className="text-muted-foreground">
+                                                                        {detail.size}mm: <strong>{detail.quantity || 'N/A'} rods</strong>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                            {req.steelBrands && req.steelBrands.length > 0 && (
+                                                                <p className="text-xs text-muted-foreground mt-1">Preferred Brands: {req.steelBrands.join(', ')}</p>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                     {req.electricalDetails && req.electricalDetails.length > 0 && (
+                                                        <div className="pt-2 border-t">
+                                                            <h4 className="font-semibold mb-2">Electrical Details:</h4>
+                                                            <ul className="space-y-1 list-disc pl-5">
+                                                                {req.electricalDetails.map(detail => (
+                                                                    <li key={detail.id} className="text-muted-foreground">
+                                                                        {detail.id}: <strong>{detail.quantity || 'N/A'} pcs</strong>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                            {req.electricalBrands && req.electricalBrands.length > 0 && (
+                                                                <p className="text-xs text-muted-foreground mt-1">Preferred Brands: {req.electricalBrands.join(', ')}</p>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                 </div>
+                                            ) : (
+                                                <p className="text-sm text-muted-foreground mt-2">Could not load requirement details.</p>
+                                            )}
+                                        </CollapsibleContent>
+                                    </Collapsible>
+
+                                    {req?.homeownerId && status.text === 'Accepted' && (
                                         <div className="pt-2">
                                             <Button asChild variant="link" className="p-0 h-auto">
-                                                <Link href={`/shop-owner/homeowner-profile/${quote.requirement.homeownerId}`}>
+                                                <Link href={`/shop-owner/homeowner-profile/${req.homeownerId}`}>
                                                     <User className="mr-2 h-4 w-4" />
-                                                    View {quote.requirement.homeownerName}'s Contact
+                                                    View {req.homeownerName}'s Contact
                                                 </Link>
                                             </Button>
                                         </div>
