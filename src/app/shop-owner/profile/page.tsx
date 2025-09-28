@@ -1,11 +1,12 @@
 
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useAuth, getReviewsByShopOwner, deleteUserAccount } from '@/lib/store';
+import { useAuth, getReviewsByShopOwner } from '@/lib/store';
 import type { ShopOwnerProfile, Review } from '@/lib/types';
 import Image from 'next/image';
 
@@ -117,7 +118,7 @@ const StarRating = ({ rating, size = "md" }: { rating: number; size?: 'sm' | 'md
 
 
 export default function ShopOwnerProfilePage() {
-  const { currentUser, loading: authLoading, updateUserProfile, logout } = useAuth();
+  const { currentUser, loading: authLoading, updateUserProfile, logout, deleteUserAccount } = useAuth();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
 

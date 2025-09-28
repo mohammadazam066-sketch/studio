@@ -1,11 +1,12 @@
 
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useAuth, deleteUserAccount } from '@/lib/store';
+import { useAuth } from '@/lib/store';
 import type { HomeownerProfile } from '@/lib/types';
 import Image from 'next/image';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -75,7 +76,7 @@ function ProfileSkeleton() {
 
 
 export default function HomeownerProfilePage() {
-  const { currentUser, loading: authLoading, updateUserProfile, logout } = useAuth();
+  const { currentUser, loading: authLoading, updateUserProfile, logout, deleteUserAccount } = useAuth();
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [photo, setPhoto] = useState<PhotoState | null>(null);

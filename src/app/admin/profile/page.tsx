@@ -3,7 +3,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAuth, deleteUserAccount } from '@/lib/store';
+import { useAuth } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { User as UserIcon, Shield, Phone, Trash2, Loader2 } from 'lucide-react';
@@ -44,7 +44,7 @@ function AdminProfileSkeleton() {
 }
 
 export default function AdminProfilePage() {
-    const { currentUser, loading, logout } = useAuth();
+    const { currentUser, loading, logout, deleteUserAccount } = useAuth();
     const { toast } = useToast();
     const [isDeleting, setIsDeleting] = useState(false);
     const [isAlertOpen, setAlertOpen] = useState(false);
