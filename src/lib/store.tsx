@@ -339,9 +339,10 @@ const uploadPhotos = async (collectionName: string, userId: string, photosDataUr
     const urls = await Promise.all(
         photosDataUrls.map(async (dataUrl) => {
             let path;
-            if (collectionName === 'updates') {
+            if (collectionName === 'updates' || collectionName === 'requirements') {
                  // Store all update images in a single public folder
-                path = `updates/images/${Date.now()}-${Math.random()}`;
+                const imageFolder = collectionName === 'updates' ? 'images' : `images/${documentId}`;
+                path = `${collectionName}/${imageFolder}/${Date.now()}-${Math.random()}`;
             } else {
                 path = `${collectionName}/${userId}/${documentId ? `${documentId}/` : ''}${Date.now()}-${Math.random()}`;
             }
@@ -911,5 +912,7 @@ export const getReviewByPurchase = async (purchaseId: string, customerId: string
     
 
 
+
+    
 
     
