@@ -9,15 +9,11 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Upload, X } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getUpdateById, updateUpdate, useAuth } from '@/lib/store';
-import Image from 'next/image';
 import type { Update } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-
-
-type PhotoState = { file: File, preview: string };
 
 function EditUpdateSkeleton() {
     return (
@@ -33,7 +29,6 @@ function EditUpdateSkeleton() {
                 <CardContent className="space-y-4">
                     <Skeleton className="h-10 w-full" />
                     <Skeleton className="h-24 w-full" />
-                    <Skeleton className="h-32 w-full" />
                 </CardContent>
                 <CardFooter>
                     <Skeleton className="h-10 w-32" />
@@ -53,8 +48,6 @@ export default function EditUpdatePage() {
   const [update, setUpdate] = useState<Update | null>(null);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [newPhotos, setNewPhotos] = useState<PhotoState[]>([]);
-  const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -71,7 +64,6 @@ export default function EditUpdatePage() {
     setUpdate(updateData);
     setTitle(updateData.title);
     setContent(updateData.content);
-    setExistingImageUrls(updateData.imageUrls || []);
     setLoading(false);
   }, [id, currentUser, router, toast]);
 
@@ -80,50 +72,13 @@ export default function EditUpdatePage() {
   }, [fetchUpdate]);
 
 
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const photosToUpload: PhotoState[] = [];
-
-    files.forEach(file => {
-      photosToUpload.push({ file, preview: URL.createObjectURL(file) });
-    });
-
-    setNewPhotos(prev => [...prev, ...photosToUpload]);
-    e.target.value = '';
-  };
-
-  const removeNewPhoto = (index: number) => {
-    const photoToRemove = newPhotos[index];
-    if (photoToRemove) {
-      URL.revokeObjectURL(photoToRemove.preview);
-    }
-    setNewPhotos(prev => prev.filter((_, i) => i !== index));
-  };
-  
-   const removeExistingPhoto = (url: string) => {
-    setExistingImageUrls(prev => prev.filter(photoUrl => photoUrl !== url));
-  }
-
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!update) return;
     setSaving(true);
     
-    const newPhotosAsDataUrls = await Promise.all(
-        newPhotos.map(photo => {
-            return new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result as string);
-                reader.onerror = reject;
-                reader.readAsDataURL(photo.file);
-            });
-        })
-    );
-
-
     try {
-        await updateUpdate(update.id, { title, content }, newPhotosAsDataUrls, existingImageUrls);
+        await updateUpdate(update.id, { title, content }, [], []);
         toast({
           title: "Update Saved!",
           description: "Your post has been successfully updated.",
@@ -171,51 +126,6 @@ export default function EditUpdatePage() {
                 <div className="space-y-2">
                     <Label htmlFor="content">Content</Label>
                     <Textarea id="content" name="content" value={content} onChange={(e) => setContent(e.target.value)} required disabled={saving} rows={6} />
-                </div>
-                
-                <div className="space-y-2">
-                    <Label htmlFor="photo">Images</Label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                        {existingImageUrls.map((url) => (
-                            <div key={url} className="relative group">
-                                <Image src={url} alt="Existing photo" width={150} height={150} className="rounded-lg object-cover aspect-square" />
-                                <Button
-                                    type="button"
-                                    variant="destructive"
-                                    size="icon"
-                                    className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={() => removeExistingPhoto(url)}
-                                    disabled={saving}
-                                    >
-                                    <X className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        ))}
-                        {newPhotos.map((photo, index) => (
-                            <div key={photo.preview} className="relative group">
-                                <Image src={photo.preview} alt="Upload preview" width={150} height={150} className="rounded-lg object-cover aspect-square" />
-                                <Button
-                                    type="button"
-                                    variant="destructive"
-                                    size="icon"
-                                    className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={() => removeNewPhoto(index)}
-                                    disabled={saving}
-                                    >
-                                    <X className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        ))}
-                        <div className="flex items-center justify-center w-full">
-                            <label htmlFor="dropzone-file" className={`flex flex-col items-center justify-center w-full h-full aspect-square border-2 border-dashed rounded-lg ${saving ? 'cursor-not-allowed bg-muted/50' : 'cursor-pointer bg-secondary hover:bg-muted'}`}>
-                                <div className="flex flex-col items-center justify-center text-center p-2">
-                                    <Upload className="w-8 h-8 mb-2 text-muted-foreground" />
-                                    <p className="text-xs text-muted-foreground"><span className="font-semibold">Add photos</span></p>
-                                </div>
-                                <Input id="dropzone-file" type="file" className="hidden" onChange={handlePhotoUpload} accept="image/png, image/jpeg, image/webp" multiple disabled={saving} />
-                            </label>
-                        </div> 
-                    </div>
                 </div>
             </CardContent>
             <CardFooter>

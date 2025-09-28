@@ -25,7 +25,6 @@ function FeedSkeleton() {
         <div className="space-y-6">
             {[...Array(3)].map((_, i) => (
                 <Card key={i} className="overflow-hidden">
-                    <Skeleton className="h-48 w-full" />
                     <CardHeader>
                         <Skeleton className="h-6 w-3/4 mb-2" />
                         <div className="flex items-center gap-4">
@@ -87,23 +86,6 @@ export function UpdatesFeed({ refreshKey }: { refreshKey: number }) {
         <div className="space-y-6">
             {updates.map(update => (
                 <Card key={update.id} className="overflow-hidden transition-shadow hover:shadow-lg">
-                    {update.imageUrls && update.imageUrls.length > 0 && (
-                        <Link href={`/updates/${update.id}`} className="block relative h-48 sm:h-56 w-full">
-                             <Image 
-                                src={update.imageUrls[0]} 
-                                alt={update.title} 
-                                fill
-                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                                style={{objectFit: 'cover'}} 
-                                data-ai-hint="construction industry news"
-                            />
-                             {update.imageUrls.length > 1 && (
-                                <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs font-bold px-2 py-1 rounded-md">
-                                    + {update.imageUrls.length - 1} more
-                                </div>
-                            )}
-                        </Link>
-                    )}
                     <CardHeader>
                         <CardTitle className="text-xl font-headline">
                              <Link href={`/updates/${update.id}`} className="hover:text-primary transition-colors">

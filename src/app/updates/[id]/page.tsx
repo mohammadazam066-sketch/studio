@@ -4,7 +4,6 @@
 
 import { getUpdateById, deleteUpdate, useAuth } from '@/lib/store';
 import { useParams, useRouter } from 'next/navigation';
-import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { User, Store, Bot, Calendar, ArrowLeft, Edit, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -52,10 +51,6 @@ function PageSkeleton() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-             <Skeleton className="h-64 w-full rounded-lg" />
-             <Skeleton className="h-64 w-full rounded-lg" />
-          </div>
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-2/3" />
@@ -176,23 +171,6 @@ export default function UpdateDetailPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {update.imageUrls && update.imageUrls.length > 0 && (
-            <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {update.imageUrls.map((url, index) => (
-                    <div key={index} className="relative aspect-video">
-                        <Image 
-                            src={url} 
-                            alt={`${update.title} photo ${index + 1}`} 
-                            fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            style={{objectFit: 'cover'}}
-                            className="rounded-lg"
-                            data-ai-hint="construction industry news"
-                        />
-                    </div>
-                ))}
-            </div>
-          )}
           <p className="whitespace-pre-wrap text-base leading-relaxed">{update.content}</p>
         </CardContent>
       </Card>
@@ -202,7 +180,7 @@ export default function UpdateDetailPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete this post and all its images.
+              This action cannot be undone. This will permanently delete this post.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

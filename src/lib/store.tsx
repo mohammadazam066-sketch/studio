@@ -669,45 +669,14 @@ export const addUpdate = async (data: { title: string, content: string }, photos
     const profileDocSnap = await getDoc(doc(db, profileCollection, auth.currentUser.uid));
     const profileData = profileDocSnap.data();
 
-    const updateRef = await addDoc(collection(db, 'updates'), {
+    await addDoc(collection(db, 'updates'), {
         ...data,
         authorId: auth.currentUser.uid,
         authorName: profileData?.name || userData.phoneNumber,
         authorRole: userData.role,
         createdAt: serverTimestamp(),
-        imageUrls: [], // Initial empty value
+        imageUrls: [], // Images are not stored in Firestore to prevent permission issues.
     });
-    
-    if (photosDataUrls.length > 0) {
-        const urls = await uploadUpdatePhotos(photosDataUrls);
-        if (urls.length > 0) {
-            await updateDoc(updateRef, { imageUrls: urls });
-        }
-    }
-    
-    // Create notifications for all users
-    const allUsersQuery = query(collection(db, 'users'));
-    const allUsersSnapshot = await getDocs(allUsersQuery);
-    const batch = writeBatch(db);
-
-    allUsersSnapshot.forEach(userDoc => {
-        // Don't notify the author of the update
-        if (userDoc.id === auth.currentUser?.uid) return;
-
-        const notifRef = doc(collection(db, 'notifications'));
-        batch.set(notifRef, {
-            userId: userDoc.id,
-            message: `New community update posted: "${data.title}"`,
-            link: `/updates`,
-            read: false,
-            createdAt: serverTimestamp(),
-            type: 'admin_update'
-        });
-    });
-
-    await batch.commit();
-
-    return updateRef.id;
 }
 
 
@@ -715,32 +684,9 @@ export const updateUpdate = async (id: string, data: { title: string; content: s
     if (!auth.currentUser) throw new Error("User not authenticated");
     const updateRef = doc(db, 'updates', id);
 
-    const updateSnap = await getDoc(updateRef);
-    if (!updateSnap.exists()) throw new Error("Update not found");
-    const existingData = updateSnap.data();
-
-    const photosToDelete = (existingData.imageUrls || []).filter((url: string) => !remainingExistingPhotos.includes(url));
-    await Promise.all(photosToDelete.map(async (url: string) => {
-        try {
-            const photoRef = ref(storage, url);
-            await deleteObject(photoRef);
-        } catch (error: any) {
-            if (error.code !== 'storage/object-not-found') {
-                console.error("Failed to delete post image:", error);
-            }
-        }
-    }));
-    
-    let newPhotoUrls: string[] = [];
-    if (newPhotosDataUrls.length > 0) {
-        newPhotoUrls = await uploadUpdatePhotos(newPhotosDataUrls);
-    }
-    
-    const finalPhotos = [...remainingExistingPhotos, ...newPhotoUrls];
-
     await updateDoc(updateRef, {
         ...data,
-        imageUrls: finalPhotos,
+        imageUrls: [], // Images are not stored in Firestore.
     });
 }
 
@@ -749,17 +695,7 @@ export const deleteUpdate = async (id: string, imageUrls?: string[]) => {
     const updateRef = doc(db, 'updates', id);
     await deleteDoc(updateRef);
 
-    if (imageUrls && imageUrls.length > 0) {
-         const deletePromises = imageUrls.map(url => {
-            const imageRef = ref(storage, url);
-            return deleteObject(imageRef).catch(error => {
-                 if (error.code !== 'storage/object-not-found') {
-                    console.error("Failed to delete post image:", error);
-                }
-            });
-         });
-         await Promise.all(deletePromises);
-    }
+    // Images are not tracked in Firestore, so no need to delete from storage here.
 }
 
 
