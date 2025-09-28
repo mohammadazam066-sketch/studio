@@ -428,7 +428,7 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                                                                 <FormControl>
                                                                     <Input
                                                                         type="number"
-                                                                        placeholder="Quantity (bags)"
+                                                                        placeholder="Quantity (optional)"
                                                                         value={selectedBrand.quantity ?? ''}
                                                                         onChange={(e) => {
                                                                             const currentBrands = getValues("brands") || [];
@@ -508,7 +508,7 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                                                     <FormItem className="flex-1">
                                                         <FormLabel>Quantity (rods)</FormLabel>
                                                         <FormControl>
-                                                            <Input type="number" {...field} placeholder="e.g., 100" value={field.value ?? ''} onChange={e => field.onChange(parseInt(e.target.value) || 0)} />
+                                                            <Input type="number" {...field} placeholder="e.g., 100" value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} />
                                                         </FormControl>
                                                         <FormMessage />
                                                     </FormItem>
