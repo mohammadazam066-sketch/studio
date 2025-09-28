@@ -647,6 +647,18 @@ export const getUser = async (userId: string): Promise<User | undefined> => {
 
 // == UPDATES ==
 
+const uploadUpdatePhotos = async (photosDataUrls: string[]): Promise<string[]> => {
+    const urls = await Promise.all(
+        photosDataUrls.map(async (dataUrl) => {
+            const path = `updates/images/${Date.now()}-${Math.random()}`;
+            const photoRef = ref(storage, path);
+            await uploadString(photoRef, dataUrl, 'data_url');
+            return getDownloadURL(photoRef);
+        })
+    );
+    return urls;
+};
+
 export const addUpdate = async (data: { title: string, content: string }, photosDataUrls: string[] = []) => {
     if (!auth.currentUser) throw new Error("User not authenticated");
     
@@ -667,7 +679,7 @@ export const addUpdate = async (data: { title: string, content: string }, photos
     });
     
     if (photosDataUrls.length > 0) {
-        const urls = await uploadPhotos('updates', auth.currentUser.uid, photosDataUrls, updateRef.id);
+        const urls = await uploadUpdatePhotos(photosDataUrls);
         if (urls.length > 0) {
             await updateDoc(updateRef, { imageUrls: urls });
         }
@@ -721,7 +733,7 @@ export const updateUpdate = async (id: string, data: { title: string; content: s
     
     let newPhotoUrls: string[] = [];
     if (newPhotosDataUrls.length > 0) {
-        newPhotoUrls = await uploadPhotos('updates', auth.currentUser.uid, newPhotosDataUrls, id);
+        newPhotoUrls = await uploadUpdatePhotos(newPhotosDataUrls);
     }
     
     const finalPhotos = [...remainingExistingPhotos, ...newPhotoUrls];
@@ -931,3 +943,4 @@ export const getReviewByPurchase = async (purchaseId: string, customerId: string
 }
 
     
+
