@@ -484,7 +484,7 @@ export const getOpenRequirementsByCategory = async (category: string): Promise<R
     // Sort manually on the client-side to avoid needing a composite index
     return requirements.sort((a, b) => {
         const dateA = (a.createdAt as any)?.toDate ? (a.createdAt as any).toDate() : new Date(a.createdAt as string);
-        const dateB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate() : new Date(b.createdAt as string);
+        const dateB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate() : new Date(a.createdAt as string);
         return dateB.getTime() - dateA.getTime();
     });
 }
@@ -944,3 +944,6 @@ export const getReviewByPurchase = async (purchaseId: string, customerId: string
 
     
 
+
+
+    
