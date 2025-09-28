@@ -508,7 +508,13 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
                                                     <FormItem className="flex-1">
                                                         <FormLabel>Quantity (rods)</FormLabel>
                                                         <FormControl>
-                                                            <Input type="number" {...field} placeholder="e.g., 100" value={field.value ?? ''} onChange={e => field.onChange(e.target.value === '' ? undefined : parseInt(e.target.value, 10))} />
+                                                             <Input
+                                                                type="number"
+                                                                {...field}
+                                                                placeholder="e.g., 100"
+                                                                value={field.value ?? ''}
+                                                                onChange={e => field.onChange(parseInt(e.target.value, 10) || undefined)}
+                                                            />
                                                         </FormControl>
                                                         <FormMessage />
                                                     </FormItem>
