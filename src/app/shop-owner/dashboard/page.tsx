@@ -280,7 +280,7 @@ export default function ShopOwnerDashboard() {
                                                 {req.brands.map(brand => (
                                                     <li key={brand.id} className="text-sm text-muted-foreground flex items-center gap-2">
                                                         <Droplets className="w-4 h-4 text-primary/70" />
-                                                        <span>{brand.id}: <strong>{brand.quantity || 'N/A'} bags</strong></span>
+                                                        <span>{brand.id}</span>
                                                     </li>
                                                 ))}
                                             </ul>

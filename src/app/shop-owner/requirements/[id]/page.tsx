@@ -144,7 +144,6 @@ export default function RequirementDetailPageForShop() {
                                 {requirement.brands.map(brand => (
                                     <div key={brand.id} className="flex items-center justify-between text-sm p-2 bg-muted/50 rounded-md">
                                         <span className="text-muted-foreground">{brand.id}</span>
-                                        <span className="font-medium">{brand.quantity} bags</span>
                                     </div>
                                 ))}
                             </div>
