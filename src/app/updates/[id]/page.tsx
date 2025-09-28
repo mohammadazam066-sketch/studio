@@ -184,6 +184,7 @@ export default function UpdateDetailPage() {
                             src={url} 
                             alt={`${update.title} photo ${index + 1}`} 
                             fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                             style={{objectFit: 'cover'}}
                             className="rounded-lg"
                             data-ai-hint="construction industry news"

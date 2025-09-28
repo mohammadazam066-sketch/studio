@@ -93,6 +93,7 @@ export function UpdatesFeed({ refreshKey }: { refreshKey: number }) {
                                 src={update.imageUrls[0]} 
                                 alt={update.title} 
                                 fill
+                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                                 style={{objectFit: 'cover'}} 
                                 data-ai-hint="construction industry news"
                             />
