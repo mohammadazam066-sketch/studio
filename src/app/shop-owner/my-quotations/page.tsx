@@ -150,7 +150,7 @@ export default function MyQuotationsPage() {
                                 <CardContent className="space-y-3">
                                    <div className="flex items-center text-lg font-semibold text-primary">
                                         <IndianRupee className="w-4 h-4 mr-0.5" />
-                                        {quote.totalAmount.toLocaleString('en-IN')}
+                                        {(quote.totalAmount || 0).toLocaleString('en-IN')}
                                         <span className="text-xs text-muted-foreground ml-2 font-normal">(Total Amount)</span>
                                     </div>
                                     <div className="flex items-start gap-3 text-sm">
