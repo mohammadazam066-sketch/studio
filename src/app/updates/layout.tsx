@@ -1,37 +1,26 @@
 
 'use client';
 
-import { useAuth } from '@/lib/store';
-import { Logo } from '@/components/logo';
+import { DashboardLayout } from "@/components/dashboard-layout";
+import { useAuth } from "@/lib/store";
+import { Loader2 } from "lucide-react";
 
-// This layout ensures that pages within the /updates directory are publicly accessible
-// and not wrapped by any authentication-requiring layouts.
 export default function UpdatesLayout({ children }: { children: React.ReactNode }) {
-  const { loading } = useAuth();
-  
-  if (loading) {
-     return (
-      <div className="flex h-screen w-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+    const { currentUser, loading } = useAuth();
+    
+    // We can't determine role until currentUser is loaded.
+    // The DashboardLayout itself has a loader, so this is fine.
+    if (loading || !currentUser) {
+        return (
+             <div className="flex h-screen w-screen items-center justify-center">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+        );
+    }
 
   return (
-     <div className="flex flex-col min-h-screen bg-secondary">
-        <header className="sticky top-0 z-20 w-full bg-background/80 backdrop-blur-sm shadow-sm">
-            <div className="container mx-auto flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-                <Logo />
-            </div>
-        </header>
-        <main className="flex-1">
-            <div className="container mx-auto max-w-5xl px-4 py-6 sm:px-6 lg:px-8">
-                 {children}
-            </div>
-        </main>
-        <footer className="py-6 text-center text-muted-foreground text-sm bg-background">
-            <p>© {new Date().getFullYear()} TradeFlow. All rights reserved.</p>
-        </footer>
-    </div>
+    <DashboardLayout role={currentUser.role}>
+        {children}
+    </DashboardLayout>
   );
 }
