@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { useToast } from '@/hooks/use-toast';
+import Image from 'next/image';
 
 
 function formatDate(date: Date | string | Timestamp) {
@@ -171,6 +172,15 @@ export default function UpdateDetailPage() {
           </div>
         </CardHeader>
         <CardContent>
+          {update.imageUrls && update.imageUrls.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+              {update.imageUrls.map((url, index) => (
+                <div key={index} className="relative aspect-video">
+                  <Image src={url} alt={`Update image ${index + 1}`} fill style={{objectFit: 'cover'}} className="rounded-md" />
+                </div>
+              ))}
+            </div>
+          )}
           <p className="whitespace-pre-wrap text-base leading-relaxed">{update.content}</p>
         </CardContent>
       </Card>

@@ -86,6 +86,13 @@ export function UpdatesFeed({ refreshKey }: { refreshKey: number }) {
         <div className="space-y-6">
             {updates.map(update => (
                 <Card key={update.id} className="overflow-hidden transition-shadow hover:shadow-lg">
+                    {update.imageUrls && update.imageUrls.length > 0 && (
+                        <Link href={`/updates/${update.id}`} className="block">
+                            <div className="relative aspect-video">
+                                <Image src={update.imageUrls[0]} alt={update.title} fill style={{objectFit: 'cover'}} className="border-b" />
+                            </div>
+                        </Link>
+                    )}
                     <CardHeader>
                         <CardTitle className="text-xl font-headline">
                              <Link href={`/updates/${update.id}`} className="hover:text-primary transition-colors">

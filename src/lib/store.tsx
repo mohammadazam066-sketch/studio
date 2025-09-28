@@ -647,18 +647,6 @@ export const getUser = async (userId: string): Promise<User | undefined> => {
 
 // == UPDATES ==
 
-const uploadUpdatePhotos = async (photosDataUrls: string[]): Promise<string[]> => {
-    const urls = await Promise.all(
-        photosDataUrls.map(async (dataUrl) => {
-            const path = `updates/images/${Date.now()}-${Math.random()}`;
-            const photoRef = ref(storage, path);
-            await uploadString(photoRef, dataUrl, 'data_url');
-            return getDownloadURL(photoRef);
-        })
-    );
-    return urls;
-};
-
 export const addUpdate = async (data: { title: string, content: string }, photosDataUrls: string[] = []) => {
     if (!auth.currentUser) throw new Error("User not authenticated");
     
@@ -669,13 +657,15 @@ export const addUpdate = async (data: { title: string, content: string }, photos
     const profileDocSnap = await getDoc(doc(db, profileCollection, auth.currentUser.uid));
     const profileData = profileDocSnap.data();
 
+    const photoUrls = await uploadPhotos('updates', auth.currentUser.uid, photosDataUrls);
+
     await addDoc(collection(db, 'updates'), {
         ...data,
         authorId: auth.currentUser.uid,
         authorName: profileData?.name || userData.phoneNumber,
         authorRole: userData.role,
         createdAt: serverTimestamp(),
-        imageUrls: [], // Images are not stored in Firestore to prevent permission issues.
+        imageUrls: photoUrls,
     });
 }
 
@@ -684,9 +674,28 @@ export const updateUpdate = async (id: string, data: { title: string; content: s
     if (!auth.currentUser) throw new Error("User not authenticated");
     const updateRef = doc(db, 'updates', id);
 
+    const updateSnap = await getDoc(updateRef);
+    if (!updateSnap.exists()) throw new Error("Update not found");
+    const existingData = updateSnap.data();
+
+    const photosToDelete = (existingData.imageUrls || []).filter(url => !remainingExistingPhotos.includes(url));
+    await Promise.all(photosToDelete.map(async (url) => {
+        try {
+            const photoRef = ref(storage, url);
+            await deleteObject(photoRef);
+        } catch (error: any) {
+            if (error.code !== 'storage/object-not-found') {
+                console.error("Failed to delete old photo:", error);
+            }
+        }
+    }));
+
+    const newPhotoUrls = await uploadPhotos('updates', auth.currentUser.uid, newPhotosDataUrls, id);
+    const finalPhotos = [...remainingExistingPhotos, ...newPhotoUrls];
+    
     await updateDoc(updateRef, {
         ...data,
-        imageUrls: [], // Images are not stored in Firestore.
+        imageUrls: finalPhotos,
     });
 }
 
@@ -695,7 +704,18 @@ export const deleteUpdate = async (id: string, imageUrls?: string[]) => {
     const updateRef = doc(db, 'updates', id);
     await deleteDoc(updateRef);
 
-    // Images are not tracked in Firestore, so no need to delete from storage here.
+    if (imageUrls && imageUrls.length > 0) {
+        await Promise.all(imageUrls.map(async (url) => {
+            try {
+                const photoRef = ref(storage, url);
+                await deleteObject(photoRef);
+            } catch (error: any) {
+                if (error.code !== 'storage/object-not-found') {
+                    console.error("Failed to delete update photo:", error);
+                }
+            }
+        }));
+    }
 }
 
 
@@ -883,3 +903,4 @@ export const getReviewByPurchase = async (purchaseId: string, customerId: string
 
 
     
+
