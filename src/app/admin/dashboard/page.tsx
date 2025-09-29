@@ -240,7 +240,7 @@ export default function AdminDashboardPage() {
                                                                                 <p className="text-muted-foreground">{quote.shopOwnerName}</p>
                                                                                 <Separator className="my-1.5" />
                                                                                 <div className="space-y-1">
-                                                                                     <p className="flex items-center gap-1.5"><IndianRupee className="w-3 h-3" /> <span className="font-mono">{quote.totalAmount.toLocaleString('en-IN')}</span></p>
+                                                                                     <p className="flex items-center gap-1.5"><IndianRupee className="w-3 h-3" /> <span className="font-mono">{typeof quote.totalAmount === 'number' ? quote.totalAmount.toLocaleString('en-IN') : 'N/A'}</span></p>
                                                                                      <p className="flex items-center gap-1.5"><Calendar className="w-3 h-3" /> {formatShortDate(quote.deliveryDate)}</p>
                                                                                      {quote.terms && <p className="flex items-start gap-1.5"><FileText className="w-3 h-3 mt-0.5" /> {quote.terms}</p>}
                                                                                 </div>
