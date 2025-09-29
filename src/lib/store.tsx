@@ -139,7 +139,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     let uploadedUrls: string[] = [];
     if (newPhotosDataUrls.length > 0) {
         if (currentUser.role === 'shop-owner') {
-            uploadedUrls = await uploadPhotos('shopOwnerProfiles', currentUser.id, newPhotosDataUrls);
+            uploadedUrls = await uploadPhotos(newPhotosDataUrls, {type: 'shop', userId: currentUser.id});
         } else if (currentUser.role === 'homeowner' && newPhotosDataUrls.length === 1) {
             // Homeowners can only have one profile picture
             // Delete old photo if it exists
@@ -153,7 +153,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     }
                 }
             }
-            uploadedUrls = await uploadPhotos('homeownerProfiles', currentUser.id, newPhotosDataUrls);
+            uploadedUrls = await uploadPhotos(newPhotosDataUrls, {type: 'profile', userId: currentUser.id});
         }
     }
     
@@ -175,7 +175,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 }
             }
         }
-        const [iconUrl] = await uploadPhotos('shopOwnerProfiles', currentUser.id, [newIconDataUrl], 'icon');
+        const [iconUrl] = await uploadPhotos([newIconDataUrl], {type: 'shop', userId: currentUser.id, subfolder: 'icon'});
         finalProfileData.shopIconUrl = iconUrl;
     }
 
@@ -334,18 +334,34 @@ export const useAuth = () => {
 
 // --- FIRESTORE DATA FUNCTIONS ---
 
-// Helper to upload photos and get URLs
-const uploadPhotos = async (collectionName: string, userId: string, photosDataUrls: string[], documentId?: string): Promise<string[]> => {
+type UploadPathConfig = 
+  | { type: 'requirement'; requirementId: string }
+  | { type: 'update'; }
+  | { type: 'profile'; userId: string }
+  | { type: 'shop'; userId: string, subfolder?: 'icon' | 'photos' };
+
+const uploadPhotos = async (photosDataUrls: string[], pathConfig: UploadPathConfig): Promise<string[]> => {
     const urls = await Promise.all(
         photosDataUrls.map(async (dataUrl) => {
-            let path;
-            if (collectionName === 'updates' || collectionName === 'requirements') {
-                 // Store all update images in a single public folder
-                const imageFolder = collectionName === 'updates' ? 'images' : `images/${documentId}`;
-                path = `${collectionName}/${imageFolder}/${Date.now()}-${Math.random()}`;
-            } else {
-                path = `${collectionName}/${userId}/${documentId ? `${documentId}/` : ''}${Date.now()}-${Math.random()}`;
+            let path: string;
+            switch(pathConfig.type) {
+                case 'requirement':
+                    path = `requirements/images/${pathConfig.requirementId}/${Date.now()}-${Math.random()}`;
+                    break;
+                case 'update':
+                    path = `updates/images/${Date.now()}-${Math.random()}`;
+                    break;
+                case 'profile':
+                    path = `homeownerProfiles/${pathConfig.userId}/${Date.now()}-${Math.random()}`;
+                    break;
+                case 'shop':
+                    const sub = pathConfig.subfolder || 'photos';
+                    path = `shopOwnerProfiles/${pathConfig.userId}/${sub}/${Date.now()}-${Math.random()}`;
+                    break;
+                default:
+                    throw new Error("Invalid upload path configuration");
             }
+            
             const photoRef = ref(storage, path);
             await uploadString(photoRef, dataUrl, 'data_url');
             return getDownloadURL(photoRef);
@@ -378,7 +394,7 @@ export const addRequirement = async (data, photosDataUrls: string[]) => {
         photos: [], // Start with empty array,
     });
 
-    const photoUrls = await uploadPhotos('requirements', auth.currentUser.uid, photosDataUrls, requirementRef.id);
+    const photoUrls = await uploadPhotos(photosDataUrls, { type: 'requirement', requirementId: requirementRef.id });
     await updateDoc(requirementRef, { photos: photoUrls });
     
     // Create notifications for shop owners in the same location
@@ -435,7 +451,7 @@ export const updateRequirement = async (id: string, data: Partial<Requirement>, 
     // Handle photo additions
     let newPhotoUrls: string[] = [];
     if (newPhotosDataUrls.length > 0) {
-        newPhotoUrls = await uploadPhotos('requirements', auth.currentUser.uid, newPhotosDataUrls, id);
+        newPhotoUrls = await uploadPhotos(newPhotosDataUrls, {type: 'requirement', requirementId: id});
     }
     
     const finalPhotos = [...remainingExistingPhotos, ...newPhotoUrls];
@@ -664,7 +680,7 @@ export const addUpdate = async (data: { title: string, content: string }, photos
     const profileDocSnap = await getDoc(doc(db, profileCollection, auth.currentUser.uid));
     const profileData = profileDocSnap.data();
 
-    const photoUrls = await uploadPhotos('updates', auth.currentUser.uid, photosDataUrls);
+    const photoUrls = await uploadPhotos(photosDataUrls, { type: 'update' });
 
     await addDoc(collection(db, 'updates'), {
         ...data,
@@ -697,7 +713,7 @@ export const updateUpdate = async (id: string, data: { title: string; content: s
         }
     }));
 
-    const newPhotoUrls = await uploadPhotos('updates', auth.currentUser.uid, newPhotosDataUrls, id);
+    const newPhotoUrls = await uploadPhotos(newPhotosDataUrls, { type: 'update' });
     const finalPhotos = [...remainingExistingPhotos, ...newPhotoUrls];
     
     await updateDoc(updateRef, {
