@@ -46,23 +46,30 @@ export function PhoneAuthForm() {
       window.recaptchaVerifier.clear();
     }
     if (recaptchaContainerRef.current) {
-        const verifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
-            'size': 'invisible',
-            'callback': () => {
-                // reCAPTCHA solved, allow signInWithPhoneNumber.
-            },
-            'expired-callback': () => {
-                toast({
-                    variant: "destructive",
-                    title: "reCAPTCHA Expired",
-                    description: "Please try sending the OTP again.",
-                });
-            },
-        });
-        window.recaptchaVerifier = verifier;
-        return verifier;
+        try {
+            const verifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
+                'size': 'invisible',
+                'callback': () => {
+                    // reCAPTCHA solved, allow signInWithPhoneNumber.
+                },
+                'expired-callback': () => {
+                    toast({
+                        variant: "destructive",
+                        title: "reCAPTCHA Expired",
+                        description: "Please try sending the OTP again.",
+                    });
+                },
+            });
+            window.recaptchaVerifier = verifier;
+            return verifier;
+        } catch (error) {
+            if (error.message.includes("reCAPTCHA has already been rendered")) {
+                return window.recaptchaVerifier;
+            }
+            console.error("reCAPTCHA setup error:", error);
+        }
     }
-    return undefined;
+    return window.recaptchaVerifier;
   };
 
 
@@ -118,7 +125,9 @@ export function PhoneAuthForm() {
           title: 'OTP Send Error',
           description: errorMessage,
       });
+      // @ts-ignore
       if (window.grecaptcha && appVerifier.widgetId !== undefined) {
+         // @ts-ignore
          window.grecaptcha.reset(appVerifier.widgetId);
       }
     } finally {
