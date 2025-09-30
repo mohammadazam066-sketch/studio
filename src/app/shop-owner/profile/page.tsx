@@ -142,27 +142,28 @@ export default function ShopOwnerProfilePage() {
   });
 
   useEffect(() => {
-    if (currentUser?.profile) {
-      const profile = currentUser.profile as ShopOwnerProfile;
-      form.reset({
-        name: profile.name || '',
-        shopName: profile.shopName || '',
-        phoneNumber: currentUser.phoneNumber || '',
-        address: profile.address || '',
-        location: profile.location || '',
-      });
-      setExistingPhotos(profile.shopPhotos || []);
-      
-      const fetchReviews = async () => {
-        setLoadingReviews(true);
-        const userReviews = await getReviewsByShopOwner(currentUser.id);
-        setReviews(userReviews);
-        setLoadingReviews(false);
-      }
-      fetchReviews();
+    if (currentUser?.id) {
+        if (currentUser.profile) {
+            const profile = currentUser.profile as ShopOwnerProfile;
+            form.reset({
+                name: profile.name || '',
+                shopName: profile.shopName || '',
+                phoneNumber: currentUser.phoneNumber || '',
+                address: profile.address || '',
+                location: profile.location || '',
+            });
+            setExistingPhotos(profile.shopPhotos || []);
+        }
 
+        const fetchReviews = async () => {
+            setLoadingReviews(true);
+            const userReviews = await getReviewsByShopOwner(currentUser.id);
+            setReviews(userReviews);
+            setLoadingReviews(false);
+        }
+        fetchReviews();
     }
-  }, [currentUser, form]);
+  }, [currentUser, form.reset]);
 
   const handleIconUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

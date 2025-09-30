@@ -103,7 +103,7 @@ export default function HomeownerProfilePage() {
         occupation: profile.occupation || '',
       });
     }
-  }, [currentUser, form]);
+  }, [currentUser, form.reset]);
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
