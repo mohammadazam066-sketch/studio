@@ -335,8 +335,8 @@ export const useAuth = () => {
 // --- FIRESTORE DATA FUNCTIONS ---
 
 type UploadPathConfig = 
-  | { type: 'requirement'; requirementId: string }
-  | { type: 'update'; }
+  | { type: 'requirement'; userId: string; requirementId: string }
+  | { type: 'update'; userId: string; updateId: string; }
   | { type: 'profile'; userId: string }
   | { type: 'shop'; userId: string, subfolder?: 'icon' | 'photos' };
 
@@ -344,19 +344,20 @@ const uploadPhotos = async (photosDataUrls: string[], pathConfig: UploadPathConf
     const urls = await Promise.all(
         photosDataUrls.map(async (dataUrl) => {
             let path: string;
+            const uniquePart = `${Date.now()}-${Math.random()}`;
             switch(pathConfig.type) {
                 case 'requirement':
-                    path = `requirements/images/${pathConfig.requirementId}/${Date.now()}-${Math.random()}`;
+                    path = `requirements/${pathConfig.userId}/${pathConfig.requirementId}/${uniquePart}`;
                     break;
                 case 'update':
-                    path = `updates/images/${Date.now()}-${Math.random()}`;
+                     path = `updates/${pathConfig.userId}/${pathConfig.updateId}/${uniquePart}`;
                     break;
                 case 'profile':
-                    path = `homeownerProfiles/${pathConfig.userId}/${Date.now()}-${Math.random()}`;
+                    path = `homeownerProfiles/${pathConfig.userId}/${uniquePart}`;
                     break;
                 case 'shop':
                     const sub = pathConfig.subfolder || 'photos';
-                    path = `shopOwnerProfiles/${pathConfig.userId}/${sub}/${Date.now()}-${Math.random()}`;
+                    path = `shopOwnerProfiles/${pathConfig.userId}/${sub}/${uniquePart}`;
                     break;
                 default:
                     throw new Error("Invalid upload path configuration");
@@ -394,7 +395,7 @@ export const addRequirement = async (data, photosDataUrls: string[]) => {
         photos: [], // Start with empty array,
     });
 
-    const photoUrls = await uploadPhotos(photosDataUrls, { type: 'requirement', requirementId: requirementRef.id });
+    const photoUrls = await uploadPhotos(photosDataUrls, { type: 'requirement', userId: auth.currentUser.uid, requirementId: requirementRef.id });
     await updateDoc(requirementRef, { photos: photoUrls });
     
     // Create notifications for shop owners in the same location
@@ -451,7 +452,7 @@ export const updateRequirement = async (id: string, data: Partial<Requirement>, 
     // Handle photo additions
     let newPhotoUrls: string[] = [];
     if (newPhotosDataUrls.length > 0) {
-        newPhotoUrls = await uploadPhotos(newPhotosDataUrls, {type: 'requirement', requirementId: id});
+        newPhotoUrls = await uploadPhotos(newPhotosDataUrls, {type: 'requirement', userId: auth.currentUser.uid, requirementId: id});
     }
     
     const finalPhotos = [...remainingExistingPhotos, ...newPhotoUrls];
@@ -680,16 +681,18 @@ export const addUpdate = async (data: { title: string, content: string }, photos
     const profileDocSnap = await getDoc(doc(db, profileCollection, auth.currentUser.uid));
     const profileData = profileDocSnap.data();
 
-    const photoUrls = await uploadPhotos(photosDataUrls, { type: 'update' });
-
-    await addDoc(collection(db, 'updates'), {
+    const updateRef = await addDoc(collection(db, 'updates'), {
         ...data,
         authorId: auth.currentUser.uid,
         authorName: profileData?.name || userData.phoneNumber,
         authorRole: userData.role,
         createdAt: serverTimestamp(),
-        imageUrls: photoUrls,
+        imageUrls: [],
     });
+
+    const photoUrls = await uploadPhotos(photosDataUrls, { type: 'update', userId: auth.currentUser.uid, updateId: updateRef.id });
+
+    await updateDoc(updateRef, { imageUrls: photoUrls });
 }
 
 
@@ -713,7 +716,7 @@ export const updateUpdate = async (id: string, data: { title: string; content: s
         }
     }));
 
-    const newPhotoUrls = await uploadPhotos(newPhotosDataUrls, { type: 'update' });
+    const newPhotoUrls = await uploadPhotos(newPhotosDataUrls, { type: 'update', userId: auth.currentUser.uid, updateId: id });
     const finalPhotos = [...remainingExistingPhotos, ...newPhotoUrls];
     
     await updateDoc(updateRef, {
@@ -932,3 +935,4 @@ export const getReviewByPurchase = async (purchaseId: string, customerId: string
     
 
     
+
