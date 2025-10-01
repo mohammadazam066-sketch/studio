@@ -2,7 +2,7 @@
 
 'use client';
 
-import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, deleteRequirement, createPurchase, useAuth, getReviewByPurchase, addReview, getReviewsByShopOwner, updateReview } from '@/lib/store';
+import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, deleteRequirement, createPurchase, useAuth, getReviewByPurchase, addReview, getReviewsByShopOwner, updateReview, getHomeownerProfileById } from '@/lib/store';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -281,7 +281,13 @@ export default function RequirementDetailPage() {
         return;
     }
     
-    if (!currentUser || !currentUser.profile?.name) {
+    if (!currentUser?.id) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not submit review due to missing user information.' });
+        return;
+    }
+
+    const homeownerProfile = await getHomeownerProfileById(currentUser.id);
+     if (!homeownerProfile || !homeownerProfile.name) {
         toast({ variant: 'destructive', title: 'Error', description: 'Could not submit review due to missing user information.' });
         return;
     }
@@ -302,15 +308,14 @@ export default function RequirementDetailPage() {
                 return;
             }
             // Add new review
-            const profile = currentUser.profile as HomeownerProfile;
             const reviewData = {
                 shopOwnerId: selectedQuote.shopOwnerId,
                 customerId: currentUser.id,
-                customerName: profile.name,
+                customerName: homeownerProfile.name,
                 purchaseId: requirement.purchaseId,
                 rating: rating,
                 comment: comment,
-                customerPhotoURL: profile.photoURL || `https://placehold.co/100x100.png`
+                customerPhotoURL: homeownerProfile.photoURL || `https://placehold.co/100x100.png`
             };
             await addReview(reviewData);
             toast({ title: 'Review Submitted!', description: 'Thank you for your feedback.', className: 'bg-accent text-accent-foreground border-accent' });
@@ -647,3 +652,6 @@ export default function RequirementDetailPage() {
   );
 }
 
+
+
+    
