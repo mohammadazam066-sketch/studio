@@ -187,8 +187,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         finalProfileData.photoURL = uploadedUrls[0];
     }
 
-
-    await updateDoc(profileDocRef, finalProfileData);
+    // Use set with merge: true to either create or update the document.
+    await setDoc(profileDocRef, finalProfileData, { merge: true });
     
     if (finalProfileData.name && finalProfileData.name !== currentUser.profile?.name) {
         const userDocRef = doc(db, 'users', currentUser.id);
@@ -936,3 +936,6 @@ export const getReviewByPurchase = async (purchaseId: string, customerId: string
 
     
 
+
+
+    
