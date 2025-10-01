@@ -285,15 +285,16 @@ export default function RequirementDetailPage() {
         toast({ variant: 'destructive', title: 'Error', description: 'Could not submit review due to missing user information.' });
         return;
     }
-
-    const homeownerProfile = await getHomeownerProfileById(currentUser.id);
-     if (!homeownerProfile || !homeownerProfile.name) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not submit review due to missing user information.' });
-        return;
-    }
     
     if (!selectedQuote) {
         toast({ variant: 'destructive', title: 'Error', description: 'No quote selected for review.' });
+        return;
+    }
+
+    // Explicitly fetch the latest profile data before submitting
+    const homeownerProfile = await getHomeownerProfileById(currentUser.id);
+    if (!homeownerProfile || !homeownerProfile.name) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not submit review due to missing user information.' });
         return;
     }
 
@@ -311,11 +312,11 @@ export default function RequirementDetailPage() {
             const reviewData = {
                 shopOwnerId: selectedQuote.shopOwnerId,
                 customerId: currentUser.id,
-                customerName: homeownerProfile.name,
+                customerName: homeownerProfile.name, // Use freshly fetched name
                 purchaseId: requirement.purchaseId,
                 rating: rating,
                 comment: comment,
-                customerPhotoURL: homeownerProfile.photoURL || `https://placehold.co/100x100.png`
+                customerPhotoURL: homeownerProfile.photoURL, // Use freshly fetched photo
             };
             await addReview(reviewData);
             toast({ title: 'Review Submitted!', description: 'Thank you for your feedback.', className: 'bg-accent text-accent-foreground border-accent' });
