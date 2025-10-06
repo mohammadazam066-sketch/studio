@@ -1,0 +1,22 @@
+{
+  "HomePage": {
+    "title": "Welcome to kanstruction",
+    "description": "Connecting homeowners with trusted local material suppliers. Find the right materials, post your needs with photos, and get competitive local quotes—all in one place.",
+    "getStarted": "Get Started for Free",
+    "downloadApp": "Download the App",
+    "howItWorks": "How It Works",
+    "howItWorksDescription": "A seamless process for homeowners and shop owners.",
+    "forHomeowners": "For Homeowners",
+    "forShopOwners": "For Shop Owners",
+    "homeownerStep1": "Post your exact material needs with site photos and brand preferences.",
+    "homeownerStep2": "Receive transparent, competitive quotes from verified local suppliers near you.",
+    "homeownerStep3": "Choose the best offer and get your materials delivered, saving time and money.",
+    "shopOwnerStep1": "Access a steady stream of genuine requirements from homeowners in your area.",
+    "shopOwnerStep2": "Send your best quotations directly to customers and win new business.",
+    "shopOwnerStep3": "Grow your customer base and increase sales with zero marketing effort.",
+    "footerRights": "© {year} kanstruction. All rights reserved.",
+    "terms": "Terms & Privacy",
+    "contact": "Contact Support",
+    "login": "Login / Sign Up"
+  }
+}
