@@ -2,7 +2,7 @@
 
 'use client';
 
-import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, deleteRequirement, createPurchase, useAuth, getReviewByPurchase, addReview, getReviewsByShopOwner, updateReview, getHomeownerProfileById } from '@/lib/store';
+import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, deleteRequirement, createPurchase, useAuth, getReviewByPurchase, addReview, getReviewsByShopOwner, updateReview } from '@/lib/store';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, Calendar, Wrench, FileText, CheckCircle, Edit, Trash2, Droplets, Tally5, Star, Award, XCircle, Zap, IndianRupee, Truck } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEffect, useState, useCallback } from 'react';
-import type { Requirement, Quotation, Review, HomeownerProfile } from '@/lib/types';
+import type { Requirement, Quotation, Review } from '@/lib/types';
 import type { Timestamp } from 'firebase/firestore';
 import {
   AlertDialog,
@@ -281,20 +281,13 @@ export default function RequirementDetailPage() {
         return;
     }
     
-    if (!currentUser?.id) {
+    if (!currentUser?.profile?.name) {
         toast({ variant: 'destructive', title: 'Error', description: 'Could not submit review due to missing user information.' });
         return;
     }
     
     if (!selectedQuote) {
         toast({ variant: 'destructive', title: 'Error', description: 'No quote selected for review.' });
-        return;
-    }
-
-    // Explicitly fetch the latest profile data before submitting
-    const homeownerProfile = await getHomeownerProfileById(currentUser.id);
-    if (!homeownerProfile || !homeownerProfile.name) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Could not submit review due to missing user information.' });
         return;
     }
 
@@ -312,11 +305,11 @@ export default function RequirementDetailPage() {
             const reviewData = {
                 shopOwnerId: selectedQuote.shopOwnerId,
                 customerId: currentUser.id,
-                customerName: homeownerProfile.name, // Use freshly fetched name
+                customerName: currentUser.profile.name,
                 purchaseId: requirement.purchaseId,
                 rating: rating,
                 comment: comment,
-                customerPhotoURL: homeownerProfile.photoURL, // Use freshly fetched photo
+                customerPhotoURL: currentUser.profile.photoURL,
             };
             await addReview(reviewData);
             toast({ title: 'Review Submitted!', description: 'Thank you for your feedback.', className: 'bg-accent text-accent-foreground border-accent' });

@@ -187,8 +187,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         finalProfileData.photoURL = uploadedUrls[0];
     }
 
-    // Use set with merge: true to either create or update the document.
-    await setDoc(profileDocRef, finalProfileData, { merge: true });
+    await updateDoc(profileDocRef, finalProfileData);
     
     if (finalProfileData.name && finalProfileData.name !== currentUser.profile?.name) {
         const userDocRef = doc(db, 'users', currentUser.id);
@@ -866,17 +865,10 @@ export const addReview = async (reviewData: Omit<Review, 'id' | 'createdAt'>) =>
     if (!auth.currentUser) throw new Error("Not authenticated");
     if (auth.currentUser.uid !== reviewData.customerId) throw new Error("Cannot post review for another user.");
     
-    const reviewPayload = {
-      ...reviewData,
-      createdAt: serverTimestamp()
-    };
-    
-    // Ensure customerPhotoURL is not undefined
-    if (reviewPayload.customerPhotoURL === undefined) {
-      delete reviewPayload.customerPhotoURL;
-    }
-
-    return await addDoc(collection(db, 'reviews'), reviewPayload);
+    return await addDoc(collection(db, 'reviews'), {
+        ...reviewData,
+        createdAt: serverTimestamp()
+    });
 }
 
 export const updateReview = async (reviewId: string, data: { rating: number; comment: string }) => {

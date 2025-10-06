@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -42,32 +43,35 @@ export function PhoneAuthForm() {
 
 
   const setupRecaptcha = () => {
+    // Only create a new verifier if one doesn't exist
     if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
+        window.recaptchaVerifier.clear();
     }
+
     if (recaptchaContainerRef.current) {
-        try {
-            const verifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
-                'size': 'invisible',
-                'callback': () => {
-                    // reCAPTCHA solved, allow signInWithPhoneNumber.
-                },
-                'expired-callback': () => {
-                    toast({
-                        variant: "destructive",
-                        title: "reCAPTCHA Expired",
-                        description: "Please try sending the OTP again.",
-                    });
-                },
-            });
-            window.recaptchaVerifier = verifier;
-            return verifier;
-        } catch (error) {
-            if (error.message.includes("reCAPTCHA has already been rendered")) {
-                return window.recaptchaVerifier;
-            }
-            console.error("reCAPTCHA setup error:", error);
+      try {
+        const verifier = new RecaptchaVerifier(auth, recaptchaContainerRef.current, {
+            'size': 'invisible',
+            'callback': () => {
+                // reCAPTCHA solved, allow signInWithPhoneNumber.
+            },
+            'expired-callback': () => {
+                toast({
+                    variant: "destructive",
+                    title: "reCAPTCHA Expired",
+                    description: "Please try sending the OTP again.",
+                });
+            },
+        });
+        window.recaptchaVerifier = verifier;
+        return verifier;
+      } catch (error) {
+        if (error.message.includes("reCAPTCHA has already been rendered")) {
+            // This can happen on fast re-renders. The existing verifier is fine.
+            return window.recaptchaVerifier;
         }
+        console.error("reCAPTCHA setup error:", error);
+      }
     }
     return window.recaptchaVerifier;
   };
