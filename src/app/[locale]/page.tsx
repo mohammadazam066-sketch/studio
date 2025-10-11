@@ -64,7 +64,7 @@ export default function HomePage() {
                     </Link>
                   </Button>
                   <Button asChild size="lg" variant="outline">
-                    <a href="https://warehouse.appilix.com/uploads/app-apk-68cd1413ac0a6-1758270483.apk" target="_blank" rel="noopener noreferrer">
+                    <a href="https://warehouse.appilix.com/uploads/app-apk-68ea264f5e254-1760175695.apk" target="_blank" rel="noopener noreferrer">
                       <Download className="mr-2" />
                       Download the App
                     </a>
