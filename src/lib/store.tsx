@@ -187,7 +187,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         finalProfileData.photoURL = uploadedUrls[0];
     }
 
-    await updateDoc(profileDocRef, finalProfileData);
+    // Use set with merge to prevent error on new user profile creation
+    await setDoc(profileDocRef, finalProfileData, { merge: true });
     
     if (finalProfileData.name && finalProfileData.name !== currentUser.profile?.name) {
         const userDocRef = doc(db, 'users', currentUser.id);
