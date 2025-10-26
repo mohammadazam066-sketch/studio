@@ -7,7 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Calendar, Wrench, Droplets, Tally5, Zap } from 'lucide-react';
+import { MapPin, Calendar, Wrench, Droplets, Tally5, Zap, Home } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEffect, useState, useCallback } from 'react';
 import type { Requirement, Quotation } from '@/lib/types';
@@ -127,10 +127,18 @@ export default function RequirementDetailPageForShop() {
                         {requirement.status}
                     </div>
                 </div>
-                <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground pt-2">
+                <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-x-4 gap-y-2 text-sm text-muted-foreground pt-2">
                     <div className="flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {requirement.location}</div>
                     <div className="flex items-center gap-1.5"><Calendar className="w-4 h-4" /> Posted on {formatDate(requirement.createdAt)}</div>
                     <div className="flex items-center gap-1.5"><Wrench className="w-4 h-4" /> By {requirement.homeownerName}</div>
+                </div>
+                <Separator className="mt-4" />
+                <div className="flex items-start gap-2 text-sm text-foreground pt-4 bg-primary/5 p-3 rounded-md">
+                    <Home className="w-4 h-4 mt-0.5 text-primary flex-shrink-0" />
+                    <div>
+                        <h4 className="font-semibold">Delivery Address</h4>
+                        <p className="text-muted-foreground">{requirement.address}</p>
+                    </div>
                 </div>
                 </CardHeader>
                 <CardContent>
