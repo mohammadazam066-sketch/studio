@@ -238,8 +238,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       };
       
       setDoc(userDocRef, userDataForDb).catch(async (serverError) => {
-        // This part is handled by contextual errors in production apps
-        console.error("Error creating user document:", serverError);
+          // This part is handled by contextual errors in production apps
+          console.error("Error creating user document:", serverError);
+          // throw contextual error here
       });
   
       // Create corresponding profile document
@@ -780,9 +781,12 @@ export const deleteUpdate = async (id: string, imageUrls?: string[]) => {
 
 
 export const getAllUpdates = async (): Promise<Update[]> => {
-    const q = query(collection(db, "updates"), where("status", "!=", "Deleted"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "updates"), orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Update));
+    const updates = querySnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as Update))
+        .filter(update => update.status !== 'Deleted');
+    return updates;
 }
 
 export const getUpdateById = async (id: string): Promise<Update | undefined> => {
@@ -967,4 +971,5 @@ export const getReviewByPurchase = async (purchaseId: string, customerId: string
 
 
     
+
 
