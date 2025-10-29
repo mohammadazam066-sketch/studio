@@ -23,6 +23,8 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { PhoneAuthForm } from './phone-auth-form';
 
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -139,6 +141,7 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
   
   const [photos, setPhotos] = useState<PhotoState[]>([]);
   const [existingPhotos, setExistingPhotos] = useState<string[]>(existingRequirement?.photos || []);
+  const [isAuthModalOpen, setAuthModalOpen] = useState(false);
 
 
   const form = useForm<RequirementFormValues>({
@@ -163,11 +166,22 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
     },
   });
 
-  const { formState: { isSubmitting }, watch, setValue, getValues, control } = form;
+  const { formState: { isSubmitting }, watch, setValue, getValues, control, handleSubmit } = form;
 
   const watchedCategory = watch("category");
   const watchedSandAndAggregate = watch(["sandAndAggregateDetails", "customSandAndAggregate"]);
   const watchedHardwareDetails = watch("hardwareDetails");
+
+  // When a user logs in successfully via the modal, the `currentUser` in our `useAuth` hook will update.
+  // We can listen for that change to automatically re-submit the form.
+  useEffect(() => {
+    if (currentUser && isAuthModalOpen) {
+      setAuthModalOpen(false); // Close the modal
+      // Manually trigger form submission again now that we have a user.
+      handleSubmit(onSubmit)(); 
+    }
+  }, [currentUser, isAuthModalOpen, handleSubmit]);
+
 
   useEffect(() => {
     if (watchedCategory === 'Sand & Aggregates') {
@@ -244,7 +258,9 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
 
   async function onSubmit(data: RequirementFormValues) {
     if (!currentUser) {
-      toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in.' });
+      // If user is not logged in, open the authentication modal.
+      // The useEffect hook will handle submission after successful login.
+      setAuthModalOpen(true);
       return;
     }
     
@@ -293,6 +309,7 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
 
 
   return (
+    <>
     <div className="space-y-6">
         <div>
             <h1 className="text-2xl font-bold font-headline tracking-tight">{title}</h1>
@@ -923,5 +940,19 @@ export function RequirementForm({ existingRequirement, initialCategory }: Requir
             </form>
         </Form>
     </div>
+    <Dialog open={isAuthModalOpen} onOpenChange={setAuthModalOpen}>
+        <DialogContent>
+            <DialogHeader>
+                <DialogTitle>Log In to Post</DialogTitle>
+                <DialogDescription>
+                    To post your requirement, please log in or create an account first. Your requirement details will be saved.
+                </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+                <PhoneAuthForm />
+            </div>
+        </DialogContent>
+    </Dialog>
+    </>
   );
 }

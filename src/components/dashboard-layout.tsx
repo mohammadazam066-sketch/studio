@@ -11,7 +11,7 @@ import { UserNav } from "./user-nav";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
-  role: UserRole;
+  role: UserRole | null; // Allow null for guest mode
 }
 
 export function DashboardLayout({ children, role }: DashboardLayoutProps) {
@@ -25,10 +25,36 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
     );
   }
 
+  // If a role is required, protect the route.
+  // If role is null, it's a guest-accessible area (like homeowner dashboard).
+  if (role) {
+      return (
+        <ProtectedRoute role={role}>
+           <SidebarProvider>
+            <Sidebar>
+                {currentUser && <SidebarNav user={currentUser} />}
+            </Sidebar>
+            <SidebarInset>
+                 <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-2">
+                    <SidebarTrigger className="md:hidden" />
+                     <div className="flex items-center gap-4 ml-auto">
+                        {currentUser ? <UserNav user={currentUser} /> : null}
+                    </div>
+                 </header>
+                <main className="p-4 sm:p-6">
+                    {children}
+                </main>
+            </SidebarInset>
+          </SidebarProvider>
+        </ProtectedRoute>
+      );
+  }
+
+  // Render layout for guest (unprotected)
   return (
-    <ProtectedRoute role={role}>
        <SidebarProvider>
         <Sidebar>
+            {/* Show sidebar nav only if a user is logged in */ }
             {currentUser && <SidebarNav user={currentUser} />}
         </Sidebar>
         <SidebarInset>
@@ -43,6 +69,5 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
             </main>
         </SidebarInset>
       </SidebarProvider>
-    </ProtectedRoute>
   );
 }

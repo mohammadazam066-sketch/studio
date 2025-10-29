@@ -45,7 +45,7 @@ function FeedSkeleton() {
     )
 }
 
-function RoleIcon({ role }: { role: UserRole }) {
+function RoleIcon({ role }: { role: Update['authorRole'] }) {
     if (role === 'homeowner') return <User className="h-4 w-4 text-muted-foreground" />;
     if (role === 'shop-owner') return <Store className="h-4 w-4 text-muted-foreground" />;
     return <Bot className="h-4 w-4 text-muted-foreground" />;

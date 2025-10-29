@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import {
@@ -15,7 +16,7 @@ import { Logo } from './logo';
 import { UserNav } from './user-nav';
 import type { User, UserRole, Notification } from '@/lib/types';
 import { usePathname } from 'next/navigation';
-import { Home, List, FileText, User as UserIcon, LogOut, Newspaper, Eye, ShieldCheck, Users, Bell } from 'lucide-react';
+import { Home, List, FileText, User as UserIcon, LogIn, Newspaper, Eye, ShieldCheck, Users, Bell } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/store';
 import { useState, useEffect } from 'react';
@@ -27,31 +28,32 @@ type NavItem = {
     href: string;
     label: string;
     icon: React.ElementType;
-    roles: UserRole[];
+    roles: (UserRole | 'guest')[];
     isNotification?: boolean;
 };
 
 const navItems: NavItem[] = [
-    { href: '/homeowner/dashboard', label: 'Dashboard', icon: Home, roles: ['homeowner'] },
+    { href: '/homeowner/dashboard', label: 'Dashboard', icon: Home, roles: ['homeowner', 'guest'] },
     { href: '/shop-owner/dashboard', label: 'Dashboard', icon: Home, roles: ['shop-owner'] },
     { href: '/shop-owner/requirements', label: 'Open Requirements', icon: Eye, roles: ['shop-owner'] },
     { href: '/shop-owner/my-quotations', label: 'My Quotations', icon: FileText, roles: ['shop-owner'] },
-    { href: '/updates', label: 'Updates', icon: Newspaper, roles: ['homeowner', 'shop-owner', 'admin'] },
+    { href: '/updates', label: 'Updates', icon: Newspaper, roles: ['homeowner', 'shop-owner', 'admin', 'guest'] },
     { href: '/notifications', label: 'Notifications', icon: Bell, roles: ['homeowner', 'shop-owner'], isNotification: true },
     { href: '/admin/dashboard', label: 'Admin Panel', icon: ShieldCheck, roles: ['admin'] },
     { href: '/admin/users', label: 'Users', icon: Users, roles: ['admin'] },
 ];
 
 
-export function SidebarNav({ user }: { user: User }) {
+export function SidebarNav({ user }: { user: User | null }) {
     const pathname = usePathname();
     const { logout } = useAuth();
     const [unreadCount, setUnreadCount] = useState(0);
     
-    const userNavItems = navItems.filter(item => item.roles.includes(user.role));
+    const userRole = user ? user.role : 'guest';
+    const userNavItems = navItems.filter(item => item.roles.includes(userRole));
     
     useEffect(() => {
-        if (!user.id) return;
+        if (!user?.id) return;
         
         const q = query(
             collection(db, "notifications"),
@@ -64,7 +66,7 @@ export function SidebarNav({ user }: { user: User }) {
         });
 
         return () => unsubscribe();
-    }, [user.id]);
+    }, [user?.id]);
 
 
     return (
@@ -95,11 +97,20 @@ export function SidebarNav({ user }: { user: User }) {
                             </Link>
                         </SidebarMenuItem>
                     ))}
+                    {!user && (
+                         <SidebarMenuItem>
+                            <Link href="/auth/login">
+                                <SidebarMenuButton icon={LogIn}>
+                                    Login / Sign Up
+                                </SidebarMenuButton>
+                            </Link>
+                        </SidebarMenuItem>
+                    )}
                 </SidebarMenu>
             </SidebarContent>
              <SidebarFooter className="md:hidden">
                 <SidebarSeparator />
-                 <UserNav user={user} />
+                 {user && <UserNav user={user} />}
             </SidebarFooter>
         </>
     );

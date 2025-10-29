@@ -3,41 +3,12 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Home, Store, UserPlus, Download, CheckCircle } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Home, Store, User, ArrowRight, Download, CheckCircle } from 'lucide-react';
 import { Logo } from '@/components/logo';
-import { useAuth } from '@/lib/store';
-import { useRouter } from 'next/navigation';
-import React from 'react';
 
 export default function HomePage() {
-  const { currentUser, loading } = useAuth();
-  const router = useRouter();
 
-  React.useEffect(() => {
-    // Only redirect if done loading and a user truly exists.
-    if (!loading && currentUser) {
-      const destination = currentUser.role === 'homeowner' ? '/homeowner/dashboard' : '/shop-owner/dashboard';
-      router.replace(destination);
-    }
-  }, [currentUser, loading, router]);
-
-  // If we are performing the initial auth state check, show a loader.
-  if (loading) {
-    return (
-      <div className="flex h-screen w-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  // If a user exists, we will be redirected by the useEffect.
-  // Returning null prevents the page content from flashing briefly.
-  if (currentUser) {
-      return null;
-  }
-
-  // If not loading and no user, show the public welcome page.
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <header className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
@@ -56,19 +27,51 @@ export default function HomePage() {
                     Connecting homeowners with trusted local material suppliers. Find the right materials, post your needs with photos, and get competitive local quotes—all in one place.
                 </p>
 
-                <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-                  <Button asChild size="lg">
-                    <Link href="/auth/login">
-                      <UserPlus className="mr-2" />
-                      Get Started for Free
-                    </Link>
-                  </Button>
-                  <Button asChild size="lg" variant="outline">
-                    <a href="https://warehouse.appilix.com/uploads/app-apk-68ea264f5e254-1760175695.apk" target="_blank" rel="noopener noreferrer">
-                      <Download className="mr-2" />
-                      Download the App
-                    </a>
-                  </Button>
+                <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+                    <Card className="text-left shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <CardHeader>
+                            <div className="flex items-center gap-3">
+                                <Home className="h-8 w-8 text-primary" />
+                                <CardTitle className="font-headline text-2xl">Homeowners</CardTitle>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <CardDescription>Browse, create requirements, and explore the app. Sign up only when you're ready to post.</CardDescription>
+                        </CardContent>
+                        <CardFooter>
+                            <Button asChild className="w-full">
+                                <Link href="/homeowner/dashboard">
+                                    Continue as Homeowner <ArrowRight className="ml-2" />
+                                </Link>
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                     <Card className="text-left shadow-lg hover:shadow-xl transition-shadow duration-300">
+                        <CardHeader>
+                            <div className="flex items-center gap-3">
+                                <Store className="h-8 w-8 text-primary" />
+                                <CardTitle className="font-headline text-2xl">Shop Owners</CardTitle>
+                            </div>
+                        </CardHeader>
+                        <CardContent>
+                            <CardDescription>Log in or create your account to view requirements and submit quotations.</CardDescription>
+                        </CardContent>
+                        <CardFooter>
+                             <Button asChild className="w-full" variant="secondary">
+                                <Link href="/auth/login">
+                                    Shop Owner Login <ArrowRight className="ml-2" />
+                                </Link>
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </div>
+                 <div className="mt-12">
+                     <Button asChild size="lg" variant="outline">
+                        <a href="https://warehouse.appilix.com/uploads/app-apk-68ea264f5e254-1760175695.apk" target="_blank" rel="noopener noreferrer">
+                          <Download className="mr-2" />
+                          Download the App
+                        </a>
+                      </Button>
                 </div>
             </div>
         </section>

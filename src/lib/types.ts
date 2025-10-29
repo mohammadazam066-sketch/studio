@@ -101,7 +101,7 @@ export type Update = {
   id: string;
   authorId: string;
   authorName: string;
-  authorRole: UserRole;
+  authorRole: UserRole | 'guest';
   title: string;
   content: string;
   imageUrls?: string[];

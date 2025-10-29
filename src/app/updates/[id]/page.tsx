@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { User, Store, Bot, Calendar, ArrowLeft, Edit, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useEffect, useState, useCallback } from 'react';
-import type { Update, UserRole } from '@/lib/types';
+import type { Update } from '@/lib/types';
 import type { Timestamp } from 'firebase/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import Link from 'next/link';
@@ -33,7 +33,7 @@ function formatDate(date: Date | string | Timestamp) {
     return format(dateObj, 'PPP');
 }
 
-function RoleIcon({ role }: { role: UserRole }) {
+function RoleIcon({ role }: { role: Update['authorRole'] }) {
     if (role === 'homeowner') return <User className="h-4 w-4 text-muted-foreground" />;
     if (role === 'shop-owner') return <Store className="h-4 w-4 text-muted-foreground" />;
     return <Bot className="h-4 w-4 text-muted-foreground" />;
