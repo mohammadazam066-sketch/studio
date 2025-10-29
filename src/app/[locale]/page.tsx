@@ -39,7 +39,7 @@ export default function HomePage() {
                         <CardContent className="flex-grow">
                             <CardDescription>Explore the app as a guest, or log in to manage your requirements. Sign up is only needed when you're ready to post.</CardDescription>
                         </CardContent>
-                        <CardFooter className="grid grid-cols-2 gap-4">
+                        <CardFooter className="grid sm:grid-cols-2 gap-4">
                             <Button asChild variant="secondary">
                                 <Link href="/auth/login">
                                     <LogIn className="mr-2" /> Login
