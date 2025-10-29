@@ -486,9 +486,11 @@ export const getRequirementById = async (id: string): Promise<Requirement | unde
 }
 
 export const getRequirementsByHomeowner = async (homeownerId: string): Promise<Requirement[]> => {
-    const q = query(collection(db, "requirements"), where("homeownerId", "==", homeownerId), where("status", "!=", "Deleted"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "requirements"), where("homeownerId", "==", homeownerId), orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
-    const requirements = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Requirement));
+    const requirements = querySnapshot.docs
+        .map(doc => ({ id: doc.id, ...doc.data() } as Requirement))
+        .filter(req => req.status !== 'Deleted');
     
     // Perform sorting in-memory to avoid complex indexes
     return requirements.sort((a, b) => {
@@ -938,14 +940,8 @@ export const getReviewByPurchase = async (purchaseId: string, customerId: string
 
     
 
-
-
-    
-
     
 
 
 
     
-
-
