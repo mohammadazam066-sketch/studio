@@ -1,13 +1,14 @@
 
 'use client';
 
-import { ProtectedRoute } from "@/components/protected-route";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { SidebarProvider, Sidebar, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { useAuth } from "@/lib/store";
 import type { UserRole } from "@/lib/types";
 import { Loader2 } from "lucide-react";
 import { UserNav } from "./user-nav";
+import { Button } from "./ui/button";
+import Link from "next/link";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -25,43 +26,20 @@ export function DashboardLayout({ children, role }: DashboardLayoutProps) {
     );
   }
 
-  // If a role is required, protect the route.
-  // If role is null, it's a guest-accessible area (like homeowner dashboard).
-  if (role) {
-      return (
-        <ProtectedRoute role={role}>
-           <SidebarProvider>
-            <Sidebar>
-                {currentUser && <SidebarNav user={currentUser} />}
-            </Sidebar>
-            <SidebarInset>
-                 <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-2">
-                    <SidebarTrigger className="md:hidden" />
-                     <div className="flex items-center gap-4 ml-auto">
-                        {currentUser ? <UserNav user={currentUser} /> : null}
-                    </div>
-                 </header>
-                <main className="p-4 sm:p-6">
-                    {children}
-                </main>
-            </SidebarInset>
-          </SidebarProvider>
-        </ProtectedRoute>
-      );
-  }
-
-  // Render layout for guest (unprotected)
   return (
        <SidebarProvider>
         <Sidebar>
-            {/* Show sidebar nav only if a user is logged in */ }
-            {currentUser && <SidebarNav user={currentUser} />}
+            <SidebarNav user={currentUser} />
         </Sidebar>
         <SidebarInset>
              <header className="sticky top-0 z-10 flex h-14 items-center justify-between gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-2">
                 <SidebarTrigger className="md:hidden" />
                  <div className="flex items-center gap-4 ml-auto">
-                    {currentUser && <UserNav user={currentUser} />}
+                    {currentUser ? <UserNav user={currentUser} /> : (
+                      <Button asChild size="sm">
+                        <Link href="/auth/login">Login / Sign Up</Link>
+                      </Button>
+                    )}
                 </div>
              </header>
             <main className="p-4 sm:p-6">

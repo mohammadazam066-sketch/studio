@@ -1,10 +1,11 @@
 
+
 'use client';
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Home, Store, User, ArrowRight, Download, CheckCircle } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Home, Store, User, ArrowRight, Download, CheckCircle, LogIn, UserCheck } from 'lucide-react';
 import { Logo } from '@/components/logo';
 
 export default function HomePage() {
@@ -27,39 +28,44 @@ export default function HomePage() {
                     Connecting homeowners with trusted local material suppliers. Find the right materials, post your needs with photos, and get competitive local quotes—all in one place.
                 </p>
 
-                <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-                    <Card className="text-left shadow-lg hover:shadow-xl transition-shadow duration-300">
+                <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                    <Card className="text-left shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
                         <CardHeader>
                             <div className="flex items-center gap-3">
                                 <Home className="h-8 w-8 text-primary" />
-                                <CardTitle className="font-headline text-2xl">Homeowners</CardTitle>
+                                <CardTitle className="font-headline text-2xl">For Homeowners</CardTitle>
                             </div>
                         </CardHeader>
-                        <CardContent>
-                            <CardDescription>Browse, create requirements, and explore the app. Sign up only when you're ready to post.</CardDescription>
+                        <CardContent className="flex-grow">
+                            <CardDescription>Explore the app as a guest, or log in to manage your requirements. Sign up is only needed when you're ready to post.</CardDescription>
                         </CardContent>
-                        <CardFooter>
-                            <Button asChild className="w-full">
+                        <CardFooter className="grid grid-cols-2 gap-4">
+                            <Button asChild variant="secondary">
+                                <Link href="/auth/login">
+                                    <LogIn className="mr-2" /> Login
+                                </Link>
+                            </Button>
+                            <Button asChild>
                                 <Link href="/homeowner/dashboard">
-                                    Continue as Homeowner <ArrowRight className="ml-2" />
+                                    <UserCheck className="mr-2" /> Continue as Guest
                                 </Link>
                             </Button>
                         </CardFooter>
                     </Card>
-                     <Card className="text-left shadow-lg hover:shadow-xl transition-shadow duration-300">
+                     <Card className="text-left shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col">
                         <CardHeader>
                             <div className="flex items-center gap-3">
                                 <Store className="h-8 w-8 text-primary" />
-                                <CardTitle className="font-headline text-2xl">Shop Owners</CardTitle>
+                                <CardTitle className="font-headline text-2xl">For Shop Owners</CardTitle>
                             </div>
                         </CardHeader>
-                        <CardContent>
-                            <CardDescription>Log in or create your account to view requirements and submit quotations.</CardDescription>
+                        <CardContent className="flex-grow">
+                            <CardDescription>Log in or create your account to view homeowner requirements and submit your quotations.</CardDescription>
                         </CardContent>
                         <CardFooter>
-                             <Button asChild className="w-full" variant="secondary">
+                             <Button asChild className="w-full">
                                 <Link href="/auth/login">
-                                    Shop Owner Login <ArrowRight className="ml-2" />
+                                    Shop Owner Login / Sign Up <ArrowRight className="ml-2" />
                                 </Link>
                             </Button>
                         </CardFooter>

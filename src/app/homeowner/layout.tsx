@@ -3,17 +3,16 @@
 
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuth } from "@/lib/store";
-import { ProtectedRoute } from "@/components/protected-route";
 import { Loader2 } from "lucide-react";
 
 export default function HomeownerLayout({ children }: { children: React.ReactNode }) {
-  // This layout is now fully protected. Guests will be redirected to login.
-  // The "guest" view of the dashboard is handled by the main app layout.
+  const { currentUser } = useAuth();
+  
+  // This layout is accessible to both guests and logged-in homeowners.
+  // The DashboardLayout will handle showing/hiding nav items based on auth state.
   return (
-    <ProtectedRoute role="homeowner">
-      <DashboardLayout role="homeowner">
-        {children}
-      </DashboardLayout>
-    </ProtectedRoute>
+    <DashboardLayout role={currentUser?.role ?? null}>
+      {children}
+    </DashboardLayout>
   );
 }
