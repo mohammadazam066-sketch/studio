@@ -272,7 +272,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         };
       }
       
-      setDoc(profileDocRef, profileData).catch(async (serverError) => {
+      setDoc(profileDocRef, profileData, { merge: true }).catch(async (serverError) => {
           // This part is handled by contextual errors in production apps
           console.error("Error creating profile document:", serverError);
       });
@@ -486,9 +486,19 @@ export const getRequirementById = async (id: string): Promise<Requirement | unde
 }
 
 export const getRequirementsByHomeowner = async (homeownerId: string): Promise<Requirement[]> => {
-    const q = query(collection(db, "requirements"), where("homeownerId", "==", homeownerId), where("status", "!=", "Deleted"), orderBy("status"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "requirements"), where("homeownerId", "==", homeownerId), where("status", "!=", "Deleted"), orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Requirement));
+    const requirements = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Requirement));
+    
+    // Perform sorting in-memory to avoid complex indexes
+    return requirements.sort((a, b) => {
+        if (a.status === b.status) {
+             const dateA = (a.createdAt as any)?.toDate ? (a.createdAt as any).toDate() : new Date(0);
+             const dateB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate() : new Date(0);
+             return dateB.getTime() - dateA.getTime();
+        }
+        return a.status === 'Open' ? -1 : 1;
+    });
 }
 
 export const getOpenRequirements = async (): Promise<Requirement[]> => {
@@ -513,7 +523,7 @@ export const getOpenRequirementsByCategory = async (category: string): Promise<R
     // Sort manually on the client-side to avoid needing a composite index
     return requirements.sort((a, b) => {
         const dateA = (a.createdAt as any)?.toDate ? (a.createdAt as any).toDate() : new Date(a.createdAt as string);
-        const dateB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate() : new Date(b.createdAt as string);
+        const dateB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate() : new Date(a.createdAt as string);
         return dateB.getTime() - dateA.getTime();
     });
 }
@@ -937,4 +947,5 @@ export const getReviewByPurchase = async (purchaseId: string, customerId: string
 
 
     
+
 
