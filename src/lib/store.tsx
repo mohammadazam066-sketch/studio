@@ -188,7 +188,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     // Use set with merge to prevent error on new user profile creation
-    await setDoc(profileDocRef, finalProfileData, { merge: true });
+    setDoc(profileDocRef, finalProfileData, { merge: true }).catch(async (serverError) => {
+        // This part is handled by contextual errors in production apps
+        // but for now, we will log it.
+        console.error("Error setting user profile:", serverError);
+    });
     
     if (finalProfileData.name && finalProfileData.name !== currentUser.profile?.name) {
         const userDocRef = doc(db, 'users', currentUser.id);
@@ -226,20 +230,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const defaultName = `User ${user.phoneNumber.slice(-4)}`;
 
       // Create user document in 'users' collection
-      await setDoc(userDocRef, {
+      const userDataForDb = {
         id: user.uid,
         phoneNumber: user.phoneNumber,
         role: role,
         createdAt: serverTimestamp(),
+      };
+      
+      setDoc(userDocRef, userDataForDb).catch(async (serverError) => {
+        // This part is handled by contextual errors in production apps
+        console.error("Error creating user document:", serverError);
       });
   
       // Create corresponding profile document
       const profileCollection = role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
       const profileDocRef = doc(db, profileCollection, user.uid);
       
+      let profileData: HomeownerProfile | ShopOwnerProfile;
   
       if (role === 'shop-owner') {
-        const profileData: ShopOwnerProfile = {
+        profileData = {
             id: user.uid,
             name: defaultName,
             phoneNumber: user.phoneNumber,
@@ -250,9 +260,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             shopIconUrl: '',
             createdAt: serverTimestamp(),
         };
-        await setDoc(profileDocRef, profileData);
       } else {
-        const profileData: HomeownerProfile = {
+        profileData = {
             id: user.uid,
             name: defaultName,
             phoneNumber: user.phoneNumber,
@@ -261,8 +270,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             photoURL: '',
             createdAt: serverTimestamp(),
         };
-         await setDoc(profileDocRef, profileData);
       }
+      
+      setDoc(profileDocRef, profileData).catch(async (serverError) => {
+          // This part is handled by contextual errors in production apps
+          console.error("Error creating profile document:", serverError);
+      });
   
       // Manually trigger a state refresh to load the new user data
       const newUserDoc = await getDoc(userDocRef);
