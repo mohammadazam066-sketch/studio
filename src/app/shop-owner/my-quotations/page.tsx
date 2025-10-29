@@ -5,7 +5,7 @@
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { useAuth, getQuotationsByShopOwner } from "@/lib/store";
+import { useAuth, getQuotationsByShopOwner, deleteQuotation } from "@/lib/store";
 import { useEffect, useState, useCallback } from "react";
 import type { Requirement, Quotation } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,17 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 
 function formatDate(date: Date | string | Timestamp) {
@@ -63,11 +74,14 @@ export default function MyQuotationsPage() {
     const { currentUser } = useAuth();
     const searchParams = useSearchParams();
     const router = useRouter();
+    const { toast } = useToast();
     const filter = searchParams.get('filter') || 'all';
 
     const [allQuotations, setAllQuotations] = useState<QuotationWithRequirement[]>([]);
     const [filteredQuotations, setFilteredQuotations] = useState<QuotationWithRequirement[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isDeleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [quoteToDelete, setQuoteToDelete] = useState<string | null>(null);
 
     const fetchQuotations = useCallback(async () => {
         if (!currentUser) return;
@@ -111,6 +125,35 @@ export default function MyQuotationsPage() {
         }
         return { text: "Pending Review", variant: 'secondary' };
     };
+
+    const handleDeleteClick = (quotationId: string) => {
+        setQuoteToDelete(quotationId);
+        setDeleteDialogOpen(true);
+    }
+
+    const confirmDelete = async () => {
+        if (!quoteToDelete) return;
+
+        try {
+            await deleteQuotation(quoteToDelete);
+            toast({
+                title: "Quotation Deleted",
+                description: "Your quotation has been successfully removed.",
+            });
+            fetchQuotations(); // Re-fetch the quotations
+        } catch (error) {
+            console.error("Failed to delete quotation:", error);
+            toast({
+                variant: "destructive",
+                title: "Error",
+                description: "Failed to delete the quotation. Please try again.",
+            });
+        } finally {
+            setDeleteDialogOpen(false);
+            setQuoteToDelete(null);
+        }
+    }
+
 
     return (
         <div className="space-y-6">
@@ -238,13 +281,18 @@ export default function MyQuotationsPage() {
                                         </div>
                                     )}
                                 </CardContent>
-                                <CardFooter>
+                                <CardFooter className="flex justify-end gap-2">
                                     {isEditable && (
-                                         <Button asChild variant="outline" size="sm">
-                                            <Link href={`/shop-owner/my-quotations/edit/${quote.id}`}>
-                                                <Edit className="mr-2 h-4 w-4" /> Edit Quote
-                                            </Link>
-                                        </Button>
+                                        <>
+                                            <Button variant="destructive" size="sm" onClick={() => handleDeleteClick(quote.id)}>
+                                                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                            </Button>
+                                            <Button asChild variant="outline" size="sm">
+                                                <Link href={`/shop-owner/my-quotations/edit/${quote.id}`}>
+                                                    <Edit className="mr-2 h-4 w-4" /> Edit
+                                                </Link>
+                                            </Button>
+                                        </>
                                     )}
                                 </CardFooter>
                             </Card>
@@ -264,6 +312,23 @@ export default function MyQuotationsPage() {
                     </div>
                 )}
             </div>
+            <AlertDialog open={isDeleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete your
+                            quotation from the system.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={confirmDelete} variant="destructive">
+                            Yes, delete quotation
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 }

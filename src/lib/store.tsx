@@ -6,7 +6,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import type { User, UserRole, HomeownerProfile, ShopOwnerProfile, Requirement, Quotation, Update, QuotationWithRequirement, Purchase, PurchaseWithDetails, Notification, Review } from './types';
 import { db, storage, auth } from './firebase';
 import { 
-    doc, getDoc, setDoc, addDoc, updateDoc,
+    doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc,
     collection, query, where, getDocs, serverTimestamp, orderBy, writeBatch
 } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
@@ -486,22 +486,27 @@ export const getRequirementById = async (id: string): Promise<Requirement | unde
 }
 
 export const getRequirementsByHomeowner = async (homeownerId: string): Promise<Requirement[]> => {
-    const q = query(collection(db, "requirements"), where("homeownerId", "==", homeownerId), orderBy("createdAt", "desc"));
+    const q = query(
+        collection(db, "requirements"), 
+        where("homeownerId", "==", homeownerId)
+    );
     const querySnapshot = await getDocs(q);
     const requirements = querySnapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() } as Requirement))
         .filter(req => req.status !== 'Deleted');
     
-    // Perform sorting in-memory to avoid complex indexes
     return requirements.sort((a, b) => {
-        if (a.status === b.status) {
-             const dateA = (a.createdAt as any)?.toDate ? (a.createdAt as any).toDate() : new Date(0);
-             const dateB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate() : new Date(0);
-             return dateB.getTime() - dateA.getTime();
-        }
-        return a.status === 'Open' ? -1 : 1;
+        // Sort "Open" requirements first
+        if (a.status === 'Open' && b.status !== 'Open') return -1;
+        if (a.status !== 'Open' && b.status === 'Open') return 1;
+        
+        // Then sort by creation date, newest first
+        const dateA = (a.createdAt as any)?.toDate ? (a.createdAt as any).toDate() : new Date(0);
+        const dateB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate() : new Date(0);
+        return dateB.getTime() - dateA.getTime();
     });
 }
+
 
 export const getOpenRequirements = async (): Promise<Requirement[]> => {
     const q = query(
@@ -602,6 +607,18 @@ export const updateQuotation = async (id: string, data) => {
         totalAmount: (materialAmount || 0) + (transportationCharges || 0),
     };
     await updateDoc(quotationRef, submissionData);
+}
+
+export const deleteQuotation = async (id: string) => {
+    if (!auth.currentUser) throw new Error("User not authenticated");
+    const quotationRef = doc(db, 'quotations', id);
+    // Optional: Add a check to ensure the user deleting is the one who created it.
+    const quoteSnap = await getDoc(quotationRef);
+    if (quoteSnap.exists() && quoteSnap.data().shopOwnerId === auth.currentUser.uid) {
+        await deleteDoc(quotationRef);
+    } else {
+        throw new Error("Quotation not found or user not authorized to delete it.");
+    }
 }
 
 export const getQuotationById = async (id: string): Promise<Quotation | undefined> => {
