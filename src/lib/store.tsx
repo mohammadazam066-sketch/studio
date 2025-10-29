@@ -6,7 +6,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import type { User, UserRole, HomeownerProfile, ShopOwnerProfile, Requirement, Quotation, Update, QuotationWithRequirement, Purchase, PurchaseWithDetails, Notification, Review } from './types';
 import { db, storage, auth } from './firebase';
 import { 
-    doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, 
+    doc, getDoc, setDoc, addDoc, updateDoc,
     collection, query, where, getDocs, serverTimestamp, orderBy, writeBatch
 } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
@@ -476,14 +476,6 @@ export const updateRequirement = async (id: string, data: Partial<Requirement>, 
     });
 }
 
-export const deleteRequirement = async (id: string) => {
-    const requirementRef = doc(db, 'requirements', id);
-    // Note: This doesn't delete associated photos or quotations to keep it simple.
-    // A production app would need a Cloud Function for cascading deletes.
-    await deleteDoc(requirementRef);
-}
-
-
 export const getRequirementById = async (id: string): Promise<Requirement | undefined> => {
     const docRef = doc(db, "requirements", id);
     const docSnap = await getDoc(docRef);
@@ -494,7 +486,7 @@ export const getRequirementById = async (id: string): Promise<Requirement | unde
 }
 
 export const getRequirementsByHomeowner = async (homeownerId: string): Promise<Requirement[]> => {
-    const q = query(collection(db, "requirements"), where("homeownerId", "==", homeownerId), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "requirements"), where("homeownerId", "==", homeownerId), where("status", "!=", "Deleted"), orderBy("status"), orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Requirement));
 }
@@ -521,7 +513,7 @@ export const getOpenRequirementsByCategory = async (category: string): Promise<R
     // Sort manually on the client-side to avoid needing a composite index
     return requirements.sort((a, b) => {
         const dateA = (a.createdAt as any)?.toDate ? (a.createdAt as any).toDate() : new Date(a.createdAt as string);
-        const dateB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate() : new Date(a.createdAt as string);
+        const dateB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate() : new Date(b.createdAt as string);
         return dateB.getTime() - dateA.getTime();
     });
 }
@@ -543,7 +535,7 @@ export const getOpenRequirementsCountByCategory = async (): Promise<Record<strin
 };
 
 
-export const updateRequirementStatus = async (id: string, status: 'Open' | 'Purchased', data: Partial<Requirement> = {}) => {
+export const updateRequirementStatus = async (id: string, status: 'Open' | 'Purchased' | 'Deleted', data: Partial<Requirement> = {}) => {
     const requirementRef = doc(db, 'requirements', id);
     await updateDoc(requirementRef, { ...data, status });
 };
@@ -741,7 +733,7 @@ export const updateUpdate = async (id: string, data: { title: string; content: s
 
 export const deleteUpdate = async (id: string, imageUrls?: string[]) => {
     const updateRef = doc(db, 'updates', id);
-    await deleteDoc(updateRef);
+    await updateDoc(updateRef, {status: 'Deleted'});
 
     if (imageUrls && imageUrls.length > 0) {
         await Promise.all(imageUrls.map(async (url) => {
@@ -945,3 +937,4 @@ export const getReviewByPurchase = async (purchaseId: string, customerId: string
 
 
     
+

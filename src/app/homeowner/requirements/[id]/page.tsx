@@ -2,7 +2,7 @@
 
 'use client';
 
-import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, deleteRequirement, createPurchase, useAuth, getReviewByPurchase, addReview, getReviewsByShopOwner, updateReview } from '@/lib/store';
+import { getRequirementById, getQuotationsForRequirement, updateRequirementStatus, createPurchase, useAuth, getReviewByPurchase, addReview, getReviewsByShopOwner, updateReview } from '@/lib/store';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -167,8 +167,8 @@ export default function RequirementDetailPage() {
     try {
         const reqData = await getRequirementById(id);
 
-        if (!reqData) {
-            toast({ variant: 'destructive', title: 'Not Found', description: 'This requirement could not be found.' });
+        if (!reqData || reqData.status === 'Deleted') {
+            toast({ variant: 'destructive', title: 'Not Found', description: 'This requirement could not be found or has been deleted.' });
             router.push('/homeowner/dashboard');
             return;
         }
@@ -256,7 +256,7 @@ export default function RequirementDetailPage() {
   const handleDeleteRequirement = async () => {
     if (!requirement) return;
     try {
-        await deleteRequirement(requirement.id);
+        await updateRequirementStatus(requirement.id, 'Deleted');
         toast({
             title: "Requirement Deleted",
             description: "Your requirement has been successfully removed.",
@@ -645,7 +645,3 @@ export default function RequirementDetailPage() {
     </div>
   );
 }
-
-
-
-    

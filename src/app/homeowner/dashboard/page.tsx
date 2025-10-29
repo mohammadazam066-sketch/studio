@@ -89,7 +89,7 @@ export default function HomeownerDashboard() {
                 })
             );
             
-            setRequirements(requirementsWithCounts);
+            setRequirements(requirementsWithCounts.filter(r => r.status !== 'Deleted'));
 
         } catch (error) {
             console.error("Failed to fetch requirements:", error);

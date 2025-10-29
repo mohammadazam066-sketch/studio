@@ -63,7 +63,7 @@ export type Requirement = {
   photos: string[];
   description: string;
   createdAt: Timestamp | Date | string;
-  status: 'Open' | 'Purchased';
+  status: 'Open' | 'Purchased' | 'Deleted';
   purchaseId?: string; // Link to the purchase document
   quotationId?: string; // Link to the winning quotation document
   brands?: BrandSelection[];

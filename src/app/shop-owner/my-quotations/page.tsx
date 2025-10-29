@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import type { Timestamp } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Edit, FileText, User, CheckCircle, XCircle, IndianRupee, ChevronsUpDown, Droplets, Tally5, Zap } from "lucide-react";
+import { Edit, FileText, User, CheckCircle, XCircle, IndianRupee, ChevronsUpDown, Droplets, Tally5, Zap, Trash2 } from "lucide-react";
 import Image from 'next/image';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -88,7 +88,7 @@ export default function MyQuotationsPage() {
         if (filter === 'accepted') {
             quotes = allQuotations.filter(q => q.requirement?.status === 'Purchased' && q.requirement.quotationId === q.id);
         } else if (filter === 'pending') {
-            quotes = allQuotations.filter(q => q.requirement?.status !== 'Purchased');
+            quotes = allQuotations.filter(q => q.requirement?.status === 'Open');
         } else if (filter === 'not-selected') {
             quotes = allQuotations.filter(q => q.requirement?.status === 'Purchased' && q.requirement.quotationId !== q.id);
         }
@@ -96,6 +96,10 @@ export default function MyQuotationsPage() {
     }, [filter, allQuotations]);
 
     const getStatus = (quote: QuotationWithRequirement): { text: string; variant: "default" | "secondary" | "destructive"; icon?: React.ElementType } => {
+        if (quote.requirement?.status === 'Deleted') {
+            return { text: "Requirement Deleted", variant: 'destructive', icon: Trash2 };
+        }
+        
         const isPurchased = quote.requirement?.status === 'Purchased';
         
         if (isPurchased) {
@@ -131,7 +135,7 @@ export default function MyQuotationsPage() {
                     <div className="space-y-4">
                         {filteredQuotations.map(quote => {
                             const status = getStatus(quote);
-                             const isEditable = quote.requirement?.status !== 'Purchased';
+                             const isEditable = quote.requirement?.status === 'Open';
                              const req = quote.requirement;
 
                             return (
@@ -141,7 +145,7 @@ export default function MyQuotationsPage() {
                                         <div>
                                             <CardTitle className="text-lg">Quote for: {req?.title || 'N/A'}</CardTitle>
                                             <CardDescription>
-                                                For {req?.homeownerName} &bull; Submitted on {formatDate(quote.createdAt)}
+                                                For {req?.homeownerName || 'a homeowner'} &bull; Submitted on {formatDate(quote.createdAt)}
                                             </CardDescription>
                                         </div>
                                         <Badge variant={status.variant} className={status.variant === 'default' ? 'bg-accent text-accent-foreground' : ''}>
@@ -161,65 +165,67 @@ export default function MyQuotationsPage() {
                                         <p className="text-muted-foreground">{quote.terms}</p>
                                     </div>
                                     
-                                     <Collapsible>
-                                        <CollapsibleTrigger asChild>
-                                            <Button variant="link" className="p-0 h-auto text-sm">
-                                               View Requirement Details <ChevronsUpDown className="h-4 w-4 ml-1" />
-                                            </Button>
-                                        </CollapsibleTrigger>
-                                        <CollapsibleContent>
-                                            {req ? (
-                                                 <div className="p-4 mt-2 bg-muted rounded-md space-y-4 text-sm">
-                                                    <p className="text-muted-foreground">{req.description}</p>
-                                                    
-                                                     {req.brands && req.brands.length > 0 && (
-                                                        <div className="pt-2 border-t">
-                                                            <h4 className="font-semibold mb-2">Cement Details:</h4>
-                                                            <ul className="space-y-1 list-disc pl-5">
-                                                                {req.brands.map(brand => (
-                                                                    <li key={brand.id} className="text-muted-foreground">
-                                                                        {brand.id}: <strong>{brand.quantity || 'N/A'} bags</strong>
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                    )}
-                                                    {req.steelDetails && req.steelDetails.length > 0 && (
-                                                        <div className="pt-2 border-t">
-                                                            <h4 className="font-semibold mb-2">Steel Details:</h4>
-                                                            <ul className="space-y-1 list-disc pl-5">
-                                                                {req.steelDetails.map(detail => (
-                                                                    <li key={detail.size} className="text-muted-foreground">
-                                                                        {detail.size}mm: <strong>{detail.quantity || 'N/A'} rods</strong>
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                            {req.steelBrands && req.steelBrands.length > 0 && (
-                                                                <p className="text-xs text-muted-foreground mt-1">Preferred Brands: {req.steelBrands.join(', ')}</p>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                     {req.electricalDetails && req.electricalDetails.length > 0 && (
-                                                        <div className="pt-2 border-t">
-                                                            <h4 className="font-semibold mb-2">Electrical Details:</h4>
-                                                            <ul className="space-y-1 list-disc pl-5">
-                                                                {req.electricalDetails.map(detail => (
-                                                                    <li key={detail.id} className="text-muted-foreground">
-                                                                        {detail.id}: <strong>{detail.quantity || 'N/A'} pcs</strong>
-                                                                    </li>
-                                                                ))}
-                                                            </ul>
-                                                            {req.electricalBrands && req.electricalBrands.length > 0 && (
-                                                                <p className="text-xs text-muted-foreground mt-1">Preferred Brands: {req.electricalBrands.join(', ')}</p>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                 </div>
-                                            ) : (
-                                                <p className="text-sm text-muted-foreground mt-2">Could not load requirement details.</p>
-                                            )}
-                                        </CollapsibleContent>
-                                    </Collapsible>
+                                     {req?.status !== 'Deleted' && (
+                                        <Collapsible>
+                                            <CollapsibleTrigger asChild>
+                                                <Button variant="link" className="p-0 h-auto text-sm">
+                                                View Requirement Details <ChevronsUpDown className="h-4 w-4 ml-1" />
+                                                </Button>
+                                            </CollapsibleTrigger>
+                                            <CollapsibleContent>
+                                                {req ? (
+                                                    <div className="p-4 mt-2 bg-muted rounded-md space-y-4 text-sm">
+                                                        <p className="text-muted-foreground">{req.description}</p>
+                                                        
+                                                        {req.brands && req.brands.length > 0 && (
+                                                            <div className="pt-2 border-t">
+                                                                <h4 className="font-semibold mb-2">Cement Details:</h4>
+                                                                <ul className="space-y-1 list-disc pl-5">
+                                                                    {req.brands.map(brand => (
+                                                                        <li key={brand.id} className="text-muted-foreground">
+                                                                            {brand.id}: <strong>{brand.quantity || 'N/A'} bags</strong>
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                            </div>
+                                                        )}
+                                                        {req.steelDetails && req.steelDetails.length > 0 && (
+                                                            <div className="pt-2 border-t">
+                                                                <h4 className="font-semibold mb-2">Steel Details:</h4>
+                                                                <ul className="space-y-1 list-disc pl-5">
+                                                                    {req.steelDetails.map(detail => (
+                                                                        <li key={detail.size} className="text-muted-foreground">
+                                                                            {detail.size}mm: <strong>{detail.quantity || 'N/A'} rods</strong>
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                                {req.steelBrands && req.steelBrands.length > 0 && (
+                                                                    <p className="text-xs text-muted-foreground mt-1">Preferred Brands: {req.steelBrands.join(', ')}</p>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                        {req.electricalDetails && req.electricalDetails.length > 0 && (
+                                                            <div className="pt-2 border-t">
+                                                                <h4 className="font-semibold mb-2">Electrical Details:</h4>
+                                                                <ul className="space-y-1 list-disc pl-5">
+                                                                    {req.electricalDetails.map(detail => (
+                                                                        <li key={detail.id} className="text-muted-foreground">
+                                                                            {detail.id}: <strong>{detail.quantity || 'N/A'} pcs</strong>
+                                                                        </li>
+                                                                    ))}
+                                                                </ul>
+                                                                {req.electricalBrands && req.electricalBrands.length > 0 && (
+                                                                    <p className="text-xs text-muted-foreground mt-1">Preferred Brands: {req.electricalBrands.join(', ')}</p>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-sm text-muted-foreground mt-2">Could not load requirement details.</p>
+                                                )}
+                                            </CollapsibleContent>
+                                        </Collapsible>
+                                     )}
 
                                     {req?.homeownerId && status.text === 'Accepted' && (
                                         <div className="pt-2">
