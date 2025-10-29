@@ -762,7 +762,7 @@ export const updateUpdate = async (id: string, data: { title: string; content: s
 
 export const deleteUpdate = async (id: string, imageUrls?: string[]) => {
     const updateRef = doc(db, 'updates', id);
-    await updateDoc(updateRef, {status: 'Deleted'});
+    await deleteDoc(updateRef);
 
     if (imageUrls && imageUrls.length > 0) {
         await Promise.all(imageUrls.map(async (url) => {
@@ -780,7 +780,7 @@ export const deleteUpdate = async (id: string, imageUrls?: string[]) => {
 
 
 export const getAllUpdates = async (): Promise<Update[]> => {
-    const q = query(collection(db, "updates"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "updates"), where("status", "!=", "Deleted"), orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Update));
 }
@@ -789,7 +789,12 @@ export const getUpdateById = async (id: string): Promise<Update | undefined> => 
     const docRef = doc(db, "updates", id);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() } as Update;
+        const data = docSnap.data();
+        // Check for the legacy soft-delete status
+        if (data.status === 'Deleted') {
+            return undefined;
+        }
+        return { id: docSnap.id, ...data } as Update;
     }
     return undefined;
 }
@@ -962,3 +967,4 @@ export const getReviewByPurchase = async (purchaseId: string, customerId: string
 
 
     
+

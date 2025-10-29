@@ -106,6 +106,7 @@ export type Update = {
   content: string;
   imageUrls?: string[];
   createdAt: Timestamp | Date | string;
+  status?: 'Published' | 'Deleted';
 };
 
 export type Purchase = {
@@ -150,3 +151,4 @@ export type Review = {
     comment: string;
     createdAt: Timestamp;
 }
+
