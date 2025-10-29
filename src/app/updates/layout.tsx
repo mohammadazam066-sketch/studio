@@ -4,13 +4,21 @@
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { useAuth } from "@/lib/store";
 import { Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function UpdatesLayout({ children }: { children: React.ReactNode }) {
     const { currentUser, loading } = useAuth();
+    const router = useRouter();
     
-    // The dashboard layout can handle a null role for guests.
-    // We only need to show a loader while auth state is being determined.
-    if (loading) {
+    useEffect(() => {
+        if (!loading && !currentUser) {
+            router.replace('/auth/login');
+        }
+    }, [currentUser, loading, router]);
+
+
+    if (loading || !currentUser) {
         return (
              <div className="flex h-screen w-screen items-center justify-center">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -19,7 +27,7 @@ export default function UpdatesLayout({ children }: { children: React.ReactNode 
     }
 
   return (
-    <DashboardLayout role={currentUser?.role ?? null}>
+    <DashboardLayout role={currentUser.role}>
         {children}
     </DashboardLayout>
   );
