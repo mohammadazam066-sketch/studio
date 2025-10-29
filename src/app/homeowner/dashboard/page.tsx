@@ -65,7 +65,7 @@ function RequirementListSkeleton() {
 
 
 export default function HomeownerDashboard() {
-    const { currentUser } = useAuth();
+    const { currentUser, loading: authLoading } = useAuth();
     const [requirements, setRequirements] = useState<RequirementWithQuoteCount[]>([]);
     const [displayRequirements, setDisplayRequirements] = useState<RequirementWithQuoteCount[]>([]);
     const [loading, setLoading] = useState(true);
@@ -74,7 +74,10 @@ export default function HomeownerDashboard() {
 
 
     const fetchRequirements = useCallback(async () => {
-        if (!currentUser) return;
+        if (!currentUser) {
+            setLoading(false);
+            return;
+        };
         setLoading(true);
         try {
             const userRequirements = await getRequirementsByHomeowner(currentUser.id);
@@ -97,8 +100,11 @@ export default function HomeownerDashboard() {
     }, [currentUser]);
 
     useEffect(() => {
-        fetchRequirements();
-    }, [fetchRequirements]);
+        // Only fetch requirements if auth has finished loading
+        if (!authLoading) {
+            fetchRequirements();
+        }
+    }, [fetchRequirements, authLoading]);
     
     useEffect(() => {
         let filtered = requirements;
@@ -118,6 +124,45 @@ export default function HomeownerDashboard() {
     const openRequirementsCount = requirements.filter(r => r.status === 'Open' && (locationFilter === 'all' || r.location === locationFilter)).length;
     const purchasedRequirementsCount = requirements.filter(r => r.status === 'Purchased' && (locationFilter === 'all' || r.location === locationFilter)).length;
 
+    // Show skeleton while either auth or requirements are loading
+    if (authLoading || (currentUser && loading)) {
+        return (
+            <div className="space-y-6">
+                <Skeleton className="h-8 w-1/2" />
+                <Skeleton className="h-4 w-1/3" />
+                <RequirementListSkeleton />
+            </div>
+        )
+    }
+
+    // This is the guest view
+    if (!currentUser) {
+        return (
+             <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl font-bold font-headline tracking-tight">Homeowner Dashboard</h1>
+                        <p className="text-muted-foreground">Manage your material requirements and view quotations.</p>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                        <Button asChild>
+                            <Link href="/homeowner/requirements/new">
+                                <PlusCircle className="mr-2" />
+                                Post a New Requirement
+                            </Link>
+                        </Button>
+                        <Button asChild variant="outline">
+                            <Link href="/updates">
+                                <Newspaper className="mr-2" />
+                                View Updates
+                            </Link>
+                        </Button>
+                    </div>
+                </div>
+                <GettingStartedGuide />
+            </div>
+        )
+    }
 
     return (
         <div className="space-y-6">
@@ -201,9 +246,7 @@ export default function HomeownerDashboard() {
                         </SelectContent>
                     </Select>
                  </div>
-                 {loading ? (
-                    <RequirementListSkeleton />
-                 ) : requirements.length === 0 ? (
+                 {requirements.length === 0 ? (
                     <GettingStartedGuide />
                  ) : displayRequirements.length > 0 ? (
                     <div className="space-y-4">
