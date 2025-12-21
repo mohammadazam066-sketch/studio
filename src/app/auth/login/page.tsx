@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { PhoneAuthForm } from '@/components/phone-auth-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useState } from 'react';
+import Link from 'next/link';
 
 export default function LoginPage() {
   const [tab, setTab] = useState<'login' | 'signup'>('login');
@@ -64,10 +65,13 @@ export default function LoginPage() {
 
         </Tabs>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex-col gap-2">
         <p className="text-xs text-muted-foreground text-center w-full">
           Need help? Contact <a href="mailto:kanstructionapp@gmail.com" className="underline hover:text-primary">kanstructionapp@gmail.com</a>
         </p>
+         <Link href="https://sites.google.com/view/kanstructiononline/home" target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground underline hover:text-primary">
+            Terms and Conditions and Privacy Policy
+        </Link>
       </CardFooter>
     </Card>
   );

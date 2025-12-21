@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import Link from 'next/link';
@@ -145,6 +144,9 @@ export default function HomePage() {
         <p>© {new Date().getFullYear()} kanstruction. All rights reserved.</p>
         <div className="mt-2 space-x-4">
              <a href="mailto:kanstructionapp@gmail.com" className="underline hover:text-primary">Contact Support</a>
+             <Link href="https://sites.google.com/view/kanstructiononline/home" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">
+                Terms and Conditions and Privacy Policy
+            </Link>
         </div>
       </footer>
     </div>
