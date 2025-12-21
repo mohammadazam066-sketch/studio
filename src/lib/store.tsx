@@ -19,7 +19,6 @@ interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
   logout: () => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
   updateUserProfile: (updatedProfile: Partial<HomeownerProfile | ShopOwnerProfile> & { photosToKeep?: string[], newIcon?: string }, newPhotos?: string[]) => Promise<void>;
   handleNewUser: (user: import('firebase/auth').User, role: UserRole) => Promise<void>;
   deleteUserAccount: () => Promise<void>;
@@ -299,35 +298,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
   }
 
-  const signInWithGoogle = async () => {
-    const provider = new GoogleAuthProvider();
-    try {
-        const result = await signInWithPopup(firebaseAuth, provider);
-        const user = result.user;
-        const userDocRef = doc(db, 'users', user.uid);
-        const userDocSnap = await getDoc(userDocRef);
-
-        if (!userDocSnap.exists()) {
-            // New user, create the user and profile documents.
-            // Default to 'homeowner' for new Google sign-ups.
-            await handleNewUser(user, 'homeowner');
-        } else {
-             // Existing user, just make sure state is updated.
-             const userData = userDocSnap.data() as User;
-             const profileDocRef = doc(db, userData.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles', user.uid);
-             const profileSnap = await getDoc(profileDocRef);
-             if (profileSnap.exists()) {
-                setCurrentUser({ ...userData, profile: profileSnap.data()});
-             } else {
-                setCurrentUser(userData);
-             }
-        }
-    } catch (error) {
-        console.error("Error during Google Sign-In:", error);
-    }
-  };
-
-
   const deleteUserAccount = async () => {
     const user = firebaseAuth.currentUser;
     if (!user) throw new Error("User not authenticated");
@@ -368,7 +338,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     currentUser,
     loading,
     logout,
-    signInWithGoogle,
     updateUserProfile,
     handleNewUser,
     deleteUserAccount,
@@ -1010,5 +979,3 @@ export const getReviewByPurchase = async (purchaseId: string, customerId: string
 
 
     
-
-
