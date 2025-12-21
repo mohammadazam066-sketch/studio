@@ -4,7 +4,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { User, UserRole, HomeownerProfile, ShopOwnerProfile, Requirement, Quotation, Update, QuotationWithRequirement, Purchase, PurchaseWithDetails, Notification, Review } from './types';
-import { db, storage, auth } from './firebase';
+import { db, storage, auth as firebaseAuth } from './firebase';
 import { 
     doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc,
     collection, query, where, getDocs, serverTimestamp, orderBy, writeBatch
@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const adminUids: string[] = ['OmP2c8syLshm2F7KXj4cRT9UJsr1'];
     
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
       if (user) {
         const isDesignatedAdmin = adminUids.includes(user.uid);
 
@@ -302,7 +302,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     try {
-        const result = await signInWithPopup(auth, provider);
+        const result = await signInWithPopup(firebaseAuth, provider);
         const user = result.user;
         const userDocRef = doc(db, 'users', user.uid);
         const userDocSnap = await getDoc(userDocRef);
@@ -329,7 +329,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 
   const deleteUserAccount = async () => {
-    const user = auth.currentUser;
+    const user = firebaseAuth.currentUser;
     if (!user) throw new Error("User not authenticated");
 
     const userDocRef = doc(db, "users", user.uid);
@@ -429,27 +429,27 @@ const uploadPhotos = async (photosDataUrls: string[], pathConfig: UploadPathConf
 // == REQUIREMENTS ==
 
 export const addRequirement = async (data, photosDataUrls: string[]) => {
-    if (!auth.currentUser) throw new Error("User not authenticated");
+    if (!firebaseAuth.currentUser) throw new Error("User not authenticated");
     
-    const userDocRef = doc(db, 'users', auth.currentUser.uid);
+    const userDocRef = doc(db, 'users', firebaseAuth.currentUser.uid);
     const userDocSnap = await getDoc(userDocRef);
     const userData = userDocSnap.data() as User;
 
-    const profileDocRef = doc(db, 'homeownerProfiles', auth.currentUser.uid);
+    const profileDocRef = doc(db, 'homeownerProfiles', firebaseAuth.currentUser.uid);
     const profileDocSnap = await getDoc(profileDocRef);
     const profileData = profileDocSnap.data() as HomeownerProfile;
 
 
     const requirementRef = await addDoc(collection(db, 'requirements'), {
         ...data,
-        homeownerId: auth.currentUser.uid,
+        homeownerId: firebaseAuth.currentUser.uid,
         homeownerName: profileData?.name || userData?.phoneNumber || 'Anonymous',
         createdAt: serverTimestamp(),
         status: 'Open',
         photos: [], // Start with empty array,
     });
 
-    const photoUrls = await uploadPhotos(photosDataUrls, { type: 'requirement', userId: auth.currentUser.uid, requirementId: requirementRef.id });
+    const photoUrls = await uploadPhotos(photosDataUrls, { type: 'requirement', userId: firebaseAuth.currentUser.uid, requirementId: requirementRef.id });
     await updateDoc(requirementRef, { photos: photoUrls });
     
     // Create notifications for shop owners in the same location
@@ -483,7 +483,7 @@ export const addRequirement = async (data, photosDataUrls: string[]) => {
 }
 
 export const updateRequirement = async (id: string, data: Partial<Requirement>, newPhotosDataUrls: string[], remainingExistingPhotos: string[]) => {
-    if (!auth.currentUser) throw new Error("User not authenticated");
+    if (!firebaseAuth.currentUser) throw new Error("User not authenticated");
     const requirementRef = doc(db, 'requirements', id);
     
     const requirementSnap = await getDoc(requirementRef);
@@ -506,7 +506,7 @@ export const updateRequirement = async (id: string, data: Partial<Requirement>, 
     // Handle photo additions
     let newPhotoUrls: string[] = [];
     if (newPhotosDataUrls.length > 0) {
-        newPhotoUrls = await uploadPhotos(newPhotosDataUrls, {type: 'requirement', userId: auth.currentUser.uid, requirementId: id});
+        newPhotoUrls = await uploadPhotos(newPhotosDataUrls, {type: 'requirement', userId: firebaseAuth.currentUser.uid, requirementId: id});
     }
     
     const finalPhotos = [...remainingExistingPhotos, ...newPhotoUrls];
@@ -603,9 +603,9 @@ export const updateRequirementStatus = async (id: string, status: 'Open' | 'Purc
 // == QUOTATIONS ==
 
 export const addQuotation = async (data) => {
-    if (!auth.currentUser) throw new Error("User not authenticated");
+    if (!firebaseAuth.currentUser) throw new Error("User not authenticated");
     
-    const profileDocRef = doc(db, 'shopOwnerProfiles', auth.currentUser.uid);
+    const profileDocRef = doc(db, 'shopOwnerProfiles', firebaseAuth.currentUser.uid);
     const profileDocSnap = await getDoc(profileDocRef);
     const profileData = profileDocSnap.data() as ShopOwnerProfile;
     
@@ -619,7 +619,7 @@ export const addQuotation = async (data) => {
         materialAmount: materialAmount || 0,
         transportationCharges: transportationCharges || 0,
         totalAmount: (materialAmount || 0) + (transportationCharges || 0),
-        shopOwnerId: auth.currentUser.uid,
+        shopOwnerId: firebaseAuth.currentUser.uid,
         shopOwnerName: profileData?.name || 'Anonymous',
         shopName: profileData?.shopName || 'Unnamed Shop',
         createdAt: serverTimestamp(),
@@ -652,11 +652,11 @@ export const updateQuotation = async (id: string, data) => {
 }
 
 export const deleteQuotation = async (id: string) => {
-    if (!auth.currentUser) throw new Error("User not authenticated");
+    if (!firebaseAuth.currentUser) throw new Error("User not authenticated");
     const quotationRef = doc(db, 'quotations', id);
     // Optional: Add a check to ensure the user deleting is the one who created it.
     const quoteSnap = await getDoc(quotationRef);
-    if (quoteSnap.exists() && quoteSnap.data().shopOwnerId === auth.currentUser.uid) {
+    if (quoteSnap.exists() && quoteSnap.data().shopOwnerId === firebaseAuth.currentUser.uid) {
         await deleteDoc(quotationRef);
     } else {
         throw new Error("Quotation not found or user not authorized to delete it.");
@@ -748,32 +748,32 @@ export const getUser = async (userId: string): Promise<User | undefined> => {
 // == UPDATES ==
 
 export const addUpdate = async (data: { title: string, content: string }, photosDataUrls: string[] = []) => {
-    if (!auth.currentUser) throw new Error("User not authenticated");
+    if (!firebaseAuth.currentUser) throw new Error("User not authenticated");
     
-    const userDocSnap = await getDoc(doc(db, 'users', auth.currentUser.uid));
+    const userDocSnap = await getDoc(doc(db, 'users', firebaseAuth.currentUser.uid));
     if(!userDocSnap.exists()) throw new Error("User not found");
     const userData = userDocSnap.data() as User;
     const profileCollection = userData.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
-    const profileDocSnap = await getDoc(doc(db, profileCollection, auth.currentUser.uid));
+    const profileDocSnap = await getDoc(doc(db, profileCollection, firebaseAuth.currentUser.uid));
     const profileData = profileDocSnap.data();
 
     const updateRef = await addDoc(collection(db, 'updates'), {
         ...data,
-        authorId: auth.currentUser.uid,
+        authorId: firebaseAuth.currentUser.uid,
         authorName: profileData?.name || userData.phoneNumber,
         authorRole: userData.role,
         createdAt: serverTimestamp(),
         imageUrls: [],
     });
 
-    const photoUrls = await uploadPhotos(photosDataUrls, { type: 'update', userId: auth.currentUser.uid, updateId: updateRef.id });
+    const photoUrls = await uploadPhotos(photosDataUrls, { type: 'update', userId: firebaseAuth.currentUser.uid, updateId: updateRef.id });
 
     await updateDoc(updateRef, { imageUrls: photoUrls });
 }
 
 
 export const updateUpdate = async (id: string, data: { title: string; content: string }, newPhotosDataUrls: string[], remainingExistingPhotos: string[]) => {
-    if (!auth.currentUser) throw new Error("User not authenticated");
+    if (!firebaseAuth.currentUser) throw new Error("User not authenticated");
     const updateRef = doc(db, 'updates', id);
 
     const updateSnap = await getDoc(updateRef);
@@ -792,7 +792,7 @@ export const updateUpdate = async (id: string, data: { title: string; content: s
         }
     }));
 
-    const newPhotoUrls = await uploadPhotos(newPhotosDataUrls, { type: 'update', userId: auth.currentUser.uid, updateId: id });
+    const newPhotoUrls = await uploadPhotos(newPhotosDataUrls, { type: 'update', userId: firebaseAuth.currentUser.uid, updateId: id });
     const finalPhotos = [...remainingExistingPhotos, ...newPhotoUrls];
     
     await updateDoc(updateRef, {
@@ -824,11 +824,7 @@ export const deleteUpdate = async (id: string, imageUrls?: string[]) => {
 export const getAllUpdates = async (): Promise<Update[]> => {
     const q = query(collection(db, "updates"), orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
-    const updates = querySnapshot.docs
-        .map(doc => ({ id: doc.id, ...doc.data() } as Update))
-        // This client-side filter is for legacy data that might have a status field.
-        // New posts don't have this field, and deleting removes the doc entirely.
-        .filter(update => update.status !== 'Deleted');
+    const updates = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Update));
     return updates;
 }
 
@@ -949,8 +945,8 @@ export const getPurchaseById = async (id: string): Promise<PurchaseWithDetails |
 // == REVIEWS ==
 
 export const addReview = async (reviewData: Omit<Review, 'id' | 'createdAt'>) => {
-    if (!auth.currentUser) throw new Error("Not authenticated");
-    if (auth.currentUser.uid !== reviewData.customerId) throw new Error("Cannot post review for another user.");
+    if (!firebaseAuth.currentUser) throw new Error("Not authenticated");
+    if (firebaseAuth.currentUser.uid !== reviewData.customerId) throw new Error("Cannot post review for another user.");
     
     return await addDoc(collection(db, 'reviews'), {
         ...reviewData,
@@ -959,13 +955,13 @@ export const addReview = async (reviewData: Omit<Review, 'id' | 'createdAt'>) =>
 }
 
 export const updateReview = async (reviewId: string, data: { rating: number; comment: string }) => {
-    if (!auth.currentUser) throw new Error("Not authenticated");
+    if (!firebaseAuth.currentUser) throw new Error("Not authenticated");
     
     const reviewRef = doc(db, 'reviews', reviewId);
     
     // Optional: Check if the current user is the author of the review before updating
     const reviewSnap = await getDoc(reviewRef);
-    if (!reviewSnap.exists() || reviewSnap.data().customerId !== auth.currentUser.uid) {
+    if (!reviewSnap.exists() || reviewSnap.data().customerId !== firebaseAuth.currentUser.uid) {
         throw new Error("You are not authorized to edit this review.");
     }
     
@@ -1014,4 +1010,5 @@ export const getReviewByPurchase = async (purchaseId: string, customerId: string
 
 
     
+
 
