@@ -11,7 +11,7 @@ import {
 } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 import { logoutUser } from './auth';
-import { onAuthStateChanged, deleteUser } from 'firebase/auth';
+import { onAuthStateChanged, deleteUser, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 
 // --- AUTH CONTEXT & PROVIDER ---
 
@@ -19,6 +19,7 @@ interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
   logout: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   updateUserProfile: (updatedProfile: Partial<HomeownerProfile | ShopOwnerProfile> & { photosToKeep?: string[], newIcon?: string }, newPhotos?: string[]) => Promise<void>;
   handleNewUser: (user: import('firebase/auth').User, role: UserRole) => Promise<void>;
   deleteUserAccount: () => Promise<void>;
@@ -39,7 +40,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const adminUids: string[] = ['OmP2c8syLshm2F7KXj4cRT9UJsr1'];
     
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user && user.phoneNumber) {
+      if (user) {
         const isDesignatedAdmin = adminUids.includes(user.uid);
 
         if (isDesignatedAdmin) {
@@ -50,12 +51,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (!adminDocSnap.exists()) {
                 adminData = {
                     id: user.uid,
-                    phoneNumber: user.phoneNumber,
+                    phoneNumber: user.phoneNumber || 'N/A',
                     role: 'admin' as UserRole,
                     createdAt: serverTimestamp(),
                     profile: {
                         name: 'Admin',
                         phoneNumber: user.phoneNumber,
+                        email: user.email,
                     }
                 };
                 await setDoc(adminDocRef, adminData);
@@ -66,7 +68,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     profile: {
                         name: adminDocSnap.data().profile?.name || 'Admin',
                         ...(adminDocSnap.data().profile || {}),
-                        phoneNumber: user.phoneNumber
+                        phoneNumber: user.phoneNumber,
+                        email: user.email,
                     }
                  };
                  // If the role in DB was not admin, update it
@@ -217,8 +220,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const handleNewUser = async (user: import('firebase/auth').User, role: UserRole) => {
-      if (!user.phoneNumber) throw new Error("User phone number is not available.");
-
       const userDocRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userDocRef);
 
@@ -227,19 +228,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return; 
       }
       
-      const defaultName = `User ${user.phoneNumber.slice(-4)}`;
+      const defaultName = user.displayName || `User ${user.uid.slice(0, 5)}`;
+      const phoneNumber = user.phoneNumber || '';
 
       // Create user document in 'users' collection
       const userDataForDb = {
         id: user.uid,
-        phoneNumber: user.phoneNumber,
+        phoneNumber: phoneNumber,
         role: role,
+        email: user.email || '',
         createdAt: serverTimestamp(),
       };
       
       setDoc(userDocRef, userDataForDb).catch(async (serverError) => {
           // This part is handled by contextual errors in production apps
-          console.error("Error creating user document:", serverError);
+          console.error("Error creating user document:", serverError, {
+            context: {
+              path: userDocRef.path,
+              operation: 'create',
+              requestResourceData: userDataForDb,
+            }
+          });
           // throw contextual error here
       });
   
@@ -253,22 +262,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         profileData = {
             id: user.uid,
             name: defaultName,
-            phoneNumber: user.phoneNumber,
+            phoneNumber: phoneNumber,
+            email: user.email || '',
             shopName: `${defaultName}'s Shop`,
             address: '',
             location: '',
             shopPhotos: [],
-            shopIconUrl: '',
+            shopIconUrl: user.photoURL || '',
             createdAt: serverTimestamp(),
         };
-      } else {
+      } else { // homeowner
         profileData = {
             id: user.uid,
             name: defaultName,
-            phoneNumber: user.phoneNumber,
+            phoneNumber: phoneNumber,
+            email: user.email || '',
             address: '',
             occupation: '',
-            photoURL: '',
+            photoURL: user.photoURL || '',
             createdAt: serverTimestamp(),
         };
       }
@@ -287,6 +298,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setCurrentUserAndLog({ ...userData, profile: profileData });
       }
   }
+
+  const signInWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+        const result = await signInWithPopup(auth, provider);
+        const user = result.user;
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (!userDocSnap.exists()) {
+            // New user, create the user and profile documents.
+            // Default to 'homeowner' for new Google sign-ups.
+            await handleNewUser(user, 'homeowner');
+        } else {
+             // Existing user, just make sure state is updated.
+             const userData = userDocSnap.data() as User;
+             const profileDocRef = doc(db, userData.role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles', user.uid);
+             const profileSnap = await getDoc(profileDocRef);
+             if (profileSnap.exists()) {
+                setCurrentUser({ ...userData, profile: profileSnap.data()});
+             } else {
+                setCurrentUser(userData);
+             }
+        }
+    } catch (error) {
+        console.error("Error during Google Sign-In:", error);
+    }
+  };
 
 
   const deleteUserAccount = async () => {
@@ -329,6 +368,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     currentUser,
     loading,
     logout,
+    signInWithGoogle,
     updateUserProfile,
     handleNewUser,
     deleteUserAccount,
@@ -489,13 +529,14 @@ export const getRequirementById = async (id: string): Promise<Requirement | unde
 export const getRequirementsByHomeowner = async (homeownerId: string): Promise<Requirement[]> => {
     const q = query(
         collection(db, "requirements"), 
-        where("homeownerId", "==", homeownerId)
+        where("homeownerId", "==", homeownerId),
     );
     const querySnapshot = await getDocs(q);
     const requirements = querySnapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() } as Requirement))
         .filter(req => req.status !== 'Deleted');
     
+    // Client-side sorting
     return requirements.sort((a, b) => {
         // Sort "Open" requirements first
         if (a.status === 'Open' && b.status !== 'Open') return -1;
@@ -785,6 +826,8 @@ export const getAllUpdates = async (): Promise<Update[]> => {
     const querySnapshot = await getDocs(q);
     const updates = querySnapshot.docs
         .map(doc => ({ id: doc.id, ...doc.data() } as Update))
+        // This client-side filter is for legacy data that might have a status field.
+        // New posts don't have this field, and deleting removes the doc entirely.
         .filter(update => update.status !== 'Deleted');
     return updates;
 }
@@ -971,5 +1014,4 @@ export const getReviewByPurchase = async (purchaseId: string, customerId: string
 
 
     
-
 

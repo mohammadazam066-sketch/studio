@@ -7,6 +7,7 @@ export type UserRole = 'homeowner' | 'shop-owner' | 'admin';
 export type User = {
   id: string;
   phoneNumber: string;
+  email?: string;
   role: UserRole;
   profile?: HomeownerProfile | ShopOwnerProfile;
   createdAt: Timestamp | Date | string;
@@ -15,6 +16,7 @@ export type ShopOwnerProfile = {
   id: string; // Corresponds to user.uid
   name: string;
   phoneNumber: string;
+  email?: string;
   shopName: string;
   address: string;
   location: string;
@@ -26,6 +28,7 @@ export type HomeownerProfile = {
     id: string;
     name: string;
     phoneNumber: string;
+    email?: string;
     address?: string;
     occupation?: string;
     photoURL?: string;

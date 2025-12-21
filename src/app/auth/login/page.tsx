@@ -6,9 +6,14 @@ import { PhoneAuthForm } from '@/components/phone-auth-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useState } from 'react';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/lib/store';
+import Image from 'next/image';
+import { Separator } from '@/components/ui/separator';
 
 export default function LoginPage() {
   const [tab, setTab] = useState<'login' | 'signup'>('login');
+  const { signInWithGoogle, loading } = useAuth();
 
   const titles = {
     login: 'Sign In',
@@ -28,7 +33,18 @@ export default function LoginPage() {
           Sign in or create an account to get started.
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        <Button variant="outline" className="w-full" onClick={signInWithGoogle} disabled={loading}>
+            <Image src="/google-logo.svg" alt="Google logo" width={20} height={20} className="mr-2" />
+            Sign in with Google
+        </Button>
+
+        <div className="flex items-center gap-2">
+            <Separator className="flex-1" />
+            <span className="text-xs text-muted-foreground">OR</span>
+            <Separator className="flex-1" />
+        </div>
+
         <Tabs defaultValue="login" className="w-full" onValueChange={(value) => setTab(value as 'login' | 'signup')}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="login">Login</TabsTrigger>
