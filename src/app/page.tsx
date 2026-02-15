@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import Link from 'next/link';
@@ -73,7 +72,7 @@ export default function HomePage() {
                 </div>
                  <div className="mt-12">
                      <Button asChild size="lg" variant="outline">
-                        <a href="https://warehouse.appilix.com/uploads/app-apk-68ea264f5e254-1760175695.apk" target="_blank" rel="noopener noreferrer">
+                        <a href="https://github.com/mohammadazam066-sketch/kanstruction-/raw/main/app-apk-69916c159eae9-1771138069.apk" target="_blank" rel="noopener noreferrer">
                           <Download className="mr-2" />
                           Download the App
                         </a>
