@@ -1,3 +1,3 @@
 # Studio: Master
 
-Triggering a new build to resolve a temporary environment issue.
+Forcing a new build to resolve the expired signed URL issue.
