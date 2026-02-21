@@ -1,5 +1,4 @@
-
-export default function middleware() {}
+export function middleware() {}
  
 export const config = {
   matcher: []
