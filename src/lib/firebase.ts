@@ -6,7 +6,7 @@ import {
   Firestore
 } from "firebase/firestore";
 import { getStorage, FirebaseStorage } from "firebase/storage";
-import { getAuth, Auth, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence } from "firebase/auth";
+import { getAuth, Auth } from "firebase/auth";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -22,43 +22,33 @@ let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 let storage: FirebaseStorage;
-let persistenceEnabled = false;
 
+// This ensures we only initialize once across the entire app,
+// preventing re-initialization on hot reloads which was causing the request loop.
 if (getApps().length === 0) {
   app = initializeApp(firebaseConfig);
-} else {
-  app = getApp();
-}
+  auth = getAuth(app);
+  db = getFirestore(app);
+  storage = getStorage(app);
 
-if (typeof window !== 'undefined') {
-    auth = initializeAuth(app, {
-        persistence: indexedDBLocalPersistence,
+  // Enable persistence only on the client and only during the very first initialization
+  if (typeof window !== 'undefined') {
+    enableMultiTabIndexedDbPersistence(db).catch((err) => {
+      if (err.code == 'failed-precondition') {
+          // This is an expected error if multiple tabs are open.
+          console.log('Firestore persistence failed because it is enabled in another tab.');
+      } else if (err.code == 'unimplemented') {
+          // The browser does not support all features required for persistence.
+          console.log('Firestore persistence is not supported in this browser.');
+      }
     });
+  }
 } else {
-    auth = getAuth(app);
+  // If the app is already initialized, we simply get the existing instances.
+  app = getApp();
+  auth = getAuth(app);
+  db = getFirestore(app);
+  storage = getStorage(app);
 }
-
-storage = getStorage(app);
-db = getFirestore(app);
-
-// Self-invoking function to enable persistence as soon as this module is loaded on the client.
-(async () => {
-    if (typeof window !== 'undefined' && !persistenceEnabled) {
-        try {
-            await enableMultiTabIndexedDbPersistence(db);
-            persistenceEnabled = true;
-            console.log("Firestore persistence enabled.");
-        } catch (err: any) {
-            if (err.code === 'failed-precondition') {
-                // This is okay, means another tab has it open
-                persistenceEnabled = true;
-            } else if (err.code === 'unimplemented') {
-                // Browser doesn't support persistence
-            } else {
-                console.error("Error enabling Firestore persistence:", err);
-            }
-        }
-    }
-})();
 
 export { app, auth, db, storage };
