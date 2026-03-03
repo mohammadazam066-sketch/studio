@@ -11,6 +11,10 @@ import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storag
 import { logoutUser } from './auth';
 import { onAuthStateChanged, deleteUser, signInWithPopup, GoogleAuthProvider, Unsubscribe } from 'firebase/auth';
 
+let categoryCountCache: Record<string, number> | null = null;
+let categoryCountCacheTime = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 // --- AUTH CONTEXT & PROVIDER ---
 
 interface AuthContextType {
@@ -490,21 +494,33 @@ export const getOpenRequirementsByCategory = async (category: string): Promise<R
 }
 
 export const getOpenRequirementsCountByCategory = async (): Promise<Record<string, number>> => {
+    const now = Date.now();
+
+    // If we have a fresh cache, use it instead of calling Firebase
+    if (categoryCountCache && (now - categoryCountCacheTime) < CACHE_DURATION) {
+        return categoryCountCache;
+    }
+
     const q = query(collection(db, "requirements"), where("status", "==", "Open"));
     const querySnapshot = await getDocs(q);
     const counts: Record<string, number> = {};
+    
     querySnapshot.forEach(doc => {
         const requirement = doc.data() as Requirement;
         if (requirement.category) {
             counts[requirement.category] = (counts[requirement.category] || 0) + 1;
         }
     });
+
+    categoryCountCache = counts;
+    categoryCountCacheTime = now;
     return counts;
 };
 
 export const updateRequirementStatus = async (id: string, status: 'Open' | 'Purchased' | 'Deleted', data: Partial<Requirement> = {}) => {
     const requirementRef = doc(db, 'requirements', id);
     await updateDoc(requirementRef, { ...data, status });
+    categoryCountCache = null;
 };
 
 export const addQuotation = async (data) => {
@@ -870,4 +886,5 @@ export const getReviewByPurchase = async (purchaseId: string, customerId: string
 
 
     
+
 
