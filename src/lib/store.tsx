@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
@@ -173,7 +174,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     }
                 }
             }
-            uploadedUrls = await uploadPhotos(newPhotosDataUrls, {type: 'profile', userId: currentUser.id});
+            uploadedUrls = await uploadPhotos(newPhotosDataUrls, { type: 'profile', userId: currentUser.id });
         }
     }
     
@@ -386,28 +387,31 @@ export const addRequirement = async (data, photosDataUrls: string[]) => {
     const photoUrls = await uploadPhotos(photosDataUrls, { type: 'requirement', userId: firebaseAuth.currentUser.uid, requirementId: requirementRef.id });
     await updateDoc(requirementRef, { photos: photoUrls });
     
-    const shopOwnersQuery = query(collection(db, 'users'), where("role", "==", "shop-owner"));
-    const shopOwnersSnapshot = await getDocs(shopOwnersQuery);
+    // Optimized: Query profiles directly by location.
+    const shopProfilesQuery = query(
+        collection(db, 'shopOwnerProfiles'),
+        where("location", "==", data.location)
+    );
+    const shopProfilesSnapshot = await getDocs(shopProfilesQuery);
     
-    const batch = writeBatch(db);
-
-    for (const shopOwnerUserDoc of shopOwnersSnapshot.docs) {
-        const shopOwnerProfileDoc = await getDoc(doc(db, 'shopOwnerProfiles', shopOwnerUserDoc.id));
-        if (shopOwnerProfileDoc.exists()) {
-            const shopOwnerProfile = shopOwnerProfileDoc.data() as ShopOwnerProfile;
-            if (shopOwnerProfile.location === data.location) {
-                 const notifRef = doc(collection(db, 'notifications'));
-                 batch.set(notifRef, {
-                    userId: shopOwnerUserDoc.id,
-                    message: `New requirement '${data.title}' posted in ${data.location}.`,
-                    link: `/shop-owner/requirements/${requirementRef.id}`,
-                    read: false,
-                    createdAt: serverTimestamp(),
-                    type: 'requirement'
-                });
-            }
-        }
+    if (shopProfilesSnapshot.empty) {
+        return requirementRef.id;
     }
+
+    const batch = writeBatch(db);
+    shopProfilesSnapshot.forEach(profileDoc => {
+        const userId = profileDoc.id; // The profile doc ID is the user ID
+        const notifRef = doc(collection(db, 'notifications'));
+        batch.set(notifRef, {
+            userId: userId,
+            message: `New requirement '${data.title}' posted in ${data.location}.`,
+            link: `/shop-owner/requirements/${requirementRef.id}`,
+            read: false,
+            createdAt: serverTimestamp(),
+            type: 'requirement'
+        });
+    });
+
     await batch.commit();
     return requirementRef.id;
 }
@@ -766,18 +770,18 @@ export const markAllNotificationsAsRead = async (userId: string) => {
 export const getAllUsersByRole = async (role: UserRole): Promise<User[]> => {
     const usersQuery = query(collection(db, 'users'), where('role', '==', role));
     const usersSnapshot = await getDocs(usersQuery);
-    const users: User[] = [];
 
-    for (const userDoc of usersSnapshot.docs) {
-        const userData = userDoc.data() as User;
+    const users = await Promise.all(usersSnapshot.docs.map(async (userDoc) => {
+        const userData = userDoc.data() as Omit<User, 'id' | 'profile'>;
         const profileCollection = role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
         const profileDocRef = doc(db, profileCollection, userDoc.id);
         const profileSnap = await getDoc(profileDocRef);
-        if (profileSnap.exists()) {
-            userData.profile = profileSnap.data() as HomeownerProfile | ShopOwnerProfile;
-        }
-        users.push({ id: userDoc.id, ...userData });
-    }
+        
+        const profile = profileSnap.exists() ? profileSnap.data() as HomeownerProfile | ShopOwnerProfile : undefined;
+        
+        return { id: userDoc.id, ...userData, profile } as User;
+    }));
+
     return users;
 };
 
