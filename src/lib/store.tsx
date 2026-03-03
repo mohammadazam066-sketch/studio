@@ -5,11 +5,11 @@ import type { User, UserRole, HomeownerProfile, ShopOwnerProfile, Requirement, Q
 import { db, storage, auth as firebaseAuth } from './firebase';
 import { 
     doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc,
-    collection, query, where, getDocs, serverTimestamp, orderBy, writeBatch
+    collection, query, where, getDocs, serverTimestamp, orderBy, writeBatch, onSnapshot
 } from 'firebase/firestore';
 import { ref, uploadString, getDownloadURL, deleteObject } from "firebase/storage";
 import { logoutUser } from './auth';
-import { onAuthStateChanged, deleteUser, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { onAuthStateChanged, deleteUser, signInWithPopup, GoogleAuthProvider, Unsubscribe } from 'firebase/auth';
 
 // --- AUTH CONTEXT & PROVIDER ---
 
@@ -30,70 +30,90 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   
   useEffect(() => {
     const adminUids: string[] = ['OmP2c8syLshm2F7KXj4cRT9UJsr1'];
-    
-    const unsubscribe = onAuthStateChanged(firebaseAuth, async (user) => {
-      if (user) {
-        const isDesignatedAdmin = adminUids.includes(user.uid);
+    let unsubscribeUser: Unsubscribe | null = null;
+    let unsubscribeProfile: Unsubscribe | null = null;
 
-        if (isDesignatedAdmin) {
-            const adminDocRef = doc(db, 'users', user.uid);
-            let adminDocSnap = await getDoc(adminDocRef);
-            
-            let adminData;
-            if (!adminDocSnap.exists()) {
-                adminData = {
-                    id: user.uid,
-                    phoneNumber: user.phoneNumber || 'N/A',
-                    role: 'admin' as UserRole,
-                    createdAt: serverTimestamp(),
-                    profile: {
-                        name: 'Admin',
-                        phoneNumber: user.phoneNumber,
-                        email: user.email,
-                    }
-                };
-                await setDoc(adminDocRef, adminData);
-            } else {
-                 adminData = {
-                    ...adminDocSnap.data(),
-                    role: 'admin',
-                    profile: {
-                        name: adminDocSnap.data().profile?.name || 'Admin',
-                        ...(adminDocSnap.data().profile || {}),
-                        phoneNumber: user.phoneNumber,
-                        email: user.email,
-                    }
-                 };
-                 if (adminDocSnap.data().role !== 'admin') {
-                    await updateDoc(adminDocRef, { role: 'admin' });
-                 }
-            }
-            setCurrentUser(adminData as User);
-        } else {
-            const userDocSnap = await getDoc(doc(db, 'users', user.uid));
-            if (userDocSnap.exists()) {
-                const userData = userDocSnap.data() as User;
-                let userProfile;
+    const unsubscribeAuth = onAuthStateChanged(firebaseAuth, async (user) => {
+        // First, clean up any existing listeners from the previous user
+        if (unsubscribeUser) unsubscribeUser();
+        if (unsubscribeProfile) unsubscribeProfile();
 
-                const profileCollection = userData.role === 'homeowner' 
-                    ? 'homeownerProfiles' 
-                    : 'shopOwnerProfiles';
-                const profileDocRef = doc(db, profileCollection, user.uid);
-                const profileDocSnap = await getDoc(profileDocRef);
-                if (profileDocSnap.exists()) {
-                     userProfile = { id: profileDocSnap.id, ...profileDocSnap.data() };
+        if (user) {
+            const isDesignatedAdmin = adminUids.includes(user.uid);
+
+            if (isDesignatedAdmin) {
+                const adminDocRef = doc(db, 'users', user.uid);
+                const adminDocSnap = await getDoc(adminDocRef);
+                let adminData: Partial<User>;
+                if (!adminDocSnap.exists()) {
+                     adminData = {
+                        id: user.uid,
+                        phoneNumber: user.phoneNumber || 'N/A',
+                        role: 'admin',
+                        createdAt: serverTimestamp(),
+                        profile: {
+                            name: 'Admin',
+                            phoneNumber: user.phoneNumber,
+                            email: user.email,
+                        }
+                    };
+                    await setDoc(adminDocRef, adminData);
+                } else {
+                    adminData = { ...adminDocSnap.data(), role: 'admin' };
+                    if (adminDocSnap.data().role !== 'admin') {
+                        await updateDoc(adminDocRef, { role: 'admin' });
+                    }
                 }
+                setCurrentUser(adminData as User);
+                setLoading(false);
+            } else {
+                // For regular users, set up real-time listeners
+                const userDocRef = doc(db, 'users', user.uid);
+                unsubscribeUser = onSnapshot(userDocRef, (userDocSnap) => {
+                    if (userDocSnap.exists()) {
+                        const userData = userDocSnap.data() as Omit<User, 'id' | 'profile'>;
+                        
+                        // Clean up old profile listener if user role changes
+                        if (unsubscribeProfile) unsubscribeProfile();
 
-                setCurrentUser({ ...userData, profile: userProfile });
+                        const profileCollection = userData.role === 'homeowner' 
+                            ? 'homeownerProfiles' 
+                            : 'shopOwnerProfiles';
+                        const profileDocRef = doc(db, profileCollection, user.uid);
+                        
+                        unsubscribeProfile = onSnapshot(profileDocRef, (profileDocSnap) => {
+                            const profileData = profileDocSnap.exists() 
+                                ? { id: profileDocSnap.id, ...profileDocSnap.data() } 
+                                : null;
+                            
+                            setCurrentUser({ id: user.uid, ...userData, profile: profileData });
+                            setLoading(false);
+                        });
+                    } else {
+                        // User is authenticated but has no record in 'users' collection yet (e.g., mid-registration)
+                        setCurrentUser(null);
+                        setLoading(false);
+                    }
+                }, (error) => {
+                    console.error("Error listening to user document:", error);
+                    setCurrentUser(null);
+                    setLoading(false);
+                });
             }
+        } else {
+            // No user is signed in
+            setCurrentUser(null);
+            setLoading(false);
         }
-      } else {
-        setCurrentUser(null);
-      }
-      setLoading(false);
     });
-    return () => unsubscribe();
-  }, []); 
+
+    // Cleanup function for the main auth state listener
+    return () => {
+        unsubscribeAuth();
+        if (unsubscribeUser) unsubscribeUser();
+        if (unsubscribeProfile) unsubscribeProfile();
+    };
+  }, []);
 
 
   const logout = async () => {
@@ -178,9 +198,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         finalProfileData.photoURL = uploadedUrls[0];
     }
 
-    setDoc(profileDocRef, finalProfileData, { merge: true }).catch(async (serverError) => {
-        console.error("Error setting user profile:", serverError);
-    });
+    // Update the profile. The onSnapshot listener will automatically update the currentUser state.
+    await setDoc(profileDocRef, finalProfileData, { merge: true });
     
     if (finalProfileData.name && finalProfileData.name !== currentUser.profile?.name) {
         const userDocRef = doc(db, 'users', currentUser.id);
@@ -189,18 +208,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
              // Future improvement logic
         }
     }
-
-     const updatedUserDocSnap = await getDoc(doc(db, 'users', currentUser.id));
-     const updatedProfileDocSnap = await getDoc(profileDocRef);
-
-     if(updatedUserDocSnap.exists() && updatedProfileDocSnap.exists()) {
-        const updatedUser = {
-            ...(updatedUserDocSnap.data() as Omit<User, 'id' | 'profile'>),
-            id: currentUser.id,
-            profile: updatedProfileDocSnap.data(),
-        } as User;
-        setCurrentUser(updatedUser);
-     }
   };
 
   const handleNewUser = async (user: import('firebase/auth').User, role: UserRole) => {
@@ -223,9 +230,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         createdAt: serverTimestamp(),
       };
       
-      setDoc(userDocRef, userDataForDb).catch(async (serverError) => {
-          console.error("Error creating user document:", serverError);
-      });
+      await setDoc(userDocRef, userDataForDb);
   
       const profileCollection = role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
       const profileDocRef = doc(db, profileCollection, user.uid);
@@ -258,17 +263,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         };
       }
       
-      setDoc(profileDocRef, profileData, { merge: true }).catch(async (serverError) => {
-          console.error("Error creating profile document:", serverError);
-      });
-  
-      const newUserDoc = await getDoc(userDocRef);
-      const newProfileDoc = await getDoc(profileDocRef);
-      if (newUserDoc.exists() && newProfileDoc.exists()) {
-        const userData = newUserDoc.data() as User;
-        const profileData = newProfileDoc.data();
-        setCurrentUser({ ...userData, profile: profileData });
-      }
+      await setDoc(profileDocRef, profileData, { merge: true });
+      // No need to manually set user state here, the onSnapshot listener will pick it up.
   }
 
   const deleteUserAccount = async () => {
@@ -874,3 +870,4 @@ export const getReviewByPurchase = async (purchaseId: string, customerId: string
 
 
     
+
