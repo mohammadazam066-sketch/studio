@@ -39,9 +39,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     let unsubscribeProfile: Unsubscribe | null = null;
 
     const unsubscribeAuth = onAuthStateChanged(firebaseAuth, async (user) => {
-        // First, clean up any existing listeners from the previous user
-        if (unsubscribeUser) unsubscribeUser();
-        if (unsubscribeProfile) unsubscribeProfile();
+        // 1. Immediate Cleanup of previous listeners on auth change
+        if (unsubscribeUser) { unsubscribeUser(); unsubscribeUser = null; }
+        if (unsubscribeProfile) { unsubscribeProfile(); unsubscribeProfile = null; }
 
         if (user) {
             const isDesignatedAdmin = adminUids.includes(user.uid);
@@ -72,20 +72,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 setCurrentUser(adminData as User);
                 setLoading(false);
             } else {
-                // For regular users, set up real-time listeners
                 const userDocRef = doc(db, 'users', user.uid);
+                
+                // 2. Listen to User Document
                 unsubscribeUser = onSnapshot(userDocRef, (userDocSnap) => {
                     if (userDocSnap.exists()) {
                         const userData = userDocSnap.data() as Omit<User, 'id' | 'profile'>;
-                        
-                        // Clean up old profile listener if user role changes
-                        if (unsubscribeProfile) unsubscribeProfile();
+
+                        // 3. IMPORTANT: Clean up the OLD profile listener before starting a NEW one
+                        if (unsubscribeProfile) {
+                            unsubscribeProfile();
+                            unsubscribeProfile = null;
+                        }
 
                         const profileCollection = userData.role === 'homeowner' 
                             ? 'homeownerProfiles' 
                             : 'shopOwnerProfiles';
                         const profileDocRef = doc(db, profileCollection, user.uid);
-                        
+
                         unsubscribeProfile = onSnapshot(profileDocRef, (profileDocSnap) => {
                             const profileData = profileDocSnap.exists() 
                                 ? { id: profileDocSnap.id, ...profileDocSnap.data() } as (HomeownerProfile | ShopOwnerProfile) 
@@ -95,7 +99,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                             setLoading(false);
                         });
                     } else {
-                        // User is authenticated but has no record in 'users' collection yet (e.g., mid-registration)
+                        // User is authenticated but has no record in 'users' collection yet
                         setCurrentUser(null);
                         setLoading(false);
                     }
@@ -112,7 +116,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     });
 
-    // Cleanup function for the main auth state listener
+    // Final cleanup on component unmount
     return () => {
         unsubscribeAuth();
         if (unsubscribeUser) unsubscribeUser();
@@ -890,3 +894,6 @@ export const getReviewByPurchase = async (purchaseId: string, customerId: string
 
 
 
+
+
+    
