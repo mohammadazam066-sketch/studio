@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
@@ -30,11 +28,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Wrap setCurrentUser to log changes
-  const setCurrentUserAndLog = useCallback((user) => {
-    setCurrentUser(user);
-  }, []);
-
   useEffect(() => {
     const adminUids: string[] = ['OmP2c8syLshm2F7KXj4cRT9UJsr1'];
     
@@ -63,7 +56,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             } else {
                  adminData = {
                     ...adminDocSnap.data(),
-                    role: 'admin', // Always ensure role is admin
+                    role: 'admin',
                     profile: {
                         name: adminDocSnap.data().profile?.name || 'Admin',
                         ...(adminDocSnap.data().profile || {}),
@@ -71,12 +64,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                         email: user.email,
                     }
                  };
-                 // If the role in DB was not admin, update it
                  if (adminDocSnap.data().role !== 'admin') {
                     await updateDoc(adminDocRef, { role: 'admin' });
                  }
             }
-            setCurrentUserAndLog(adminData as User);
+            setCurrentUser(adminData as User);
         } else {
             const userDocSnap = await getDoc(doc(db, 'users', user.uid));
             if (userDocSnap.exists()) {
@@ -92,22 +84,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                      userProfile = { id: profileDocSnap.id, ...profileDocSnap.data() };
                 }
 
-                setCurrentUserAndLog({ ...userData, profile: userProfile });
+                setCurrentUser({ ...userData, profile: userProfile });
             }
         }
       } else {
-        // User is signed out.
-        setCurrentUserAndLog(null);
+        setCurrentUser(null);
       }
       setLoading(false);
     });
     return () => unsubscribe();
-  }, [setCurrentUserAndLog]);
+  }, []); 
 
 
   const logout = async () => {
     await logoutUser();
-    setCurrentUserAndLog(null);
+    setCurrentUser(null);
   };
   
  const updateUserProfile = async (updatedProfileData, newPhotosDataUrls = []) => {
@@ -143,8 +134,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (currentUser.role === 'shop-owner') {
             uploadedUrls = await uploadPhotos(newPhotosDataUrls, {type: 'shop', userId: currentUser.id});
         } else if (currentUser.role === 'homeowner' && newPhotosDataUrls.length === 1) {
-            // Homeowners can only have one profile picture
-            // Delete old photo if it exists
             if (currentProfile?.photoURL) {
                 try {
                     const oldPhotoRef = ref(storage, currentProfile.photoURL);
@@ -189,10 +178,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         finalProfileData.photoURL = uploadedUrls[0];
     }
 
-    // Use set with merge to prevent error on new user profile creation
     setDoc(profileDocRef, finalProfileData, { merge: true }).catch(async (serverError) => {
-        // This part is handled by contextual errors in production apps
-        // but for now, we will log it.
         console.error("Error setting user profile:", serverError);
     });
     
@@ -200,8 +186,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const userDocRef = doc(db, 'users', currentUser.id);
         const userDoc = await getDoc(userDocRef);
         if(userDoc.exists()) {
-             // To keep things simple, we won't update other collections with the new name.
-             // This can be a future improvement with cloud functions.
+             // Future improvement logic
         }
     }
 
@@ -214,7 +199,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             id: currentUser.id,
             profile: updatedProfileDocSnap.data(),
         } as User;
-        setCurrentUserAndLog(updatedUser);
+        setCurrentUser(updatedUser);
      }
   };
 
@@ -230,7 +215,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const defaultName = user.displayName || `User ${user.uid.slice(0, 5)}`;
       const phoneNumber = user.phoneNumber || '';
 
-      // Create user document in 'users' collection
       const userDataForDb = {
         id: user.uid,
         phoneNumber: phoneNumber,
@@ -240,18 +224,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       };
       
       setDoc(userDocRef, userDataForDb).catch(async (serverError) => {
-          // This part is handled by contextual errors in production apps
-          console.error("Error creating user document:", serverError, {
-            context: {
-              path: userDocRef.path,
-              operation: 'create',
-              requestResourceData: userDataForDb,
-            }
-          });
-          // throw contextual error here
+          console.error("Error creating user document:", serverError);
       });
   
-      // Create corresponding profile document
       const profileCollection = role === 'homeowner' ? 'homeownerProfiles' : 'shopOwnerProfiles';
       const profileDocRef = doc(db, profileCollection, user.uid);
       
@@ -270,7 +245,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             shopIconUrl: user.photoURL || '',
             createdAt: serverTimestamp(),
         };
-      } else { // homeowner
+      } else {
         profileData = {
             id: user.uid,
             name: defaultName,
@@ -284,17 +259,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
       
       setDoc(profileDocRef, profileData, { merge: true }).catch(async (serverError) => {
-          // This part is handled by contextual errors in production apps
           console.error("Error creating profile document:", serverError);
       });
   
-      // Manually trigger a state refresh to load the new user data
       const newUserDoc = await getDoc(userDocRef);
       const newProfileDoc = await getDoc(profileDocRef);
       if (newUserDoc.exists() && newProfileDoc.exists()) {
         const userData = newUserDoc.data() as User;
         const profileData = newProfileDoc.data();
-        setCurrentUserAndLog({ ...userData, profile: profileData });
+        setCurrentUser({ ...userData, profile: profileData });
       }
   }
 
@@ -315,7 +288,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         ? 'shopOwnerProfiles'
         : null;
 
-    // Delete Firestore documents
     const batch = writeBatch(db);
     batch.delete(userDocRef);
     if (profileCollection) {
@@ -323,16 +295,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         batch.delete(profileDocRef);
     }
     
-    // Note: Deleting associated content (requirements, quotes, reviews, photos)
-    // is a complex operation ideally suited for a Firebase Cloud Function to ensure atomicity.
-    // This client-side implementation will only delete the core user and profile documents.
-
     await batch.commit();
-
-    // Finally, delete the user from Firebase Authentication
     await deleteUser(user);
   };
-
 
   const value = {
     currentUser,
@@ -353,7 +318,6 @@ export const useAuth = () => {
   }
   return context;
 };
-
 
 // --- FIRESTORE DATA FUNCTIONS ---
 
@@ -394,9 +358,6 @@ const uploadPhotos = async (photosDataUrls: string[], pathConfig: UploadPathConf
     return urls;
 }
 
-
-// == REQUIREMENTS ==
-
 export const addRequirement = async (data, photosDataUrls: string[]) => {
     if (!firebaseAuth.currentUser) throw new Error("User not authenticated");
     
@@ -408,20 +369,18 @@ export const addRequirement = async (data, photosDataUrls: string[]) => {
     const profileDocSnap = await getDoc(profileDocRef);
     const profileData = profileDocSnap.data() as HomeownerProfile;
 
-
     const requirementRef = await addDoc(collection(db, 'requirements'), {
         ...data,
         homeownerId: firebaseAuth.currentUser.uid,
         homeownerName: profileData?.name || userData?.phoneNumber || 'Anonymous',
         createdAt: serverTimestamp(),
         status: 'Open',
-        photos: [], // Start with empty array,
+        photos: [],
     });
 
     const photoUrls = await uploadPhotos(photosDataUrls, { type: 'requirement', userId: firebaseAuth.currentUser.uid, requirementId: requirementRef.id });
     await updateDoc(requirementRef, { photos: photoUrls });
     
-    // Create notifications for shop owners in the same location
     const shopOwnersQuery = query(collection(db, 'users'), where("role", "==", "shop-owner"));
     const shopOwnersSnapshot = await getDocs(shopOwnersQuery);
     
@@ -444,10 +403,7 @@ export const addRequirement = async (data, photosDataUrls: string[]) => {
             }
         }
     }
-    
     await batch.commit();
-
-
     return requirementRef.id;
 }
 
@@ -459,7 +415,6 @@ export const updateRequirement = async (id: string, data: Partial<Requirement>, 
     if (!requirementSnap.exists()) throw new Error("Requirement not found");
     const existingData = requirementSnap.data();
 
-    // Handle photo deletions
     const photosToDelete = (existingData.photos || []).filter(url => !remainingExistingPhotos.includes(url));
     await Promise.all(photosToDelete.map(async (url) => {
         try {
@@ -472,14 +427,12 @@ export const updateRequirement = async (id: string, data: Partial<Requirement>, 
         }
     }));
 
-    // Handle photo additions
     let newPhotoUrls: string[] = [];
     if (newPhotosDataUrls.length > 0) {
         newPhotoUrls = await uploadPhotos(newPhotosDataUrls, {type: 'requirement', userId: firebaseAuth.currentUser.uid, requirementId: id});
     }
     
     const finalPhotos = [...remainingExistingPhotos, ...newPhotoUrls];
-    
     await updateDoc(requirementRef, {
         ...data,
         photos: finalPhotos,
@@ -505,19 +458,14 @@ export const getRequirementsByHomeowner = async (homeownerId: string): Promise<R
         .map(doc => ({ id: doc.id, ...doc.data() } as Requirement))
         .filter(req => req.status !== 'Deleted');
     
-    // Client-side sorting
     return requirements.sort((a, b) => {
-        // Sort "Open" requirements first
         if (a.status === 'Open' && b.status !== 'Open') return -1;
         if (a.status !== 'Open' && b.status === 'Open') return 1;
-        
-        // Then sort by creation date, newest first
         const dateA = (a.createdAt as any)?.toDate ? (a.createdAt as any).toDate() : new Date(0);
         const dateB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate() : new Date(0);
         return dateB.getTime() - dateA.getTime();
     });
 }
-
 
 export const getOpenRequirements = async (): Promise<Requirement[]> => {
     const q = query(
@@ -538,19 +486,15 @@ export const getOpenRequirementsByCategory = async (category: string): Promise<R
     const querySnapshot = await getDocs(q);
     const requirements = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Requirement));
 
-    // Sort manually on the client-side to avoid needing a composite index
     return requirements.sort((a, b) => {
-        const dateA = (a.createdAt as any)?.toDate ? (a.createdAt as any).toDate() : new Date(a.createdAt as string);
-        const dateB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate() : new Date(a.createdAt as string);
+        const dateA = (a.createdAt as any)?.toDate ? (a.createdAt as any).toDate() : new Date(0);
+        const dateB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate() : new Date(0);
         return dateB.getTime() - dateA.getTime();
     });
 }
 
 export const getOpenRequirementsCountByCategory = async (): Promise<Record<string, number>> => {
-    const q = query(
-        collection(db, "requirements"), 
-        where("status", "==", "Open")
-    );
+    const q = query(collection(db, "requirements"), where("status", "==", "Open"));
     const querySnapshot = await getDocs(q);
     const counts: Record<string, number> = {};
     querySnapshot.forEach(doc => {
@@ -562,14 +506,10 @@ export const getOpenRequirementsCountByCategory = async (): Promise<Record<strin
     return counts;
 };
 
-
 export const updateRequirementStatus = async (id: string, status: 'Open' | 'Purchased' | 'Deleted', data: Partial<Requirement> = {}) => {
     const requirementRef = doc(db, 'requirements', id);
     await updateDoc(requirementRef, { ...data, status });
 };
-
-
-// == QUOTATIONS ==
 
 export const addQuotation = async (data) => {
     if (!firebaseAuth.currentUser) throw new Error("User not authenticated");
@@ -595,7 +535,6 @@ export const addQuotation = async (data) => {
     }
     const docRef = await addDoc(collection(db, 'quotations'), quotationData);
     
-    // Create notification for homeowner
     await addDoc(collection(db, 'notifications'), {
         userId: requirement.homeownerId,
         message: `You received a new quote from ${quotationData.shopName} for '${requirement.title}'.`,
@@ -623,7 +562,6 @@ export const updateQuotation = async (id: string, data) => {
 export const deleteQuotation = async (id: string) => {
     if (!firebaseAuth.currentUser) throw new Error("User not authenticated");
     const quotationRef = doc(db, 'quotations', id);
-    // Optional: Add a check to ensure the user deleting is the one who created it.
     const quoteSnap = await getDoc(quotationRef);
     if (quoteSnap.exists() && quoteSnap.data().shopOwnerId === firebaseAuth.currentUser.uid) {
         await deleteDoc(quotationRef);
@@ -641,16 +579,14 @@ export const getQuotationById = async (id: string): Promise<Quotation | undefine
     return undefined;
 }
 
-
 export const getQuotationsForRequirement = async (requirementId: string): Promise<Quotation[]> => {
     const q = query(collection(db, "quotations"), where("requirementId", "==", requirementId));
     const querySnapshot = await getDocs(q);
     const quotations = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Quotation));
     
-    // Sort manually on the client-side
     return quotations.sort((a, b) => {
-        const dateA = (a.createdAt as any)?.toDate ? (a.createdAt as any).toDate() : new Date(a.createdAt as string);
-        const dateB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate() : new Date(a.createdAt as string);
+        const dateA = (a.createdAt as any)?.toDate ? (a.createdAt as any).toDate() : new Date(0);
+        const dateB = (b.createdAt as any)?.toDate ? (b.createdAt as any).toDate() : new Date(0);
         return dateB.getTime() - dateA.getTime();
     });
 }
@@ -684,10 +620,7 @@ export const getQuotationsByShopOwner = async (shopOwnerId: string): Promise<Quo
     return quotationsWithRequirements;
 }
 
-// == PROFILES ==
-
 export const getProfile = async (userId: string): Promise<ShopOwnerProfile | undefined> => {
-     // For now, we assume we're only viewing shop owner profiles publicly
     const docRef = doc(db, "shopOwnerProfiles", userId);
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
@@ -714,8 +647,6 @@ export const getUser = async (userId: string): Promise<User | undefined> => {
     return undefined;
 }
 
-// == UPDATES ==
-
 export const addUpdate = async (data: { title: string, content: string }, photosDataUrls: string[] = []) => {
     if (!firebaseAuth.currentUser) throw new Error("User not authenticated");
     
@@ -736,10 +667,8 @@ export const addUpdate = async (data: { title: string, content: string }, photos
     });
 
     const photoUrls = await uploadPhotos(photosDataUrls, { type: 'update', userId: firebaseAuth.currentUser.uid, updateId: updateRef.id });
-
     await updateDoc(updateRef, { imageUrls: photoUrls });
 }
-
 
 export const updateUpdate = async (id: string, data: { title: string; content: string }, newPhotosDataUrls: string[], remainingExistingPhotos: string[]) => {
     if (!firebaseAuth.currentUser) throw new Error("User not authenticated");
@@ -770,7 +699,6 @@ export const updateUpdate = async (id: string, data: { title: string; content: s
     });
 }
 
-
 export const deleteUpdate = async (id: string, imageUrls?: string[]) => {
     const updateRef = doc(db, 'updates', id);
     await deleteDoc(updateRef);
@@ -789,12 +717,10 @@ export const deleteUpdate = async (id: string, imageUrls?: string[]) => {
     }
 }
 
-
 export const getAllUpdates = async (): Promise<Update[]> => {
     const q = query(collection(db, "updates"), orderBy("createdAt", "desc"));
     const querySnapshot = await getDocs(q);
-    const updates = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Update));
-    return updates;
+    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Update));
 }
 
 export const getUpdateById = async (id: string): Promise<Update | undefined> => {
@@ -802,21 +728,15 @@ export const getUpdateById = async (id: string): Promise<Update | undefined> => 
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
         const data = docSnap.data();
-        // Check for the legacy soft-delete status
-        if (data.status === 'Deleted') {
-            return undefined;
-        }
+        if (data.status === 'Deleted') return undefined;
         return { id: docSnap.id, ...data } as Update;
     }
     return undefined;
 }
 
-// == NOTIFICATIONS ==
-
 export const markAllNotificationsAsRead = async (userId: string) => {
     const q = query(collection(db, "notifications"), where("userId", "==", userId), where("read", "==", false));
     const snapshot = await getDocs(q);
-
     if (snapshot.empty) return;
 
     const batch = writeBatch(db);
@@ -825,9 +745,6 @@ export const markAllNotificationsAsRead = async (userId: string) => {
     });
     await batch.commit();
 };
-
-
-// == ADMIN FUNCTIONS ==
 
 export const getAllUsersByRole = async (role: UserRole): Promise<User[]> => {
     const usersQuery = query(collection(db, 'users'), where('role', '==', role));
@@ -866,7 +783,6 @@ export const createPurchase = async (requirement: Requirement, quotation: Quotat
         quotationId: quotation.id,
      });
 
-    // Create notification for shop owner about the purchase
     await addDoc(collection(db, 'notifications'), {
         userId: quotation.shopOwnerId,
         message: `Your quote for '${requirement.title}' was accepted by ${requirement.homeownerName}!`,
@@ -888,13 +804,9 @@ export const getAllPurchases = async (): Promise<Purchase[]> => {
 export const getPurchaseById = async (id: string): Promise<PurchaseWithDetails | undefined> => {
     const purchaseRef = doc(db, 'purchases', id);
     const purchaseSnap = await getDoc(purchaseRef);
-
-    if (!purchaseSnap.exists()) {
-        return undefined;
-    }
+    if (!purchaseSnap.exists()) return undefined;
 
     const purchase = { id: purchaseSnap.id, ...purchaseSnap.data() } as Purchase;
-
     const [requirement, quotation, homeowner, shopOwner] = await Promise.all([
         getRequirementById(purchase.requirementId),
         getQuotationById(purchase.quotationId),
@@ -902,20 +814,12 @@ export const getPurchaseById = async (id: string): Promise<PurchaseWithDetails |
         getProfile(purchase.shopOwnerId),
     ]);
 
-    return {
-        ...purchase,
-        requirement,
-        quotation,
-        homeowner,
-        shopOwner
-    };
+    return { ...purchase, requirement, quotation, homeowner, shopOwner };
 };
-
-// == REVIEWS ==
 
 export const addReview = async (reviewData: Omit<Review, 'id' | 'createdAt'>) => {
     if (!firebaseAuth.currentUser) throw new Error("Not authenticated");
-    if (firebaseAuth.currentUser.uid !== reviewData.customerId) throw new Error("Cannot post review for another user.");
+    if (firebaseAuth.currentUser.uid !== reviewData.customerId) throw new Error("Unauthorized review.");
     
     return await addDoc(collection(db, 'reviews'), {
         ...reviewData,
@@ -925,21 +829,13 @@ export const addReview = async (reviewData: Omit<Review, 'id' | 'createdAt'>) =>
 
 export const updateReview = async (reviewId: string, data: { rating: number; comment: string }) => {
     if (!firebaseAuth.currentUser) throw new Error("Not authenticated");
-    
     const reviewRef = doc(db, 'reviews', reviewId);
-    
-    // Optional: Check if the current user is the author of the review before updating
     const reviewSnap = await getDoc(reviewRef);
     if (!reviewSnap.exists() || reviewSnap.data().customerId !== firebaseAuth.currentUser.uid) {
-        throw new Error("You are not authorized to edit this review.");
+        throw new Error("Unauthorized review edit.");
     }
-    
-    return await updateDoc(reviewRef, {
-        rating: data.rating,
-        comment: data.comment,
-    });
+    return await updateDoc(reviewRef, { rating: data.rating, comment: data.comment });
 }
-
 
 export const getReviewsByShopOwner = async (shopOwnerId: string): Promise<Review[]> => {
     const q = query(collection(db, 'reviews'), where('shopOwnerId', '==', shopOwnerId));
@@ -966,8 +862,7 @@ export const getReviewByPurchase = async (purchaseId: string, customerId: string
         return { id: doc.id, ...doc.data() } as Review;
     }
     return undefined;
-}
-
+};
     
 
 
