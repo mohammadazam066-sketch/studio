@@ -6,8 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Home, Store, User, ArrowRight, Download, CheckCircle, LogIn, UserCheck } from 'lucide-react';
 import { Logo } from '@/components/logo';
+import { useToast } from '@/hooks/use-toast';
+import { useEffect } from 'react';
 
 export default function HomePage() {
+  const { toast } = useToast();
+
+  useEffect(() => {
+    toast({
+      title: "Service Area Update",
+      description: "We are currently serving only in Bidar.",
+    });
+  }, [toast]);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
