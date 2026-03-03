@@ -210,14 +210,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Update the profile. The onSnapshot listener will automatically update the currentUser state.
     await setDoc(profileDocRef, finalProfileData, { merge: true });
-    
-    if (finalProfileData.name && finalProfileData.name !== currentUser.profile?.name) {
-        const userDocRef = doc(db, 'users', currentUser.id);
-        const userDoc = await getDoc(userDocRef);
-        if(userDoc.exists()) {
-             // Future improvement logic
-        }
-    }
   };
 
   const handleNewUser = async (user: import('firebase/auth').User, role: UserRole) => {
