@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
@@ -87,8 +88,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                         
                         unsubscribeProfile = onSnapshot(profileDocRef, (profileDocSnap) => {
                             const profileData = profileDocSnap.exists() 
-                                ? { id: profileDocSnap.id, ...profileDocSnap.data() } 
-                                : null;
+                                ? { id: profileDocSnap.id, ...profileDocSnap.data() } as (HomeownerProfile | ShopOwnerProfile) 
+                                : undefined;
                             
                             setCurrentUser({ id: user.uid, ...userData, profile: profileData });
                             setLoading(false);
@@ -886,5 +887,6 @@ export const getReviewByPurchase = async (purchaseId: string, customerId: string
 
 
     
+
 
 
